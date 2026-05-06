@@ -301,18 +301,41 @@ jobs:
           print('Zero-dependency check passed')
           "
 
-      - name: Type check (enforce; r57 T2)
+      - name: Type check (enforce; r57 T2 + r58 P1 scope expansion)
         shell: bash
         run: |
           pip install mypy --break-system-packages 2>/dev/null || pip install mypy
           # Round 57 T2: upgraded from "informational" to enforced.
-          # Scope is the same r51-era hot-path subset (6 files / 2 packages);
-          # any new file added here must keep mypy clean before merge.
+          # Round 58 P1: scope expanded to engines/ + safety/ (kept follow-imports=silent
+          # so translators/ -- known to have ~20 mypy errors -- doesn't gate engines/).
+          #
           # Remaining `# type: ignore[union-attr]` pragmas in core/api_plugin.py
           # mark Optional[Popen[str]] call sites where runtime control flow
           # guarantees non-None but mypy cannot prove it statically — see
           # AUDIT_R57.md T2 for rationale.
           mypy --ignore-missing-imports core/translation_utils.py core/config.py file_processor/ core/api_client.py core/glossary.py core/translation_db.py
+          # Round 58 P1: separate invocation for engines/ + safety/ with --follow-imports=silent
+          # so transitive translators/ imports don't fail this gate. translators/ remains
+          # unchecked at the file level pending follow-up cleanup.
+          mypy --ignore-missing-imports --follow-imports=silent engines/ safety/
+
+      - name: Lint (ruff check; r58 P1)
+        shell: bash
+        run: |
+          pip install ruff --break-system-packages 2>/dev/null || pip install ruff
+          # Round 58 P1: ruff lint enforce with project config in pyproject.toml.
+          # Default rules (E + F + W) minus ignored (E402 / E501 / F841 — see
+          # pyproject [tool.ruff.lint] for rationale). New PRs must keep this green.
+          ruff check .
+
+      - name: Format check (ruff format --check; r58 P1)
+        shell: bash
+        run: |
+          pip install ruff --break-system-packages 2>/dev/null || pip install ruff
+          # Round 58 P1: enforce uniform formatting; r58 baseline introduced via
+          # `ruff format .` (99 files reformatted). PRs must run `ruff format .`
+          # before pushing or this gate fails.
+          ruff format --check .
 
       - name: Integration test (dry-run)
         run: python main.py --game-dir tests/tl_priority_mini/game --provider xai --dry-run

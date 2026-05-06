@@ -136,7 +136,9 @@ def build_translations_map(
             conflicts += 1
             logger.debug(
                 "[TL-INJECT] translation conflict for %r — kept first (%r), skipped (%r)",
-                original, existing, translation,
+                original,
+                existing,
+                translation,
             )
     if conflicts:
         logger.info(
@@ -156,6 +158,7 @@ def _write_json_atomic(path: Path, data: object) -> None:
     content readable when users inspect the files.
     """
     import os as _os
+
     tmp_path = path.with_suffix(path.suffix + ".tmp")
     tmp_path.write_text(
         json.dumps(data, ensure_ascii=False, sort_keys=True, indent=2),
@@ -198,7 +201,8 @@ def _sanitise_overrides(
         if not isinstance(raw_key, str) or not key_regex.match(raw_key):
             logger.warning(
                 "[TL-INJECT] skipping unsafe %s key in font_config: %r",
-                category_name, raw_key,
+                category_name,
+                raw_key,
             )
             continue
         # Round 38 C3: bool is a subtype of int in Python.  Check it
@@ -209,14 +213,18 @@ def _sanitise_overrides(
                 logger.warning(
                     "[TL-INJECT] skipping bool %s value for %s: %r "
                     "(bool not allowed in this category)",
-                    category_name, raw_key, raw_val,
+                    category_name,
+                    raw_key,
+                    raw_val,
                 )
                 continue
             # allow_bool=True: fall through to accept the bool.
         elif not isinstance(raw_val, (int, float)):
             logger.warning(
                 "[TL-INJECT] skipping non-numeric %s value for %s: %r",
-                category_name, raw_key, raw_val,
+                category_name,
+                raw_key,
+                raw_val,
             )
             continue
         # Round 36 H2: reject inf / -inf / nan.  Python's ``json.loads``
@@ -227,7 +235,9 @@ def _sanitise_overrides(
         if isinstance(raw_val, float) and not math.isfinite(raw_val):
             logger.warning(
                 "[TL-INJECT] skipping non-finite %s value for %s: %r",
-                category_name, raw_key, raw_val,
+                category_name,
+                raw_key,
+                raw_val,
             )
             continue
         clean[raw_key] = raw_val
@@ -244,7 +254,9 @@ def _sanitise_gui_overrides(
     generic form.
     """
     return _sanitise_overrides(
-        overrides, _OVERRIDE_CATEGORIES["gui_overrides"], category_name="gui",
+        overrides,
+        _OVERRIDE_CATEGORIES["gui_overrides"],
+        category_name="gui",
     )
 
 
@@ -290,13 +302,16 @@ def _emit_overrides_rpy(
             continue
         # Strip the "_overrides" suffix for a cleaner warning namespace
         # label, e.g. "gui_overrides" → "gui".
-        label = cat_name[:-len("_overrides")] if cat_name.endswith("_overrides") else cat_name
+        label = cat_name[: -len("_overrides")] if cat_name.endswith("_overrides") else cat_name
         # Round 38 C3: resolve per-category bool policy via the
         # _OVERRIDE_ALLOW_BOOL map.  Missing categories default to
         # False (safest fallback — matches r33-r37 behaviour).
         allow_bool = _OVERRIDE_ALLOW_BOOL.get(cat_name, False)
         cleaned = _sanitise_overrides(
-            bucket, key_regex, category_name=label, allow_bool=allow_bool,
+            bucket,
+            key_regex,
+            category_name=label,
+            allow_bool=allow_bool,
         )
         combined.update(cleaned)
 
@@ -317,7 +332,7 @@ def _emit_overrides_rpy(
         "",
         "init 999 python:",
         "    import os",
-        "    if os.environ.get(\"RENPY_TL_INJECT\") == \"1\":",
+        '    if os.environ.get("RENPY_TL_INJECT") == "1":',
     ]
     for k in sorted(combined):
         # ``repr`` on an int / float yields a Python-safe literal so the
@@ -329,13 +344,15 @@ def _emit_overrides_rpy(
     content = "\n".join(lines)
     # Atomic write mirroring ``_write_json_atomic``'s crash-safety shape.
     import os as _os
+
     tmp_path = rpy_path.with_suffix(rpy_path.suffix + ".tmp")
     tmp_path.write_text(content, encoding="utf-8")
     _os.replace(str(tmp_path), str(rpy_path))
 
     logger.info(
         "[TL-INJECT] emitted overrides: %d key(s) → %s",
-        len(combined), rpy_path.name,
+        len(combined),
+        rpy_path.name,
     )
     return rpy_path
 
@@ -354,7 +371,9 @@ def _emit_gui_overrides_rpy(
     if overrides is None:
         return None
     return _emit_overrides_rpy(
-        output_game_dir, {"gui_overrides": overrides}, filename=filename,
+        output_game_dir,
+        {"gui_overrides": overrides},
+        filename=filename,
     )
 
 
@@ -446,7 +465,8 @@ def emit_runtime_hook(
             _write_json_atomic(ui_json_path, {"extensions": ext_sorted})
             logger.info(
                 "[TL-INJECT] emitted UI button sidecar: %d extensions → %s",
-                len(ext_sorted), ui_json_path.name,
+                len(ext_sorted),
+                ui_json_path.name,
             )
 
     # Round 32 Subtask B: optional font bundle.  Target filename is fixed
@@ -470,14 +490,16 @@ def emit_runtime_hook(
                 same = False
             if same:
                 logger.debug(
-                    "[TL-INJECT] skip font copy — src == dst (%s)", dst_font,
+                    "[TL-INJECT] skip font copy — src == dst (%s)",
+                    dst_font,
                 )
             else:
                 try:
                     shutil.copy2(str(font_src), str(dst_font))
                     logger.info(
                         "[TL-INJECT] bundled font: %s → %s",
-                        font_src.name, dst_font.relative_to(output_game_dir),
+                        font_src.name,
+                        dst_font.relative_to(output_game_dir),
                     )
                 except shutil.SameFileError:
                     # Belt-and-braces: even if resolve() disagreed, the
@@ -501,7 +523,9 @@ def emit_runtime_hook(
 
     logger.info(
         "[TL-INJECT] emitted runtime hook (v1 flat): %d translations → %s (+ %s)",
-        entry_count, json_path.name, hook_out.name,
+        entry_count,
+        json_path.name,
+        hook_out.name,
     )
     return json_path, hook_out, entry_count
 
@@ -548,6 +572,7 @@ def emit_if_requested(
         ui_ext: Iterable[str] | None = None
         try:
             from file_processor import get_ui_button_whitelist_extensions
+
             ui_ext = get_ui_button_whitelist_extensions()
         except ImportError:
             ui_ext = None
@@ -559,6 +584,7 @@ def emit_if_requested(
         font_source: Path | None = None
         try:
             from core.font_patch import resolve_font, default_resources_fonts_dir
+
             explicit = getattr(args, "font_file", "") or None
             font_source = resolve_font(default_resources_fonts_dir(), explicit)
         except (ImportError, OSError):
@@ -573,13 +599,15 @@ def emit_if_requested(
         if font_config_path:
             try:
                 from core.font_patch import load_font_config
+
                 font_config_dict = load_font_config(Path(font_config_path)) or None
             except (ImportError, OSError):
                 font_config_dict = None
         # Round 52 C4 BREAKING: v2 schema retired; --runtime-hook-schema
         # CLI flag retired; output is always v1 flat {original: translation}.
         emit_runtime_hook(
-            output_game_dir, entries,
+            output_game_dir,
+            entries,
             ui_button_extensions=ui_ext,
             font_path=font_source,
             font_config=font_config_dict,

@@ -10,7 +10,7 @@
 
 **当前数字**（测试数 / 文件数 / CI 步骤 / 断言点）：见 [HANDOFF.md](HANDOFF.md) 顶部 `<!-- VERIFIED-CLAIMS-START -->` 块 — **单一声称源**。本文 prose 不再独立声称数字。
 
-**质量水位**：direct-mode 漏翻率 4.01%（仅适用 English source，详见下方"已知限制"）；tl-mode 翻译成功率 99.97%（r52 实测 The Tyrant 74098 entries / **99.991%**）；连续 17 轮 0 CRITICAL correctness（r35-r57）。Round 55 起新增 Unity XUnity 引擎覆盖 ~10% 用户场景。
+**质量水位**：direct-mode 漏翻率 4.01%（仅适用 English source，详见下方"已知限制"）；tl-mode 翻译成功率 99.97%（r52 实测 The Tyrant 74098 entries / **99.991%**）；连续 18 轮 0 CRITICAL correctness（r35-r58）。Round 55 起新增 Unity XUnity 引擎覆盖 ~10% 用户场景。
 
 ---
 
@@ -129,6 +129,22 @@ scripts/         verify_docs_claims.py / verify_workflow.py / install_hooks.sh
 
 ---
 
+## 文档归档节奏（r58 P3 约定）
+
+防止 `_archive/EVOLUTION.md` 单调增长（每轮 +20-30 行，r57 末已 322 行）：
+
+- **触发条件**：每 5 轮（r60、r65、r70、…）执行一次归档
+- **操作步骤**（在该轮 docs sync commit 内完成）：
+  1. 把 `_archive/EVOLUTION.md` 中"阶段 N - 4"到"阶段 N"5 个阶段的详细叙事**整体抽出**，放到新文件 `_archive/EVOLUTION_rN-4_rN.md`（或类似命名）
+  2. 主 `_archive/EVOLUTION.md` 只留**1 段摘要**（每轮 1-2 句）+ 阶段表格行
+  3. CLAUDE.md "文档索引" 表格加新归档文件 entry
+  4. 验证：`wc -l _archive/EVOLUTION.md` 应该减少 ≥ 100 行
+- **归档命名规则**：`_archive/EVOLUTION_r{N-4}_r{N}.md`（如 r60 归档时文件名为 `EVOLUTION_r56_r60.md`）
+- **不归档**：`阶段一/二/三/...` 表格行 + 累积技术资产段 + 设计原则演进段 — 这些是跨轮的总结性内容，留主文件
+- **下一次触发**：**r60**（当前 r58 后还有 r59、r60 两轮即触发）
+
+---
+
 ## 维护规则
 
 1. 修改 `CLAUDE.md` 必须同步 `.cursorrules`（byte-identical 契约）
@@ -144,3 +160,5 @@ scripts/         verify_docs_claims.py / verify_workflow.py / install_hooks.sh
 11. **Mypy enforce 契约**（r57 T2）— `core/translation_utils.py / core/config.py / file_processor/ / core/api_client.py / core/glossary.py / core/translation_db.py` 6 文件 scope 必须保持 mypy 0 errors；新文件加入 scope 前必须先 mypy clean；`# type: ignore[union-attr]` 仅允许标记 `core/api_plugin.py` 内 runtime-safe 的 Optional Popen 访问点
 12. **Python ≥ 3.10 契约**（r57 T1）— `pyproject.toml requires-python = ">=3.10"`；retreating to 3.9 是大重构（PEP 604 `int \| None` 语法已广泛使用），必须先 plan-first
 13. **Path traversal 防护契约**（r57 S2）— `main.py::_FORBIDDEN_PATH_PREFIXES` 不可放宽；任何新 user-supplied path 入口必须经过 `_sanitize_user_path`；本地 single-user 工具威胁模型不变，但多用户共享环境的 defense-in-depth 不可缺
+14. **CI ruff lint/format 门禁**（r58 P1）— 任何新 PR 必须 `ruff check .` + `ruff format --check .` 全过；`pyproject.toml [tool.ruff.lint] extend-ignore` 列表（E402 / E501 / F841）不得放宽；新规则只能加不能减
+15. **EVOLUTION 滚动归档触发**（r58 P3）— 每 5 轮（r60 / r65 / ...）必须执行归档（详见上方"文档归档节奏"段）；不能跳过

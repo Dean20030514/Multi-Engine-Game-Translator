@@ -38,8 +38,9 @@ def test_sanitise_overrides_unknown_category_ignored():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{"file": "a.rpy", "line": 1, "original": "Hello",
-                "translation": "你好", "status": "ok"}]
+    entries = [
+        {"file": "a.rpy", "line": 1, "original": "Hello", "translation": "你好", "status": "ok"}
+    ]
     # Mix: registered (``gui_overrides`` + ``config_overrides`` as of
     # round 35) + unregistered (``nvl_overrides``, ``style_overrides``,
     # ``foobar_overrides``) — only the registered ones should land.
@@ -73,7 +74,9 @@ def test_override_categories_table_is_extensible():
     init-timing review won't slip in unnoticed.
     """
     from core.runtime_hook_emitter import (
-        _OVERRIDE_CATEGORIES, _SAFE_GUI_KEY, _SAFE_CONFIG_KEY,
+        _OVERRIDE_CATEGORIES,
+        _SAFE_GUI_KEY,
+        _SAFE_CONFIG_KEY,
     )
 
     assert isinstance(_OVERRIDE_CATEGORIES, dict)
@@ -88,11 +91,15 @@ def test_override_categories_table_is_extensible():
     gui_re = _OVERRIDE_CATEGORIES["gui_overrides"]
     for ok in ("gui.text_size", "gui.name_text_size", "gui.sub.nested"):
         assert gui_re.match(ok), f"gui regex unexpectedly rejects {ok!r}"
-    for bad in ("gui.", "gui.test;drop", "style.default", "gui text_size",
-                "import os", "gui.text_size + 1"):
-        assert gui_re.match(bad) is None, (
-            f"gui regex unexpectedly accepts {bad!r} (attack shape)"
-        )
+    for bad in (
+        "gui.",
+        "gui.test;drop",
+        "style.default",
+        "gui text_size",
+        "import os",
+        "gui.text_size + 1",
+    ):
+        assert gui_re.match(bad) is None, f"gui regex unexpectedly accepts {bad!r} (attack shape)"
 
     # config regex: Ren'Py ``config`` is a FLAT namespace (module-like
     # object), no nested ``config.sub.X`` form — regex rejects those
@@ -100,8 +107,14 @@ def test_override_categories_table_is_extensible():
     cfg_re = _OVERRIDE_CATEGORIES["config_overrides"]
     for ok in ("config.thoughtbubble_width", "config.autosave", "config.log"):
         assert cfg_re.match(ok), f"config regex unexpectedly rejects {ok!r}"
-    for bad in ("config.", "config.sub.nested", "config.test;drop",
-                "gui.text_size", "config text_size", "config.x + 1"):
+    for bad in (
+        "config.",
+        "config.sub.nested",
+        "config.test;drop",
+        "gui.text_size",
+        "config text_size",
+        "config.x + 1",
+    ):
         assert cfg_re.match(bad) is None, (
             f"config regex unexpectedly accepts {bad!r} (attack shape)"
         )
@@ -122,15 +135,16 @@ def test_config_overrides_emits_assignments():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{"file": "a.rpy", "line": 1, "original": "Hello",
-                "translation": "你好", "status": "ok"}]
+    entries = [
+        {"file": "a.rpy", "line": 1, "original": "Hello", "translation": "你好", "status": "ok"}
+    ]
     cfg = {
         "config_overrides": {
             "config.thoughtbubble_width": 400,
-            "config.thoughtbubble_offset": 12.5,   # float OK
-            "config.autosave": True,               # r38 C3: bool now ACCEPTED
-            "config.developer": False,             # r38 C3: bool False also OK
-            "config.sub.nested": 1,                # rejected by flat-namespace regex
+            "config.thoughtbubble_offset": 12.5,  # float OK
+            "config.autosave": True,  # r38 C3: bool now ACCEPTED
+            "config.developer": False,  # r38 C3: bool False also OK
+            "config.sub.nested": 1,  # rejected by flat-namespace regex
         },
         # Gui entry coexists in the same file.
         "gui_overrides": {"gui.text_size": 22},
@@ -165,13 +179,14 @@ def test_gui_overrides_still_rejects_bool():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{"file": "a.rpy", "line": 1, "original": "Hello",
-                "translation": "你好", "status": "ok"}]
+    entries = [
+        {"file": "a.rpy", "line": 1, "original": "Hello", "translation": "你好", "status": "ok"}
+    ]
     cfg = {
         "gui_overrides": {
-            "gui.text_size": 22,            # OK — int
-            "gui.bad_flag": True,           # r38 C3: still REJECTED for gui
-            "gui.another_flag": False,      # r38 C3: still REJECTED for gui
+            "gui.text_size": 22,  # OK — int
+            "gui.bad_flag": True,  # r38 C3: still REJECTED for gui
+            "gui.another_flag": False,  # r38 C3: still REJECTED for gui
         },
         # Control: same bool values land under config_overrides.
         "config_overrides": {
@@ -184,9 +199,7 @@ def test_gui_overrides_still_rejects_bool():
         content = (out_game / "zz_tl_inject_gui.rpy").read_text(encoding="utf-8")
         # gui int OK, gui bools rejected.
         assert "gui.text_size = 22" in content
-        assert "gui.bad_flag" not in content, (
-            "r38 C3: gui_overrides must still reject bool values"
-        )
+        assert "gui.bad_flag" not in content, "r38 C3: gui_overrides must still reject bool values"
         assert "gui.another_flag" not in content
         # Control: config_overrides DOES accept bool (proves policy is
         # per-category, not global).

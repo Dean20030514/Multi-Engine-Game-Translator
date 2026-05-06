@@ -77,6 +77,7 @@ def _plugin_serve() -> None:
     unexpected process crash.
     """
     import sys
+
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -84,8 +85,7 @@ def _plugin_serve() -> None:
         try:
             req = json.loads(line)
         except (json.JSONDecodeError, ValueError) as e:
-            resp = {"request_id": None, "response": None,
-                    "error": f"bad request JSON: {e}"}
+            resp = {"request_id": None, "response": None, "error": f"bad request JSON: {e}"}
             print(json.dumps(resp, ensure_ascii=False), flush=True)
             continue
         req_id = req.get("request_id")
@@ -106,6 +106,7 @@ def _plugin_serve() -> None:
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1 and sys.argv[1] == "--plugin-serve":
         _plugin_serve()
     else:

@@ -19,6 +19,7 @@ Exercises the XUAT-format text engine added in r55:
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import sys
@@ -63,7 +64,7 @@ def test_extract_basic_translation_entries():
     """Simple ``original=translation`` lines yield TranslatableUnits."""
     content = (
         "Hello=你好\n"
-        "World=\n"           # pending
+        "World=\n"  # pending
         "Goodbye=再见\n"
     )
     with tempfile.TemporaryDirectory() as td:
@@ -101,13 +102,7 @@ def test_extract_preserves_already_translated_as_status():
 
 def test_extract_skips_comments_and_blanks():
     """``//`` comments and blank lines never become TranslatableUnits."""
-    content = (
-        "// this is a comment\n"
-        "\n"
-        "RealEntry=\n"
-        "// another comment\n"
-        "\n"
-    )
+    content = "// this is a comment\n\nRealEntry=\n// another comment\n\n"
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "x.txt"
         p.write_text(content, encoding="utf-8")
@@ -153,9 +148,7 @@ def test_extract_handles_utf8_bom():
 
     pending = [u for u in units if u.status == "pending"]
     assert len(pending) == 1
-    assert pending[0].original == "BomKey", (
-        f"BOM was not stripped — got {pending[0].original!r}"
-    )
+    assert pending[0].original == "BomKey", f"BOM was not stripped — got {pending[0].original!r}"
     print("[OK] extract_handles_utf8_bom")
 
 
@@ -217,13 +210,7 @@ def test_extract_regex_rule_already_filled():
 
 def test_write_back_roundtrip_byte_identical_for_unchanged():
     """write_back preserves comments/blanks/order; only translated lines mutate."""
-    content = (
-        "// header comment\n"
-        "\n"
-        "Hello=你好\n"
-        "World=\n"
-        "// trailing comment\n"
-    )
+    content = "// header comment\n\nHello=你好\nWorld=\n// trailing comment\n"
     with tempfile.TemporaryDirectory() as td:
         td_p = Path(td)
         src = td_p / "x.txt"
@@ -244,13 +231,7 @@ def test_write_back_roundtrip_byte_identical_for_unchanged():
         out_file = out / "x.txt"
         result = out_file.read_text(encoding="utf-8")
 
-    expected = (
-        "// header comment\n"
-        "\n"
-        "Hello=你好\n"
-        "World=世界\n"
-        "// trailing comment\n"
-    )
+    expected = "// header comment\n\nHello=你好\nWorld=世界\n// trailing comment\n"
     assert result == expected, f"round-trip failed:\nGOT:\n{result!r}\nWANT:\n{expected!r}"
     print("[OK] write_back_roundtrip_byte_identical_for_unchanged")
 
@@ -302,9 +283,7 @@ def test_write_back_regex_rule_preserves_pattern():
         engine.write_back(td_p, units, out)
         result = (out / "rules.txt").read_text(encoding="utf-8")
 
-    assert result == 'r:"Hello (\\d+)"="你好 \\1"\n', (
-        f"regex rule round-trip wrong: {result!r}"
-    )
+    assert result == 'r:"Hello (\\d+)"="你好 \\1"\n', f"regex rule round-trip wrong: {result!r}"
     print("[OK] write_back_regex_rule_preserves_pattern")
 
 
@@ -343,6 +322,7 @@ def test_oom_cap_skips_oversized_file():
     # We can't realistically materialise 50 MB on disk in CI without
     # being slow. Patch the cap down to 1 KB and feed a 2 KB payload.
     from engines import unity_xunity as _mod
+
     original_cap = _mod._MAX_XUAT_FILE_SIZE
     _mod._MAX_XUAT_FILE_SIZE = 1024
     try:
@@ -371,7 +351,6 @@ def test_w_round56_m1_backref_protection_in_profile():
     in ``generic_pipeline`` will round-trip them verbatim through the LLM.
     """
     from engines.engine_base import UNITY_XUNITY_PROFILE
-    import re
 
     patterns = UNITY_XUNITY_PROFILE.placeholder_patterns
     assert patterns, "r56 M1 contract: profile must have backref patterns"
@@ -381,8 +360,17 @@ def test_w_round56_m1_backref_protection_in_profile():
     assert combined is not None
 
     must_match = [
-        r"\d", r"\D", r"\w", r"\W", r"\s", r"\S", r"\b", r"\B",
-        r"\1", r"\5", r"\9",
+        r"\d",
+        r"\D",
+        r"\w",
+        r"\W",
+        r"\s",
+        r"\S",
+        r"\b",
+        r"\B",
+        r"\1",
+        r"\5",
+        r"\9",
     ]
     for token in must_match:
         assert combined.search(token), (
@@ -417,25 +405,21 @@ def test_w_round56_m1_backref_survives_protect_restore():
 
     # Round-trip restores the originals
     restored = restore_placeholders(protected, mapping)
-    assert restored == pattern_text, (
-        f"round-trip lost backrefs: {restored!r} != {pattern_text!r}"
-    )
+    assert restored == pattern_text, f"round-trip lost backrefs: {restored!r} != {pattern_text!r}"
     print("[OK] w_round56_m1_backref_survives_protect_restore")
 
 
 def test_parse_lines_classifies_all_types():
     """Internal _parse_lines covers blank/comment/translation/regex/malformed."""
-    text = (
-        "// comment\n"
-        "\n"
-        "key=value\n"
-        'r:"pat"="rep"\n'
-        "no_equals\n"
-    )
+    text = '// comment\n\nkey=value\nr:"pat"="rep"\nno_equals\n'
     parsed = _parse_lines(text)
     assert len(parsed) == 5
     assert [p.line_type for p in parsed] == [
-        "comment", "blank", "translation", "regex_rule", "malformed",
+        "comment",
+        "blank",
+        "translation",
+        "regex_rule",
+        "malformed",
     ]
     assert parsed[2].original == "key" and parsed[2].translation == "value"
     assert parsed[3].regex_pattern == "pat" and parsed[3].translation == "rep"

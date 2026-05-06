@@ -17,16 +17,13 @@ under the CLAUDE.md 800-line soft limit.
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import api_client
-import file_processor
-from core import glossary
-from core import prompts
 
 def test_progress_cleanup():
     """测试进度文件 results 清理"""
-    import tempfile, os
+    import tempfile
     from core.translation_utils import ProgressTracker
     from pathlib import Path
 
@@ -43,9 +40,11 @@ def test_progress_cleanup():
 
 def test_progress_resume():
     """T43: ProgressTracker 写入后重载，数据一致"""
-    import tempfile, os
+    import tempfile
+    import os
     from pathlib import Path
     from core.translation_utils import ProgressTracker
+
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         tmp_path = f.name
     try:
@@ -63,10 +62,12 @@ def test_progress_resume():
 
 def test_progress_normalize():
     """T44: 加载损坏/缺key的 progress.json 不崩溃"""
-    import tempfile, os
+    import tempfile
+    import os
     from pathlib import Path
     from core.translation_utils import ProgressTracker
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode='w') as f:
+
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
         f.write('{"completed_files": ["a.rpy"]}')  # 缺 completed_chunks 和 stats
         tmp_path = f.name
     try:
@@ -82,6 +83,7 @@ def test_progress_normalize():
 def test_deduplicate_translations():
     """T48: _deduplicate_translations 去重"""
     from core.translation_utils import _deduplicate_translations
+
     items = [
         {"line": 1, "original": "Hello", "zh": "你好"},
         {"line": 1, "original": "Hello", "zh": "你好啊"},  # 重复 key
@@ -98,10 +100,11 @@ def test_deduplicate_translations():
 def test_match_string_entry_fallback():
     """T49: _match_string_entry_fallback 五层 fallback (round 31 Tier A-3 adds L5)"""
     from core.translation_utils import _match_string_entry_fallback, _build_fallback_dicts
+
     ft = {
         "Save Game": "保存游戏",
         "  Load Game  ": "读取存档",
-        '__RENPY_PH_0__ Settings': "设置",
+        "__RENPY_PH_0__ Settings": "设置",
         'He said \\"hello\\"': "他说了你好",
         # Round 31 Tier A-3: tag-wrapped variant for the L5 fallback test
         "{b}Bold Warning{/b}": "加粗警告",
@@ -109,24 +112,37 @@ def test_match_string_entry_fallback():
     ft_stripped, ft_clean, ft_norm, ft_tagstripped = _build_fallback_dicts(ft)
 
     # L1: 精确匹配
-    zh, level = _match_string_entry_fallback("Save Game", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped)
+    zh, level = _match_string_entry_fallback(
+        "Save Game", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped
+    )
     assert zh == "保存游戏" and level == 0
 
     # L2: strip 匹配
-    zh, level = _match_string_entry_fallback("Load Game", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped)
+    zh, level = _match_string_entry_fallback(
+        "Load Game", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped
+    )
     assert zh == "读取存档" and level == 2
 
     # L3: 去占位符匹配
-    zh, level = _match_string_entry_fallback("Settings", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped)
+    zh, level = _match_string_entry_fallback(
+        "Settings", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped
+    )
     assert zh == "设置" and level == 3
 
     # L4: 转义规范化匹配
-    zh, level = _match_string_entry_fallback('He said "hello"', ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped)
+    zh, level = _match_string_entry_fallback(
+        'He said "hello"', ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped
+    )
     assert zh == "他说了你好" and level == 4
 
     # L5 (round 31 Tier A-3): tag-stripped匹配 — lookup key lost the {b}/{/b} wrappers.
     zh, level = _match_string_entry_fallback(
-        "Bold Warning", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped,
+        "Bold Warning",
+        ft,
+        ft_stripped,
+        ft_clean,
+        ft_norm,
+        ft_tagstripped,
     )
     assert zh == "加粗警告" and level == 5, f"L5 tag-strip failed: zh={zh!r}, level={level}"
 
@@ -135,7 +151,9 @@ def test_match_string_entry_fallback():
     assert zh == "保存游戏" and level == 0, "pre-round-31 call shape broke"
 
     # 无匹配
-    zh, level = _match_string_entry_fallback("Unknown", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped)
+    zh, level = _match_string_entry_fallback(
+        "Unknown", ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped
+    )
     assert zh is None and level == 0
     print("[OK] match_string_entry_fallback")
 
@@ -143,6 +161,7 @@ def test_match_string_entry_fallback():
 def test_progress_bar_render():
     """ProgressBar 渲染不崩溃（含 ASCII fallback）"""
     from core.translation_utils import ProgressBar
+
     bar = ProgressBar(total=10, width=20)
     bar.update(3, cost=0.5)
     bar.update(7, cost=1.2)
@@ -221,9 +240,7 @@ def test_progress_write_ordering_monotonic():
 
         def spy_write(json_str: str) -> None:
             data = _json.loads(json_str)
-            total_chunks = sum(
-                len(c) for c in data.get("completed_chunks", {}).values()
-            )
+            total_chunks = sum(len(c) for c in data.get("completed_chunks", {}).values())
             with writes_sizes_lock:
                 writes_sizes.append(total_chunks)
             real_write(json_str)
@@ -256,18 +273,33 @@ def test_progress_write_ordering_monotonic():
 # HTTP connection pool tests (round 21 — PF-C-1)
 # ============================================================
 
+
 def test_translation_db_roundtrip():
     """T10: TranslationDB save/load 往返 + upsert 去重"""
-    import tempfile, os
+    import tempfile
+    import os
     from pathlib import Path
     from core.translation_db import TranslationDB
+
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         tmp_path = f.name
     try:
         db = TranslationDB(Path(tmp_path))
         entries = [
-            {"file": "test.rpy", "line": 1, "original": "Hello", "translation": "你好", "status": "ok"},
-            {"file": "test.rpy", "line": 2, "original": "World", "translation": "世界", "status": "ok"},
+            {
+                "file": "test.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "你好",
+                "status": "ok",
+            },
+            {
+                "file": "test.rpy",
+                "line": 2,
+                "original": "World",
+                "translation": "世界",
+                "status": "ok",
+            },
         ]
         db.add_entries(entries)
         assert len(db.entries) == 2
@@ -279,9 +311,17 @@ def test_translation_db_roundtrip():
         assert len(db2.entries) == 2
 
         # Upsert：相同 file+line 应更新
-        db2.add_entries([
-            {"file": "test.rpy", "line": 1, "original": "Hello", "translation": "你好啊", "status": "ok"},
-        ])
+        db2.add_entries(
+            [
+                {
+                    "file": "test.rpy",
+                    "line": 1,
+                    "original": "Hello",
+                    "translation": "你好啊",
+                    "status": "ok",
+                },
+            ]
+        )
         assert len(db2.entries) == 2  # 不应增加
         print("[OK] translation_db_roundtrip")
     finally:
@@ -310,13 +350,15 @@ def test_translation_db_concurrent_upsert():
         def worker(tid: int) -> None:
             barrier.wait()
             for i in range(per_thread):
-                db.upsert_entry({
-                    "file": f"file_{tid}.rpy",
-                    "line": i + 1,
-                    "original": f"text_{tid}_{i}",
-                    "translation": f"trans_{tid}_{i}",
-                    "status": "ok",
-                })
+                db.upsert_entry(
+                    {
+                        "file": f"file_{tid}.rpy",
+                        "line": i + 1,
+                        "original": f"text_{tid}_{i}",
+                        "translation": f"trans_{tid}_{i}",
+                        "status": "ok",
+                    }
+                )
 
         threads = [threading.Thread(target=worker, args=(tid,)) for tid in range(n_threads)]
         for t in threads:
@@ -335,9 +377,7 @@ def test_translation_db_concurrent_upsert():
                     f"missing entry ({tid}, {i})"
                 )
         # Index and entries must be consistent.
-        assert len(db._index) == expected, (
-            f"index size {len(db._index)} != entries size {expected}"
-        )
+        assert len(db._index) == expected, f"index size {len(db._index)} != entries size {expected}"
     print("[OK] test_translation_db_concurrent_upsert")
 
 
@@ -354,20 +394,30 @@ def test_translation_db_save_atomic():
     with tempfile.TemporaryDirectory() as td:
         db_path = Path(td) / "db.json"
         db = TranslationDB(db_path)
-        db.upsert_entry({
-            "file": "a.rpy", "line": 1, "original": "hello",
-            "translation": "你好", "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "a.rpy",
+                "line": 1,
+                "original": "hello",
+                "translation": "你好",
+                "status": "ok",
+            }
+        )
         db.save()  # writes a valid DB
 
         # Snapshot original bytes for later compare.
         original_bytes = db_path.read_bytes()
 
         # Add a second entry and force save to fail at os.replace.
-        db.upsert_entry({
-            "file": "b.rpy", "line": 2, "original": "world",
-            "translation": "世界", "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "b.rpy",
+                "line": 2,
+                "original": "world",
+                "translation": "世界",
+                "status": "ok",
+            }
+        )
 
         real_replace = _os.replace
         calls = {"n": 0}
@@ -414,12 +464,15 @@ def test_translation_db_accepts_line_zero():
 
     with tempfile.TemporaryDirectory() as td:
         db = TranslationDB(Path(td) / "db.json")
-        db.upsert_entry({
-            "file": "generic.csv", "line": 0,
-            "original": "Hello, world!",
-            "translation": "你好，世界！",
-            "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "generic.csv",
+                "line": 0,
+                "original": "Hello, world!",
+                "translation": "你好，世界！",
+                "status": "ok",
+            }
+        )
         assert db.has_entry("generic.csv", 0, "Hello, world!"), (
             "entry with line=0 must be stored and retrievable"
         )
@@ -441,19 +494,41 @@ def test_review_generator_html():
     """review_generator 生成 HTML 不崩溃"""
     from tools.review_generator import generate_review_html
     from pathlib import Path as _Path
-    import tempfile, json, os
+    import tempfile
+    import json
+    import os
+
     # 创建临时 translation_db
     tmpdir = tempfile.mkdtemp()
     db_path = _Path(tmpdir) / "test_db.json"
-    db_path.write_text(json.dumps({
-        "version": 1,
-        "entries": [
-            {"file": "test.rpy", "line": 1, "original": "Hello", "translation": "你好",
-             "status": "ok", "error_codes": [], "warning_codes": []},
-            {"file": "test.rpy", "line": 2, "original": "World", "translation": "世界",
-             "status": "warning", "error_codes": [], "warning_codes": ["W430"]},
-        ]
-    }), encoding="utf-8")
+    db_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": [
+                    {
+                        "file": "test.rpy",
+                        "line": 1,
+                        "original": "Hello",
+                        "translation": "你好",
+                        "status": "ok",
+                        "error_codes": [],
+                        "warning_codes": [],
+                    },
+                    {
+                        "file": "test.rpy",
+                        "line": 2,
+                        "original": "World",
+                        "translation": "世界",
+                        "status": "warning",
+                        "error_codes": [],
+                        "warning_codes": ["W430"],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     out_path = _Path(tmpdir) / "review.html"
     try:
         count = generate_review_html(db_path, out_path)
@@ -492,8 +567,7 @@ def test_progress_tracker_handles_stat_failure_gracefully():
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "progress.json"
         p.write_text(
-            _json.dumps({"completed_files": ["script.rpy"],
-                         "completed_chunks": {}, "stats": {}}),
+            _json.dumps({"completed_files": ["script.rpy"], "completed_chunks": {}, "stats": {}}),
             encoding="utf-8",
         )
 
@@ -539,12 +613,10 @@ def test_progress_tracker_rejects_oversized_file():
         pt = ProgressTracker(p)
         # Oversize file → treated as corrupt → data reset to defaults.
         assert pt.data.get("completed_files") == [], (
-            f"oversize progress file must reset completed_files, got: "
-            f"{pt.data!r}"
+            f"oversize progress file must reset completed_files, got: {pt.data!r}"
         )
         assert pt.data.get("completed_chunks") == {}, (
-            f"oversize progress file must reset completed_chunks, got: "
-            f"{pt.data!r}"
+            f"oversize progress file must reset completed_chunks, got: {pt.data!r}"
         )
     print("[OK] test_progress_tracker_rejects_oversized_file")
 

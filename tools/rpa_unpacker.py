@@ -41,9 +41,7 @@ from __future__ import annotations
 import argparse
 import io
 import logging
-import os
 import pickle
-import struct
 import sys
 import zlib
 from pathlib import Path
@@ -76,6 +74,7 @@ IndexEntry = List[Tuple[int, int, bytes]]
 # Errors
 # ---------------------------------------------------------------------------
 
+
 class RPAError(Exception):
     """Base exception for RPA operations."""
 
@@ -92,6 +91,7 @@ class CorruptedArchive(RPAError):
 # Core: detect version, parse header, read index, extract files
 # ---------------------------------------------------------------------------
 
+
 def _detect_version(header_line: bytes) -> str:
     """Return version string ('3.0' or '2.0') from the first line of the archive."""
     if header_line.startswith(_RPA3_MAGIC):
@@ -105,12 +105,9 @@ def _detect_version(header_line: bytes) -> str:
         except Exception:
             ver = "RPA-?"
         raise UnsupportedVersion(
-            f"检测到 {ver} 格式，当前仅支持 RPA-3.0 和 RPA-2.0。"
-            f"此版本将在后续版本中支持。"
+            f"检测到 {ver} 格式，当前仅支持 RPA-3.0 和 RPA-2.0。此版本将在后续版本中支持。"
         )
-    raise UnsupportedVersion(
-        "文件不是有效的 RPA 档案（未找到 RPA 头部标识）。"
-    )
+    raise UnsupportedVersion("文件不是有效的 RPA 档案（未找到 RPA 头部标识）。")
 
 
 def _parse_header(header_line: bytes) -> Tuple[str, int, Optional[int]]:
@@ -233,25 +230,17 @@ def _read_index(
     try:
         decompressed = zlib.decompress(raw_index_data)
     except zlib.error as exc:
-        raise CorruptedArchive(
-            f"RPA 索引 zlib 解压失败（档案可能损坏）: {exc}"
-        ) from exc
+        raise CorruptedArchive(f"RPA 索引 zlib 解压失败（档案可能损坏）: {exc}") from exc
 
     try:
         index = SafeUnpickler(io.BytesIO(decompressed), encoding="bytes").load()
     except pickle.UnpicklingError as exc:
-        raise CorruptedArchive(
-            f"RPA 索引包含不受信任的对象类型，已拒绝加载: {exc}"
-        ) from exc
+        raise CorruptedArchive(f"RPA 索引包含不受信任的对象类型，已拒绝加载: {exc}") from exc
     except Exception as exc:
-        raise CorruptedArchive(
-            f"RPA 索引 pickle 反序列化失败: {exc}"
-        ) from exc
+        raise CorruptedArchive(f"RPA 索引 pickle 反序列化失败: {exc}") from exc
 
     if not isinstance(index, dict):
-        raise CorruptedArchive(
-            f"RPA 索引格式异常：期望 dict，实际 {type(index).__name__}"
-        )
+        raise CorruptedArchive(f"RPA 索引格式异常：期望 dict，实际 {type(index).__name__}")
 
     # Deobfuscate if key present (RPA-3.0)
     if key is not None:
@@ -265,6 +254,7 @@ def _read_index(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def list_rpa(archive_path: Path) -> List[str]:
     """List all files in an RPA archive.
@@ -307,7 +297,9 @@ def unpack_rpa(
     version, index = _read_index(archive_path)
     logger.info(
         "[RPA] 档案 %s (RPA-%s): 包含 %d 个文件",
-        archive_path.name, version, len(index),
+        archive_path.name,
+        version,
+        len(index),
     )
 
     extracted: List[Path] = []
@@ -327,9 +319,7 @@ def unpack_rpa(
             try:
                 dest.resolve().relative_to(outdir.resolve())
             except ValueError:
-                logger.warning(
-                    "[RPA] 跳过危险路径（疑似路径穿越 / ZIP Slip）: %s", name
-                )
+                logger.warning("[RPA] 跳过危险路径（疑似路径穿越 / ZIP Slip）: %s", name)
                 continue
 
             # Skip if exists and not forcing
@@ -343,7 +333,9 @@ def unpack_rpa(
             if length < 0 or length > _RPA_MAX_ENTRY_BYTES:
                 logger.warning(
                     "[RPA] 跳过异常大条目 (%d 字节，上限 %d): %s",
-                    length, _RPA_MAX_ENTRY_BYTES, name,
+                    length,
+                    _RPA_MAX_ENTRY_BYTES,
+                    name,
                 )
                 continue
 
@@ -394,7 +386,10 @@ def unpack_all_rpa_in_dir(
             # Extract to the same directory as the .rpa file
             outdir = rpa_path.parent
             extracted = unpack_rpa(
-                rpa_path, outdir, force=force, filter_ext=filter_ext,
+                rpa_path,
+                outdir,
+                force=force,
+                filter_ext=filter_ext,
             )
             all_extracted.extend(extracted)
         except RPAError as exc:
@@ -410,6 +405,7 @@ def unpack_all_rpa_in_dir(
 # CLI entry point
 # ---------------------------------------------------------------------------
 
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rpa_unpacker",
@@ -421,18 +417,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="要解包的 .rpa 文件路径",
     )
     parser.add_argument(
-        "--outdir", "-o",
+        "--outdir",
+        "-o",
         default=None,
         help="输出目录（默认: .rpa 文件所在目录）",
     )
     parser.add_argument(
-        "--list", "-l",
+        "--list",
+        "-l",
         action="store_true",
         dest="list_only",
         help="仅列出档案内容，不提取",
     )
     parser.add_argument(
-        "--force", "-f",
+        "--force",
+        "-f",
         action="store_true",
         help="覆盖已存在的文件",
     )

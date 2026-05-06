@@ -267,9 +267,31 @@
 
 **连续 17 轮 0 CRITICAL correctness 保持**（r35-r57）。
 
+## 阶段十七（r58）— 架构设计 + 流程文档全闭合 + 18th 0-CRITICAL Streak
+
+5 phases，覆盖 r57 末 [`AUDIT_R57.md`](../AUDIT_R57.md) 6 维度审计的维度 3 (架构与设计 A1-A3) + 维度 4 (流程与文档 P1-P4) 共 8 项 fix（不算 P 维度内自然闭合的子项；维度 5 产品业务 + 维度 6 组织知识保留给 r59+）。
+
+- **A1 — `_resolve_args_from_config` 共享 helper 抽取**：`main.py::main()` L249-266 inline 三层合并代码（CLI > config file > defaults）抽到 `core/config.py::resolve_args_from_config(args, cfg)`。helper 接受 argparse Namespace + Config，按文档化的优先级填充字段（包括 r52 C4 BREAKING 硬编码 target_lang="zh"）。GUI / one-click pipeline / 未来 entry 共享同一逻辑，改 config 只需改 helper 一处。+2 单元测试（fills_defaults 验证 4 fields / target_lang_hardcoded_zh 验证即使 config 写 "ja" 也强制 zh）。
+- **A2 — 配置层级优先级文档化**：`docs/REFERENCE.md §7a` 新加 — 6 层 API key fallback 优先级表（CLI > 子进程 env > config api_key_env > config api_key_file > config api_key 明文 > argparse default）+ 三层 config 合并逻辑说明 + 引用 r58 A1 helper 路径。
+- **A3 — RenPyEngine 不走 generic_pipeline 文档化**：`docs/REFERENCE.md §13.2.1` 新加 6 项对比表（提取单位 / 分块策略 / 回写精度 / Retry 阶段 / Fallback 链 / LLM mis-escape）+ 4 条 r54 retire A-H-3 Medium/Deep 的核心理由 + 交叉引用 ADR 0004 / EVOLUTION 阶段十三。解决新工程师读 `engines/renpy_engine.py` `extract_texts` 抛 `NotImplementedError` 的困惑。
+- **P1 — CI 加 ruff lint + format + mypy scope 扩大**：(a) `.github/workflows/test.yml` 加 `ruff check .` + `ruff format --check .` 两个 CI step（ruff 是 dev-time tool，不破坏零依赖契约 — ADR 0001 仍 hold；CI 自己 `pip install ruff`）；(b) `pyproject.toml` 加 `[tool.ruff]` 配置（target-version py310 + line-length 100 + extend-exclude `_archive` `tests/artifacts` + select E/F/W + extend-ignore E402 `# 项目惯例 sys.path.insert before imports` / E501 `# 100-char informational, bulk-rewrap out of scope` / F841 `# 12 sites kept as debug placeholders, future rounds may revisit`）+ format quote-style "double" + indent-style "space"；(c) **一次性 ruff format .**：99 files reformatted（baseline 立起；新 PR `ruff format --check` 必须保持 0 diff）；(d) **`ruff check --fix .`**：132 errors auto-fixed（主要 F401 unused import 91 + F541 f-string-without-placeholder 25 + E401 multiple imports on one line 17 + F811 redefinition of unused 9）；(e) mypy CI step 加第二行 invocation：`mypy --ignore-missing-imports --follow-imports=silent engines/ safety/`。`--follow-imports=silent` 让 transitive translators/ imports 不 gate（translators/ 仍有 ~20 mypy errors 因为 DialogueEntry/StringEntry isinstance branches 让 mypy 类型推断失败，留 follow-up）。原 6 文件 scope 0 errors 仍保持。
+- **P2 — Process docs 大补**：(a) [`RELEASE.md`](../RELEASE.md) — 165 行：版本号管理 (SemVer) + 手动发布 6 步流程（pre-release 检查 / bump version / tag+push / PyInstaller / GitHub Release / 验证 artifact）+ 自动化 GitHub Actions tag-trigger workflow 候选（~50 行 yaml 设计）；(b) [`ROADMAP.md`](../ROADMAP.md) — 公开版（用户/贡献者视角，与 internal HANDOFF backlog 区分）；当前能力 / 短期 ROI 排序 / 中期方向 / 长期愿景（用户驱动）/ 已 retire 完整列表；(c) [`docs/adr/`](../docs/adr/) 框架 — README 索引（5 ADR + 模板 + 何时写 / 何时不写指南）+ 5 份 ADR 内容：0001 zero-third-party-dependencies (r1) / 0002 zh-only-target-language (r52 C4 BREAKING) / 0003 subprocess-sandbox-only-plugin (r52 C3 BREAKING) / 0004 renpy-stays-on-dedicated-pipelines (r54 retire A-H-3) / 0005 safety-as-toplevel-package (r56 M2)；每 ADR ~70 行（背景 / 考虑方案 / 决策 / 后果 / 关联）；(d) [`.github/ISSUE_TEMPLATE/bug_report.md`](../.github/ISSUE_TEMPLATE/bug_report.md) + [`feature_request.md`](../.github/ISSUE_TEMPLATE/feature_request.md) + `config.yml`（禁 blank issue + 引导 SECURITY advisory + Discussions Q&A）；feature_request 含 hard contracts 触及 checklist；(e) [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md) — 改动类型 (含 BREAKING 标记) / 验证 6 项 checklist / hard contracts 检查 / docs sync 5 项 checklist / 测试覆盖；(f) [`.github/dependabot.yml`](../.github/dependabot.yml) — github-actions ecosystem monthly + comment 解释为啥**没有 pip ecosystem**（ADR 0001 零依赖契约）。
+- **P3 — EVOLUTION 滚动归档约定**：CLAUDE.md 加"## 文档归档节奏"段（在"自动化与 drift 防御"和"维护规则"段之间）。约定：每 5 轮（r60 / r65 / r70 / ...）触发一次归档；操作 4 步（抽 5 阶段叙事到 `_archive/EVOLUTION_rN-4_rN.md` / 主 EVOLUTION 留摘要 / 索引更新 / `wc -l` 验证主文件减 ≥ 100 行）；不归档项（阶段表格 / 累积技术资产 / 设计原则演进）；下次触发 **r60**（当前 r58 后再 2 轮）。
+- **P4 — README 顶部 i18n 说明**：明确告诉国际贡献者 README + CONTRIBUTING 双语；其他 docs 仅中文（项目主要面向中文用户）；in-repo 代码 / 注释 / commit 仍英文（global CLAUDE.md 通信规则）。
+- **800-line cap split**（ruff format 让 2 测试文件越界，r58 同轮 fix）：
+  - `tests/test_translators.py` 832 → 654 行：拆 6 个 main.py CLI 测试到新 [`tests/test_main_cli.py`](../tests/test_main_cli.py) 221 行（test_w_monitor4_* 3 个 + test_w_round57_s2_* 3 个）— 这些测试 exercise `main._maybe_warn_on_symlink` / `main._sanitize_user_path`，跟 translators/ 无关，自然拆点
+  - `tests/test_file_safety.py` 807 → 798 行：精简模块顶部 docstring（保留所有 21 测试逻辑）
+- **数字增量**：tests_total 492 → 494 (+2: r58 A1); test_files 34 → 35 (+1: `test_main_cli.py`); ci_steps 34 → 36 (+2: ruff check + ruff format --check); assertion_points 618 → 620 (+2)。
+- **2 个新 hard contracts** (HANDOFF Round 59 关键约束)：
+  - **CI ruff lint/format 门禁**：任何新 PR 必须 `ruff check .` + `ruff format --check .` 全过；`pyproject.toml [tool.ruff]` extend-ignore 列表不得放宽
+  - **EVOLUTION 滚动归档**：r60 触发首次（每 5 轮一次）；归档时主 EVOLUTION 减 ≥ 100 行
+- **维度 5/6 留 r59+**：B1-B4（产品业务）+ O1-O4（组织知识）共 8 项保留给后续。
+
+**连续 18 轮 0 CRITICAL correctness 保持**（r35-r58）。
+
 ---
 
-## 累积技术资产（r1-r57 视角）
+## 累积技术资产（r1-r58 视角）
 
 ### 翻译能力
 - 三种 Ren'Py 翻译模式（direct / tl / retranslate） + screen 补充

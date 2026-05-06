@@ -155,9 +155,7 @@ def evaluate_gate(original_root: Path, translated_root: Path) -> dict:
         # Round 26 H-4: a malformed glossary silently disables locked-term /
         # no-translate checks, which the user cannot otherwise detect. Upgrade
         # to WARNING so the pipeline log shows the degradation.
-        logger.warning(
-            "[GATE] glossary 加载失败，锁定术语/禁翻检查已跳过: %s", e
-        )
+        logger.warning("[GATE] glossary 加载失败，锁定术语/禁翻检查已跳过: %s", e)
         glossary_terms = None
         glossary_locked = None
         glossary_no_translate = None
@@ -216,9 +214,7 @@ def evaluate_gate(original_root: Path, translated_root: Path) -> dict:
                 }:
                     placeholder_issues += 1
 
-        len_ratio_warnings += sum(
-            1 for i in issues if i.get("code") == "W430_LEN_RATIO_SUSPECT"
-        )
+        len_ratio_warnings += sum(1 for i in issues if i.get("code") == "W430_LEN_RATIO_SUSPECT")
         placeholder_order_warnings += sum(
             1 for i in issues if i.get("code") == "W251_PLACEHOLDER_ORDER"
         )
@@ -228,9 +224,7 @@ def evaluate_gate(original_root: Path, translated_root: Path) -> dict:
         untranslated_total += u
 
     ratio = (untranslated_total / dialogue_total) if dialogue_total else 0.0
-    len_ratio_warning_ratio = (
-        (len_ratio_warnings / dialogue_total) if dialogue_total else 0.0
-    )
+    len_ratio_warning_ratio = (len_ratio_warnings / dialogue_total) if dialogue_total else 0.0
     return {
         "files": len(translated_files),
         "errors": errors,
@@ -293,7 +287,7 @@ def collect_strings_stats(root: Path) -> dict:
             stripped = line.lstrip()
 
             # 1) 优先判断是否进入新的 translate 块（包括 strings 块）
-            m_tr = re.match(r'^translate\s+(\w+)\s+(\w+)\s*:', stripped)
+            m_tr = re.match(r"^translate\s+(\w+)\s+(\w+)\s*:", stripped)
             if m_tr:
                 lang, block_name = m_tr.groups()
                 if block_name == "strings":
@@ -330,12 +324,14 @@ def collect_strings_stats(root: Path) -> dict:
                 current_old = None
 
         if file_total > 0:
-            files_info.append({
-                "file": str(rel),
-                "strings_total": file_total,
-                "strings_translated": file_translated,
-                "strings_untranslated": file_untranslated,
-            })
+            files_info.append(
+                {
+                    "file": str(rel),
+                    "strings_total": file_total,
+                    "strings_translated": file_translated,
+                    "strings_untranslated": file_untranslated,
+                }
+            )
 
     summary = {
         "total_files_with_strings": len(files_info),
@@ -373,7 +369,9 @@ def write_report_summary_md(
     # ResponseChecker 丢弃条数（全量 + 补翻轮，来自 main 的 report.json）
     full_stage = report.get("stages", {}).get("full") or {}
     rt_stage = report.get("stages", {}).get("retranslate") or {}
-    total_checker_dropped = int(full_stage.get("checker_dropped", 0)) + int(rt_stage.get("checker_dropped", 0))
+    total_checker_dropped = int(full_stage.get("checker_dropped", 0)) + int(
+        rt_stage.get("checker_dropped", 0)
+    )
 
     # 三级结论：绿 / 黄 / 红
     classification = "red"
@@ -410,9 +408,7 @@ def write_report_summary_md(
 
     code_hist = final_gate.get("warning_histogram") or {}
     # 仅展示最终闸门的 warning code 分布，按数量降序取前 10 个
-    top_warning_items = sorted(
-        code_hist.items(), key=lambda kv: kv[1], reverse=True
-    )[:10]
+    top_warning_items = sorted(code_hist.items(), key=lambda kv: kv[1], reverse=True)[:10]
 
     # strings 统计概要（可选）
     strings_summary = strings_stats.get("summary") or {}
@@ -425,12 +421,8 @@ def write_report_summary_md(
     )
     lines.append("")
     lines.append(f"- **总体结论**：{classification_label}")
-    lines.append(
-        f"- **关键理由**：{'; '.join(reason_parts)}"
-    )
-    lines.append(
-        f"- **闸门阈值（漏翻比例）**：{gate_max_untranslated_ratio:.2%}"
-    )
+    lines.append(f"- **关键理由**：{'; '.join(reason_parts)}")
+    lines.append(f"- **闸门阈值（漏翻比例）**：{gate_max_untranslated_ratio:.2%}")
     lines.append("")
 
     lines.append("## 最终闸门总览（Stage 4）")
@@ -440,30 +432,14 @@ def write_report_summary_md(
     lines.append(f"| 检查文件数 | {final_gate.get('files', 0)} |")
     lines.append(f"| 错误数（error） | {errors} |")
     lines.append(f"| 警告数（warning） | {warnings} |")
-    lines.append(
-        f"| 对话行总数 | {final_gate.get('dialogue_total', 0)} |"
-    )
-    lines.append(
-        f"| 疑似未翻译行数 | {final_gate.get('untranslated_total', 0)} |"
-    )
-    lines.append(
-        f"| 漏翻比例 | {untranslated_ratio:.2%} |"
-    )
-    lines.append(
-        f"| 占位符/标签相关问题数 | {placeholder_issues} |"
-    )
-    lines.append(
-        f"| ResponseChecker 丢弃条数（未写入译文） | {total_checker_dropped} |"
-    )
-    lines.append(
-        f"| 锁定术语违例数（E411） | {glossary_lock_errors} |"
-    )
-    lines.append(
-        f"| 禁翻片段违例数（E420） | {no_translate_errors} |"
-    )
-    lines.append(
-        f"| 术语表未命中告警数（W410） | {glossary_miss_warnings} |"
-    )
+    lines.append(f"| 对话行总数 | {final_gate.get('dialogue_total', 0)} |")
+    lines.append(f"| 疑似未翻译行数 | {final_gate.get('untranslated_total', 0)} |")
+    lines.append(f"| 漏翻比例 | {untranslated_ratio:.2%} |")
+    lines.append(f"| 占位符/标签相关问题数 | {placeholder_issues} |")
+    lines.append(f"| ResponseChecker 丢弃条数（未写入译文） | {total_checker_dropped} |")
+    lines.append(f"| 锁定术语违例数（E411） | {glossary_lock_errors} |")
+    lines.append(f"| 禁翻片段违例数（E420） | {no_translate_errors} |")
+    lines.append(f"| 术语表未命中告警数（W410） | {glossary_miss_warnings} |")
     lines.append("")
 
     lines.append("## Warning Code 分布（最终闸门）")
@@ -477,24 +453,20 @@ def write_report_summary_md(
 
     lines.append("## 术语与占位符质量")
     lines.append("")
-    lines.append(
-        f"- **锁定术语违例（E411_GLOSSARY_LOCK_MISS）**：{glossary_lock_errors} 条"
-    )
-    lines.append(
-        f"- **禁翻片段违例（E420_NO_TRANSLATE_CHANGED）**：{no_translate_errors} 条"
-    )
-    lines.append(
-        f"- **术语表未命中告警（W410_GLOSSARY_MISS）**：{glossary_miss_warnings} 条"
-    )
-    lines.append(
-        f"- **占位符/标签/菜单 ID/格式化占位符相关问题合计**：{placeholder_issues} 条"
-    )
+    lines.append(f"- **锁定术语违例（E411_GLOSSARY_LOCK_MISS）**：{glossary_lock_errors} 条")
+    lines.append(f"- **禁翻片段违例（E420_NO_TRANSLATE_CHANGED）**：{no_translate_errors} 条")
+    lines.append(f"- **术语表未命中告警（W410_GLOSSARY_MISS）**：{glossary_miss_warnings} 条")
+    lines.append(f"- **占位符/标签/菜单 ID/格式化占位符相关问题合计**：{placeholder_issues} 条")
     lines.append("")
 
     lines.append("## 试跑 vs 全量/最终闸门 对比")
     lines.append("")
-    lines.append("| 阶段 | 文件数 | 错误数 | 警告数 | 漏翻比例 | 长度异常告警数 | 占位符顺序告警数 |")
-    lines.append("|------|--------|--------|--------|----------|----------------|------------------|")
+    lines.append(
+        "| 阶段 | 文件数 | 错误数 | 警告数 | 漏翻比例 | 长度异常告警数 | 占位符顺序告警数 |"
+    )
+    lines.append(
+        "|------|--------|--------|--------|----------|----------------|------------------|"
+    )
     lines.append(
         "| 试跑 (pilot) | {files} | {errors} | {warnings} | {ratio:.4f} | {len_warns} | {ph_warns} |".format(
             files=pilot_gate.get("files", 0),
@@ -533,18 +505,10 @@ def write_report_summary_md(
         lines.append(
             f"- 含 strings 块的文件数：{strings_summary.get('total_files_with_strings', 0)}"
         )
-        lines.append(
-            f"- 总 entries：{strings_summary.get('total_strings_entries', 0)}"
-        )
-        lines.append(
-            f"- 已翻译：{strings_summary.get('total_strings_translated', 0)}"
-        )
-        lines.append(
-            f"- 未翻译：{strings_summary.get('total_strings_untranslated', 0)}"
-        )
-        lines.append(
-            f"- 未翻比例：{strings_summary.get('untranslated_ratio', 0.0):.2%}"
-        )
+        lines.append(f"- 总 entries：{strings_summary.get('total_strings_entries', 0)}")
+        lines.append(f"- 已翻译：{strings_summary.get('total_strings_translated', 0)}")
+        lines.append(f"- 未翻译：{strings_summary.get('total_strings_untranslated', 0)}")
+        lines.append(f"- 未翻比例：{strings_summary.get('untranslated_ratio', 0.0):.2%}")
         note = strings_summary.get("note")
         if note:
             lines.append(f"- 说明：{note}")

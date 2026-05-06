@@ -14,6 +14,7 @@ while avoiding duplicate translations of identical long sentences:
 These are used in a three-step pipeline inside ``run_tl_pipeline``:
 ``dedup_tl_entries`` → ``build_tl_chunks`` → AI translate → ``apply_dedup_translations``.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,10 +29,11 @@ DEDUP_MIN_LENGTH = 40
 @dataclass
 class DedupResult:
     """去重结果"""
-    unique_entries: list          # 需要发给 API 翻译的条目（去重后）
-    dedup_groups: dict            # {(char, text) → (first_entry, [dup_entries])}
-    skipped_count: int            # 被跳过（将复用翻译）的条目数
-    total_before: int             # 去重前总数
+
+    unique_entries: list  # 需要发给 API 翻译的条目（去重后）
+    dedup_groups: dict  # {(char, text) → (first_entry, [dup_entries])}
+    skipped_count: int  # 被跳过（将复用翻译）的条目数
+    total_before: int  # 去重前总数
 
 
 def dedup_tl_entries(
@@ -155,14 +157,16 @@ def apply_dedup_translations(
                 file_translations.setdefault(rel_path, {})[entry.old] = translation
 
             filled += 1
-            dedup_log.append({
-                "source_text": text[:80],
-                "translation": translation[:80],
-                "source_file": source_file,
-                "source_line": source_line,
-                "target_file": entry.tl_file,
-                "target_line": entry.tl_line,
-            })
+            dedup_log.append(
+                {
+                    "source_text": text[:80],
+                    "translation": translation[:80],
+                    "source_file": source_file,
+                    "source_line": source_line,
+                    "target_file": entry.tl_file,
+                    "target_line": entry.tl_line,
+                }
+            )
 
     return filled, dedup_log
 
@@ -181,7 +185,7 @@ def build_tl_chunks(
 
     chunks: list[tuple[str, list]] = []
     for start in range(0, len(entries), max_per_chunk):
-        group = entries[start:start + max_per_chunk]
+        group = entries[start : start + max_per_chunk]
         lines: list[str] = []
         for entry in group:
             if isinstance(entry, DialogueEntry):

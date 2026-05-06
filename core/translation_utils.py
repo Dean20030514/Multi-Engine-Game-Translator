@@ -15,7 +15,6 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from safety.file_safety import check_fstat_size
 
@@ -43,31 +42,34 @@ _MAX_PROGRESS_JSON_SIZE = 50 * 1024 * 1024
 # 可配置阈值常量
 # ============================================================
 
-CHECKER_DROP_RATIO_THRESHOLD = 0.3   # chunk 丢弃率超此值触发重试
-MIN_DROPPED_FOR_WARNING = 3          # 丢弃数达此值才触发警告
-MIN_DIALOGUE_LENGTH = 4              # 定向翻译中对话行最小长度
-SAVE_INTERVAL = 10                   # ProgressTracker 每 N 次 mark 写磁盘
+CHECKER_DROP_RATIO_THRESHOLD = 0.3  # chunk 丢弃率超此值触发重试
+MIN_DROPPED_FOR_WARNING = 3  # 丢弃数达此值才触发警告
+MIN_DIALOGUE_LENGTH = 4  # 定向翻译中对话行最小长度
+SAVE_INTERVAL = 10  # ProgressTracker 每 N 次 mark 写磁盘
 
 # ============================================================
 # Chunk 翻译结果
 # ============================================================
 
+
 @dataclass
 class ChunkResult:
     """单个 chunk 的翻译结果"""
-    part: int                              # chunk 序号
-    kept: list = field(default_factory=list)       # 通过校验的翻译条目
-    error: str | None = None               # 错误信息（None 表示成功）
+
+    part: int  # chunk 序号
+    kept: list = field(default_factory=list)  # 通过校验的翻译条目
+    error: str | None = None  # 错误信息（None 表示成功）
     chunk_warnings: list = field(default_factory=list)  # chunk 级警告
-    dropped_count: int = 0                 # 被 checker 丢弃的条数
-    expected: int = 0                      # chunk 内预期可翻译行数
-    returned: int = 0                      # API 实际返回条数
-    dropped_items: list = field(default_factory=list)   # 被丢弃的原始条目
+    dropped_count: int = 0  # 被 checker 丢弃的条数
+    expected: int = 0  # chunk 内预期可翻译行数
+    returned: int = 0  # API 实际返回条数
+    dropped_items: list = field(default_factory=list)  # 被丢弃的原始条目
 
 
 # ============================================================
 # 翻译上下文（替代嵌套函数的闭包捕获）
 # ============================================================
+
 
 @dataclass
 class TranslationContext:
@@ -78,15 +80,19 @@ class TranslationContext:
 
     Round 52 C4 BREAKING: ``lang_config`` field retired (zh-only target).
     """
-    client: object              # APIClient 实例
-    system_prompt: str          # 当前翻译的系统 prompt
-    rel_path: str               # 当前文件相对路径（用于 user_prompt 构建）
-    locked_terms_map: "dict[str, str]" = field(default_factory=dict)  # {英文术语: 中文译名}，用于预替换保护
+
+    client: object  # APIClient 实例
+    system_prompt: str  # 当前翻译的系统 prompt
+    rel_path: str  # 当前文件相对路径（用于 user_prompt 构建）
+    locked_terms_map: "dict[str, str]" = field(
+        default_factory=dict
+    )  # {英文术语: 中文译名}，用于预替换保护
 
 
 # ============================================================
 # 进度管理（断点续传）
 # ============================================================
+
 
 class ProgressTracker:
     """追踪翻译进度，支持中断续传。
@@ -124,7 +130,7 @@ class ProgressTracker:
             else:
                 try:
                     # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
-                    with open(self.path, encoding='utf-8') as f:
+                    with open(self.path, encoding="utf-8") as f:
                         ok, fsize2 = check_fstat_size(f, _MAX_PROGRESS_JSON_SIZE)
                         if not ok:
                             logger.warning(
@@ -165,9 +171,9 @@ class ProgressTracker:
     def _write_atomic(self, json_str: str) -> None:
         """原子写文件：tmp + os.replace + 重试。调用方需持有 _save_lock。"""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix('.tmp')
+        tmp = self.path.with_suffix(".tmp")
         try:
-            tmp.write_text(json_str, encoding='utf-8')
+            tmp.write_text(json_str, encoding="utf-8")
             # Windows 上 os.replace 可能因杀毒软件/索引服务短暂锁文件而失败，重试几次
             last_err: BaseException | None = None
             for attempt in range(5):
@@ -179,7 +185,7 @@ class ProgressTracker:
                     time.sleep(0.1 * (attempt + 1))
             # 重试全部失败，尝试回退方案：直接写目标文件
             try:
-                self.path.write_text(json_str, encoding='utf-8')
+                self.path.write_text(json_str, encoding="utf-8")
                 tmp.unlink(missing_ok=True)
                 return
             except OSError as fallback_err:
@@ -247,6 +253,7 @@ class ProgressTracker:
 # 会话级翻译缓存
 # ============================================================
 
+
 class TranslationCache:
     """会话级翻译缓存，避免重复 API 调用。
 
@@ -256,8 +263,8 @@ class TranslationCache:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._cache: dict[str, str] = {}      # original -> zh
-        self._count: dict[str, int] = {}       # original -> 命中/写入次数
+        self._cache: dict[str, str] = {}  # original -> zh
+        self._count: dict[str, int] = {}  # original -> 命中/写入次数
         self._hits = 0
         self._misses = 0
 
@@ -285,10 +292,7 @@ class TranslationCache:
     def get_high_confidence_entries(self, min_count: int = 2) -> dict[str, str]:
         """返回置信度 ≥ min_count 的所有缓存条目。"""
         with self._lock:
-            return {
-                k: v for k, v in self._cache.items()
-                if self._count.get(k, 0) >= min_count
-            }
+            return {k: v for k, v in self._cache.items() if self._count.get(k, 0) >= min_count}
 
     @property
     def size(self) -> int:
@@ -439,6 +443,7 @@ def _deduplicate_translations(translations: list[dict]) -> list[dict]:
 
 import sys
 
+
 class ProgressBar:
     """单行覆写式进度条，支持 Unicode（UTF-8）和 ASCII（GBK/CP936）两种模式。
 
@@ -461,10 +466,10 @@ class ProgressBar:
     def _detect_unicode_support() -> bool:
         """检测终端是否支持 Unicode 进度条字符。"""
         try:
-            encoding = getattr(sys.stderr, 'encoding', '') or ''
-            if encoding.lower().replace('-', '') in ('utf8', 'utf8sig'):
+            encoding = getattr(sys.stderr, "encoding", "") or ""
+            if encoding.lower().replace("-", "") in ("utf8", "utf8sig"):
                 return True
-            '█░'.encode(encoding)
+            "█░".encode(encoding)
             return True
         except (UnicodeEncodeError, LookupError):
             return False
@@ -479,9 +484,9 @@ class ProgressBar:
         pct = self.current / self.total if self.total > 0 else 0
         filled = int(self.width * pct)
         if self._use_unicode:
-            bar = '█' * filled + '░' * (self.width - filled)
+            bar = "█" * filled + "░" * (self.width - filled)
         else:
-            bar = '#' * filled + '-' * (self.width - filled)
+            bar = "#" * filled + "-" * (self.width - filled)
         elapsed = time.time() - self._start_time
         if self.current > 0:
             eta = elapsed / self.current * (self.total - self.current)
@@ -499,7 +504,7 @@ class ProgressBar:
     def finish(self) -> None:
         """进度条完成，换行。"""
         try:
-            sys.stderr.write('\n')
+            sys.stderr.write("\n")
             sys.stderr.flush()
         except OSError:
             pass

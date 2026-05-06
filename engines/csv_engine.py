@@ -12,9 +12,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import os
 from pathlib import Path
-from typing import Any
 
 from safety.file_safety import check_fstat_size
 from engines.engine_base import EngineBase, EngineProfile, TranslatableUnit, CSV_PROFILE
@@ -94,8 +92,9 @@ class CSVEngine(EngineBase):
         logger.info(f"[CSV] 提取 {len(units)} 条文本")
         return units
 
-    def write_back(self, game_dir: Path, units: list[TranslatableUnit],
-                   output_dir: Path, **kwargs) -> int:
+    def write_back(
+        self, game_dir: Path, units: list[TranslatableUnit], output_dir: Path, **kwargs
+    ) -> int:
         """将翻译结果写出为新文件（不修改输入文件）。"""
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -108,7 +107,9 @@ class CSVEngine(EngineBase):
 
         # 按源格式分组
         csv_units = [u for u in translated if u.metadata.get("source_format") in ("csv", "tsv")]
-        jsonl_units = [u for u in translated if u.metadata.get("source_format") in ("jsonl", "json")]
+        jsonl_units = [
+            u for u in translated if u.metadata.get("source_format") in ("jsonl", "json")
+        ]
 
         written = 0
         if csv_units:
@@ -117,7 +118,11 @@ class CSVEngine(EngineBase):
             written += self._write_jsonl(jsonl_units, output_dir, target_lang)
 
         # 如果没有明确分类，默认按 CSV 输出
-        other = [u for u in translated if u.metadata.get("source_format") not in ("csv", "tsv", "jsonl", "json")]
+        other = [
+            u
+            for u in translated
+            if u.metadata.get("source_format") not in ("csv", "tsv", "jsonl", "json")
+        ]
         if other:
             written += self._write_csv(other, output_dir, target_lang)
 
@@ -189,8 +194,7 @@ class CSVEngine(EngineBase):
             fsize = 0
         if fsize > _MAX_CSV_JSON_SIZE:
             logger.warning(
-                f"[CSV] 跳过 {rel}: 文件 {fsize} 字节 "
-                f"超过 {_MAX_CSV_JSON_SIZE} 字节上限"
+                f"[CSV] 跳过 {rel}: 文件 {fsize} 字节 超过 {_MAX_CSV_JSON_SIZE} 字节上限"
             )
             return units
 
@@ -223,8 +227,7 @@ class CSVEngine(EngineBase):
             orig_col = _find_column(headers, _ORIGINAL_ALIASES)
             if orig_col is None:
                 logger.error(
-                    f"[CSV] {rel}: 找不到原文列。表头: {headers}。"
-                    f"支持的别名: {_ORIGINAL_ALIASES}"
+                    f"[CSV] {rel}: 找不到原文列。表头: {headers}。支持的别名: {_ORIGINAL_ALIASES}"
                 )
                 return []
 
@@ -242,19 +245,21 @@ class CSVEngine(EngineBase):
                 if not unit_id:
                     unit_id = f"{rel}:{idx}"
 
-                units.append(TranslatableUnit(
-                    id=unit_id,
-                    original=original,
-                    file_path=rel,
-                    speaker=(row.get(speaker_col, "") or "").strip() if speaker_col else "",
-                    context=(row.get(context_col, "") or "").strip() if context_col else "",
-                    metadata={
-                        "source_format": source_format,
-                        "source_file": str(filepath),
-                        "row_index": idx,
-                        "file_ref": (row.get(file_col, "") or "").strip() if file_col else "",
-                    },
-                ))
+                units.append(
+                    TranslatableUnit(
+                        id=unit_id,
+                        original=original,
+                        file_path=rel,
+                        speaker=(row.get(speaker_col, "") or "").strip() if speaker_col else "",
+                        context=(row.get(context_col, "") or "").strip() if context_col else "",
+                        metadata={
+                            "source_format": source_format,
+                            "source_file": str(filepath),
+                            "row_index": idx,
+                            "file_ref": (row.get(file_col, "") or "").strip() if file_col else "",
+                        },
+                    )
+                )
 
         logger.debug(f"  [CSV] {rel}: {len(units)} 条")
         return units
@@ -277,8 +282,7 @@ class CSVEngine(EngineBase):
             fsize = 0
         if fsize > _MAX_CSV_JSON_SIZE:
             logger.warning(
-                f"[JSONL] 跳过 {rel}: 文件 {fsize} 字节 "
-                f"超过 {_MAX_CSV_JSON_SIZE} 字节上限"
+                f"[JSONL] 跳过 {rel}: 文件 {fsize} 字节 超过 {_MAX_CSV_JSON_SIZE} 字节上限"
             )
             return units
         # Round 48 Step 2 (D method scope expansion): TOCTOU defense
@@ -326,8 +330,7 @@ class CSVEngine(EngineBase):
             fsize = 0
         if fsize > _MAX_CSV_JSON_SIZE:
             logger.warning(
-                f"[JSON] 跳过 {rel}: 文件 {fsize} 字节 "
-                f"超过 {_MAX_CSV_JSON_SIZE} 字节上限"
+                f"[JSON] 跳过 {rel}: 文件 {fsize} 字节 超过 {_MAX_CSV_JSON_SIZE} 字节上限"
             )
             return []
         # Round 48 Step 2 (D method scope expansion): same TOCTOU
@@ -368,8 +371,9 @@ class CSVEngine(EngineBase):
     # JSON 对象 → TranslatableUnit
     # ============================================================
 
-    def _obj_to_unit(self, obj: dict, rel: str, idx: int,
-                     source_format: str, source_file: str) -> TranslatableUnit | None:
+    def _obj_to_unit(
+        self, obj: dict, rel: str, idx: int, source_format: str, source_file: str
+    ) -> TranslatableUnit | None:
         """将一个 JSON 对象转为 TranslatableUnit（含别名解析）。"""
         original = _resolve_field(obj, _ORIGINAL_ALIASES)
         if not original:
@@ -397,8 +401,7 @@ class CSVEngine(EngineBase):
     # 回写
     # ============================================================
 
-    def _write_csv(self, units: list[TranslatableUnit],
-                   output_dir: Path, target_lang: str) -> int:
+    def _write_csv(self, units: list[TranslatableUnit], output_dir: Path, target_lang: str) -> int:
         """输出翻译结果为 CSV 文件（UTF-8 BOM）。"""
         out_path = output_dir / f"translations_{target_lang}.csv"
         fieldnames = ["id", "original", "speaker", "context", target_lang]
@@ -407,19 +410,22 @@ class CSVEngine(EngineBase):
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for u in units:
-                writer.writerow({
-                    "id": u.id,
-                    "original": u.original,
-                    "speaker": u.speaker,
-                    "context": u.context,
-                    target_lang: u.translation,
-                })
+                writer.writerow(
+                    {
+                        "id": u.id,
+                        "original": u.original,
+                        "speaker": u.speaker,
+                        "context": u.context,
+                        target_lang: u.translation,
+                    }
+                )
 
         logger.info(f"[CSV] 写入 {len(units)} 条到 {out_path}")
         return len(units)
 
-    def _write_jsonl(self, units: list[TranslatableUnit],
-                     output_dir: Path, target_lang: str) -> int:
+    def _write_jsonl(
+        self, units: list[TranslatableUnit], output_dir: Path, target_lang: str
+    ) -> int:
         """输出翻译结果为 JSONL 文件。"""
         out_path = output_dir / f"translations_{target_lang}.jsonl"
 

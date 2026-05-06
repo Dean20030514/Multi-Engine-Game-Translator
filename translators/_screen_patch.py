@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 # ── Dedup ───────────────────────────────────────────────────────────
 
+
 def _deduplicate_entries(
     entries: list[ScreenTextEntry],
 ) -> tuple[dict[str, str], dict[str, list[ScreenTextEntry]]]:
@@ -98,25 +99,24 @@ def _build_screen_user_prompt(chunk_texts: list[str]) -> str:
     lines = []
     for i, text in enumerate(chunk_texts, 1):
         lines.append(f'[{i}] "{text}"')
-    return (
-        f"请翻译以下 {len(chunk_texts)} 条游戏界面 UI 文本：\n\n"
-        + "\n".join(lines)
-    )
+    return f"请翻译以下 {len(chunk_texts)} 条游戏界面 UI 文本：\n\n" + "\n".join(lines)
 
 
 def _build_screen_chunks(
-    texts: list[str], max_per_chunk: int = 40,
+    texts: list[str],
+    max_per_chunk: int = 40,
 ) -> list[list[str]]:
     """Slice the unique-text list into translation batches of
     ``max_per_chunk`` items each.
     """
     chunks = []
     for i in range(0, len(texts), max_per_chunk):
-        chunks.append(texts[i:i + max_per_chunk])
+        chunks.append(texts[i : i + max_per_chunk])
     return chunks
 
 
 # ── Translation ─────────────────────────────────────────────────────
+
 
 def _translate_screen_chunk(
     chunk_texts: list[str],
@@ -131,7 +131,9 @@ def _translate_screen_chunk(
     shipped with corrupt escape sequences.
     """
     from file_processor.checker import (
-        protect_placeholders, restore_placeholders, check_response_item,
+        protect_placeholders,
+        restore_placeholders,
+        check_response_item,
     )
 
     result: dict[str, str] = {}
@@ -206,9 +208,7 @@ def _translate_screen_chunk(
         item_warnings = check_response_item(check_item)
         if item_warnings:
             # Drop entries with placeholder / tag loss.
-            has_error = any(
-                "E210" in w or "E220" in w or "E230" in w for w in item_warnings
-            )
+            has_error = any("E210" in w or "E220" in w or "E230" in w for w in item_warnings)
             if has_error:
                 dropped += 1
                 warnings.extend(item_warnings)
@@ -221,15 +221,17 @@ def _translate_screen_chunk(
 
 # ── Replacement ─────────────────────────────────────────────────────
 
+
 def _escape_for_screen(text: str) -> str:
     """Escape a translation for safe embedding in a Ren'Py double-quoted
     string.  Delegates to ``file_processor.patcher`` when available.
     """
     try:
         from file_processor.patcher import _escape_for_renpy_string
+
         return _escape_for_renpy_string(text, '"')
     except ImportError:
-        text = text.replace('\\', '\\\\')
+        text = text.replace("\\", "\\\\")
         text = text.replace('"', '\\"')
         return text
 
@@ -275,7 +277,8 @@ def _replace_screen_strings_in_file(
             if entry.pattern_type == "text":
                 new_line, n = _RE_TEXT.subn(
                     lambda m, ez=escaped_zh: m.group(1) + '"' + ez + '"',
-                    line, count=1,
+                    line,
+                    count=1,
                 )
                 if n > 0:
                     line = new_line
@@ -284,7 +287,8 @@ def _replace_screen_strings_in_file(
             elif entry.pattern_type == "textbutton":
                 new_line, n = _RE_TEXTBUTTON.subn(
                     lambda m, ez=escaped_zh: m.group(1) + '"' + ez + '"',
-                    line, count=1,
+                    line,
+                    count=1,
                 )
                 if n > 0:
                     line = new_line
@@ -295,13 +299,12 @@ def _replace_screen_strings_in_file(
                 # build a per-entry pattern anchored on the original text
                 # so we only swap the intended occurrence.
                 orig_escaped = re.escape(entry.original)
-                func_name = r'tt\.Action' if entry.pattern_type == "tt_action" else r'Notify'
-                pattern = re.compile(
-                    r'(' + func_name + r'\s*\(\s*)"' + orig_escaped + r'"(\s*\))'
-                )
+                func_name = r"tt\.Action" if entry.pattern_type == "tt_action" else r"Notify"
+                pattern = re.compile(r"(" + func_name + r'\s*\(\s*)"' + orig_escaped + r'"(\s*\))')
                 new_line, n = pattern.subn(
                     lambda m, ez=escaped_zh: m.group(1) + '"' + ez + '"' + m.group(2),
-                    line, count=1,
+                    line,
+                    count=1,
                 )
                 if n > 0:
                     line = new_line
@@ -313,6 +316,7 @@ def _replace_screen_strings_in_file(
 
 
 # ── Progress persistence ────────────────────────────────────────────
+
 
 def _load_progress(progress_path: Path) -> dict:
     """Load the screen-translator resume file, tolerating corruption."""
@@ -362,6 +366,7 @@ def _save_progress(progress_path: Path, progress: dict) -> None:
 
 
 # ── Backup ──────────────────────────────────────────────────────────
+
 
 def _create_backup(file_path: Path) -> None:
     """Create a ``.bak`` copy if one does not already exist.

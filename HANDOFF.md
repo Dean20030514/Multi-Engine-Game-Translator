@@ -1,10 +1,10 @@
-# HANDOFF — Round 57 末 → Round 58 起点
+# HANDOFF — Round 58 末 → Round 59 起点
 
 <!-- VERIFIED-CLAIMS-START -->
-tests_total: 492
-test_files: 34
-ci_steps: 34
-assertion_points: 618
+tests_total: 494
+test_files: 35
+ci_steps: 36
+assertion_points: 620
 <!-- VERIFIED-CLAIMS-END -->
 
 > **上方 fenced 块是声明数字的唯一位置**。其他文档（`CLAUDE.md` / `.cursorrules` / `CHANGELOG.md` / `_archive/EVOLUTION.md` / `README.md` 等）只能引用这些数字，**不能重新声明**。`scripts/verify_docs_claims.py` 在 pre-commit hook 自动检查，drift fails the commit。
@@ -22,11 +22,11 @@ assertion_points: 618
 
 ## 状态一句话
 
-纯 Python 零依赖**zh-only**游戏汉化工具。**Round 57 6 维度深度债务审计 + 8 项 fix（技术债 + 质量与安全债全闭合）**：(T1) `pyproject.toml requires-python` 9 → 10 + CI matrix 删 3.9 — 7 个文件用 `int | None` PEP 604 语法实际就要 3.10+；(T2) mypy 从 informational 升级为 **enforce**（CI step 移除 `|| true` / `continue-on-error`）— 6 文件 scope 修 32 errors（21 `union-attr` 用 `# type: ignore` + 11 真修；core/api_plugin.py / api_client.py / translation_db.py / file_processor/ 全 mypy clean）；(T3) `tests/test_complex_fixture.py` 新建 — synthetic 复杂 .rpy fixture 含 nvl / multi-line / 标签 / SAZMOD path / escape quotes，2 集成测试覆盖 scan + fill round-trip；(T4) `tools/` 散乱 retire to architectural decision；(S1) `.gitignore` 加 `.env` / `*.key` / `*.pem` / `api_keys.json` / `secrets.json`；(S2) `main.py::_sanitize_user_path` path traversal guard — 拒绝 resolve 到 `/etc/` `/proc/` `c:/windows/` 等系统目录的用户路径，3 测试覆盖（含 cross-platform mock）；(S3) log injection retire to architectural decision（本地工具仅写 stdout）；(S4) `tests/test_file_processor.py` 加 2 fuzz 测试覆盖 `_escape_for_renpy_string` 抗 12 种恶意 LLM payload。**连续 17 轮 0 CRITICAL correctness**（r35-r57）。
+纯 Python 零依赖**zh-only**游戏汉化工具。**Round 58 余下 4 维度审计 — 架构设计 + 流程文档维度全闭合（8 项 fix）**：(A1) `core/config.py::resolve_args_from_config` 抽取——三层合并逻辑（CLI > config file > defaults）从 main.py inline 提到共享 helper + 2 单元测试；(A2) `docs/REFERENCE.md §7a` 配置层级优先级文档化（API key 5 层 fallback + 三层合并逻辑）；(A3) `docs/REFERENCE.md §13.2.1` RenPyEngine 不走 generic_pipeline 6 项对比 + r54 retire 理由；(P1) **CI 加 ruff check + ruff format --check + mypy scope 扩大到 engines/+safety/**——一次性 ruff format 99 文件；pyproject.toml 加 `[tool.ruff]` 配置（target-version py310 + extend-ignore E402/E501/F841）；(P2) **process docs 大补**——RELEASE.md / ROADMAP.md / docs/adr/（5 份 ADR：zero-deps / zh-only / subprocess-plugin / RenPy-dedicated-pipelines / safety-toplevel）/ ISSUE_TEMPLATE bug+feature / PULL_REQUEST_TEMPLATE / dependabot.yml；(P3) **EVOLUTION 滚动归档约定**——每 5 轮（r60/r65/...）抽离详细叙事到 `_archive/EVOLUTION_rN-4_rN.md`；(P4) README 顶部加 i18n 说明（项目主要面向中文用户，README + CONTRIBUTING 双语）。Plus **800 行 cap split**：test_translators.py 832 → 654（拆 6 main CLI 测试到新 test_main_cli.py）+ test_file_safety.py docstring 精简 798。**连续 18 轮 0 CRITICAL correctness**（r35-r58）。
 
 ## 同步状态
 
-- r57 单 commit 待 push（NEVER push 政策保留给用户）
+- r58 单 commit 待 push（NEVER push 政策保留给用户）
 - 本地未 push（按 NEVER push 政策保留 commit 决策给用户）
 - pre-commit hook 已激活（`git config core.hooksPath = .git-hooks`）
 - 4 件套 + r52 C1 push-status drift check 自动 enforce：py_compile + 800 行 cap + meta-runner + `verify_docs_claims --fast` (含 push-status check)
@@ -60,7 +60,11 @@ assertion_points: 618
 | .gitignore secrets | ✅ **r57 S1**：加 `.env` / `*.key` / `*.pem` / `api_keys.json` / `secrets.json` |
 | `.rpy` escape fuzz 覆盖 | ✅ **r57 S4**：`_escape_for_renpy_string` 抗 12 种恶意 LLM payload，property-based 测试 |
 | Complex fixture 测试覆盖 | ✅ **r57 T3**：synthetic 复杂 .rpy（nvl / multi-line / 标签 / SAZMOD / escape）+ scan + fill round-trip 集成测试 |
-| 累计审计 | ✅ 连续 17 轮 0 CRITICAL correctness（r35-r57） |
+| Lint / Format 门禁 | ✅ **r58 P1**：CI 加 `ruff check .` + `ruff format --check .` + mypy scope 扩大到 `engines/+safety/`（pyproject.toml `[tool.ruff]` 配置 target-py310 + extend-ignore E402/E501/F841）|
+| 配置 helper 共享 | ✅ **r58 A1**：`core/config.py::resolve_args_from_config` 三层合并逻辑共享 helper（CLI > config file > defaults）|
+| Process docs | ✅ **r58 P2**：RELEASE / ROADMAP / 5 ADR / ISSUE_TEMPLATE / PR_TEMPLATE / dependabot.yml |
+| EVOLUTION 滚动归档约定 | ✅ **r58 P3**：每 5 轮 (r60/r65/...) 归档详细叙事到 `_archive/EVOLUTION_rN-4_rN.md` |
+| 累计审计 | ✅ 连续 18 轮 0 CRITICAL correctness（r35-r58） |
 
 ## 推荐的 Round 56+ 工作项
 
@@ -81,6 +85,24 @@ assertion_points: 618
 ### ✅ Round 55 完成（1 项；从 actionable backlog 移到 已完成）
 
 - ~~**Unity XUnity AutoTranslator 接入**~~ — **r55 完成**：[`engines/unity_xunity.py`](engines/unity_xunity.py) 实现 detect/extract/write_back，支持 `original=translation` 普通行 + `//` 注释保留 + `r:"<pattern>"="<replacement>"` 正则规则（pattern 不动，仅 replacement 提交 LLM）+ UTF-8 BOM round-trip + CRLF/LF 行尾保留 + 50 MB OOM cap + TOCTOU 防御。CLI `--engine unity` 与 `--engine unity_xunity` 都接受。16 单元测试 PASS（含 round-trip byte-identical assertion）。
+
+### ✅ Round 58 完成（8 项 audit fix；架构设计 + 流程文档维度全闭合）
+
+> r57 末完成 [`AUDIT_R57.md`](AUDIT_R57.md) 6 维度共 23 findings 中的维度 1+2 (T1-T4, S1-S4) 8 项；本轮推进**维度 3 (架构与设计) + 维度 4 (流程与文档) 共 8 项**，剩余维度 5 (产品与业务，B1-B4) + 维度 6 (组织与知识，O1-O4) 给 r59+。
+
+- **A1 — `_resolve_args_from_config` helper 抽取**：从 `main.py::main()` L249-266 inline 三层合并代码（CLI > config file > defaults）抽到 `core/config.py::resolve_args_from_config(args, cfg)`，~70 行。GUI / one-click pipeline / 未来 entry point 共享同一 helper，改 config 逻辑只改一处。+2 单元测试（fills_defaults / target_lang_hardcoded_zh）。
+- **A2 — 配置层级优先级文档化**：`docs/REFERENCE.md §7a` 新加段，含 6 层 API key fallback 表格 + 三层 config 合并逻辑说明 + 引用 r58 A1 helper 路径。
+- **A3 — RenPyEngine 不走 generic_pipeline 解释**：`docs/REFERENCE.md §13.2.1` 新加 6 项对比表（提取单位 / 分块策略 / 回写精度 / Retry 阶段 / Fallback 链 / LLM mis-escape），交叉引用 r54 retire 理由。
+- **P1 — CI lint/format/mypy-expanded 门禁**：(a) 加 `ruff check .` + `ruff format --check .` 两个 CI step（ruff 是 dev-time tool，不破坏零依赖契约 — ADR 0001 仍 hold）；(b) `pyproject.toml` 加 `[tool.ruff]` 配置（target py310 + select E/F/W + extend-ignore E402/E501/F841 含理由注释 + format quote-style double）；(c) 一次性 `ruff format .` 99 files reformatted（baseline 立起）+ `ruff check --fix .` 132 errors auto-fixed；(d) mypy scope 扩大到 `engines/+safety/`（用 `--follow-imports=silent` 不让 translators/ 拖累 — translators/ 仍有 ~20 mypy errors，留 follow-up 不 gate）。
+- **P2 — Process docs 大补**：(a) [`RELEASE.md`](RELEASE.md) — 手动 PyInstaller 流程 + 自动化 GitHub Actions tag-trigger 候选；(b) [`ROADMAP.md`](ROADMAP.md) — 公开版（用户/贡献者视角），按当前能力 / 短期 / 中期 / 长期 / 已 retire 5 段；(c) [`docs/adr/`](docs/adr/) — 索引 + 模板 + 5 份 ADR：0001 zero-deps / 0002 zh-only / 0003 subprocess-only-plugin / 0004 RenPy-dedicated / 0005 safety-toplevel；(d) [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) — bug_report.md + feature_request.md + config.yml（禁 blank issue + 引导到 Discussions / Security advisory）；(e) [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — 改动类型 / hard contracts 检查 / docs sync checklist；(f) [`.github/dependabot.yml`](.github/dependabot.yml) — github-actions ecosystem monthly（runtime 零依赖不需 pip ecosystem）。
+- **P3 — EVOLUTION 滚动归档约定**：CLAUDE.md 加"文档归档节奏"段。每 5 轮（r60 / r65 / r70 / ...）归档详细叙事到 `_archive/EVOLUTION_rN-4_rN.md`，主 EVOLUTION 仅留 1-2 句摘要 + 阶段表格行。**下次触发 r60**（当前 r58 后再 2 轮）。
+- **P4 — README 顶部 i18n 说明**：明确告诉国际贡献者：README + CONTRIBUTING 双语；其他 docs 仅中文（项目主要面向中文用户）；in-repo 代码 / commit 仍英文。
+
+**Plus 800-line cap split**（ruff format 让 2 测试文件越界）：
+- `tests/test_translators.py` 832 → 654 行：拆 6 个 main.py CLI 测试到新 [`tests/test_main_cli.py`](tests/test_main_cli.py)（test_w_monitor4_* + test_w_round57_s2_*）
+- `tests/test_file_safety.py` 807 → 798 行：精简模块顶部 docstring（保留所有测试逻辑）
+
+**数字增量**：tests_total 492 → 494 (+2: A1); test_files 34 → 35 (+1: test_main_cli.py); ci_steps 34 → 36 (+2: ruff check + ruff format --check); assertion_points 618 → 620 (+2)。
 
 ### ✅ Round 57 完成（8 项 audit fix；技术债 + 质量与安全债维度全闭合）
 
@@ -156,7 +178,7 @@ assertion_points: 618
 | 核心 | `core/{api_client, api_plugin, config, glossary, prompts, translation_db, translation_utils, http_pool, pickle_safe, font_patch, runtime_hook_emitter, file_safety}.py` |
 | 流水线 | `pipeline/{helpers, gate, stages}.py` |
 | 翻译子模块 | `translators/{direct, tl_mode, retranslator, screen, tl_parser, renpy_text_utils}.py` + 7 私有子模块（含 r53 `_tl_retry.py`） |
-| 测试 | `tests/test_all.py` meta-runner + 34 独立 suites（含 r53 `test_tl_retry.py` + `test_pickle_safe_redteam.py` + r55 `test_unity_xunity_engine.py` + r57 `test_complex_fixture.py`） |
+| 测试 | `tests/test_all.py` meta-runner + 35 独立 suites（含 r53 `test_tl_retry.py` + `test_pickle_safe_redteam.py` + r55 `test_unity_xunity_engine.py` + r57 `test_complex_fixture.py` + r58 `test_main_cli.py`） |
 | docs | `docs/ARCHITECTURE.md`（架构 + 数据流 + 校验链 + 引擎指南 + 测试体系）+ `docs/REFERENCE.md`（常量 + 错误码 + 路线图 + r54 retire） |
 | CI | `.github/workflows/test.yml`（双 OS matrix × 3 Python = 6 jobs；step 数见 VERIFIED-CLAIMS）+ `scripts/verify_workflow.py` |
 | 开发者工具 | `.gitattributes` + `.gitignore` + `build.py --clean-only` + `.git-hooks/pre-commit` + `scripts/{install_hooks.sh, verify_workflow.py, verify_docs_claims.py, migrate_db_v2_to_v1.py}` |
@@ -173,8 +195,10 @@ assertion_points: 618
 4. **（按需）** `_archive/EVOLUTION.md` — 历史决策（含 r54 段）
 5. **（按需）** `_archive/CHANGELOG_RECENT_r52.md` — 最近 5 轮（r48-r52）详细
 
-**Round 58 关键约束**：
-- audit findings 必须**同轮 fix，no tier exemption**（r50 起 written + enforced；r51 / r52 / r53 / r54 / r55 / r56 / r57 各执行有效）
+**Round 59 关键约束**：
+- audit findings 必须**同轮 fix，no tier exemption**（r50 起 written + enforced；r51 / r52 / r53 / r54 / r55 / r56 / r57 / r58 各执行有效）
+- **CI ruff lint/format 门禁**（r58 P1）— 任何新 PR 必须 `ruff check .` + `ruff format --check .` 全过；`pyproject.toml [tool.ruff]` extend-ignore 列表不得放宽
+- **EVOLUTION 滚动归档**（r58 P3）— r60 触发首次归档（每 5 轮一次）；归档时主 EVOLUTION 减 ≥ 100 行
 - **mypy enforce contract**（r57 T2）— `core/translation_utils.py / core/config.py / file_processor/ / core/api_client.py / core/glossary.py / core/translation_db.py` 6 文件 scope 必须保持 mypy 0 errors；新文件加入 scope 前必须先 mypy clean
 - **Python 版本契约**（r57 T1）— `pyproject.toml requires-python = ">=3.10"`；任何向后兼容 3.9 的 PR 必须先 plan-first（PEP 604 `int \| None` 语法已广泛使用，retreating 是大重构）
 - **Path traversal contract**（r57 S2）— `main.py::_FORBIDDEN_PATH_PREFIXES` 不得放宽；任何添加 user-supplied path 入口必须经过 `_sanitize_user_path`

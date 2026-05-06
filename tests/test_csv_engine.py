@@ -25,7 +25,6 @@ Tests are byte-identical to their pre-split forms.
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -37,9 +36,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # CSV 提取测试
 # ============================================================
 
+
 def test_csv_basic_extract():
     """CSV 基本提取"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         csv_path = Path(d) / "test.csv"
@@ -58,6 +59,7 @@ def test_csv_basic_extract():
 def test_csv_column_aliases():
     """CSV 列名别名（source/text/en 匹配为 original）"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     for alias in ("source", "text", "en"):
         with tempfile.TemporaryDirectory() as d:
@@ -72,6 +74,7 @@ def test_csv_column_aliases():
 def test_csv_no_id_column():
     """CSV 无 ID 列（自动用行号）"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         csv_path = Path(d) / "test.csv"
@@ -85,6 +88,7 @@ def test_csv_no_id_column():
 def test_csv_utf8_bom():
     """CSV UTF-8 BOM 处理"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         csv_path = Path(d) / "test.csv"
@@ -98,6 +102,7 @@ def test_csv_utf8_bom():
 def test_tsv_extract():
     """TSV 提取（tab 分隔）"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         tsv_path = Path(d) / "test.tsv"
@@ -111,6 +116,7 @@ def test_tsv_extract():
 def test_jsonl_basic_extract():
     """JSONL 基本提取"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         jsonl_path = Path(d) / "test.jsonl"
@@ -128,6 +134,7 @@ def test_jsonl_basic_extract():
 def test_json_array_fallback():
     """JSON 数组 fallback"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         json_path = Path(d) / "test.json"
@@ -144,11 +151,17 @@ def test_csv_write_back():
     """CSV write_back 输出包含翻译列"""
     from engines.csv_engine import CSVEngine
     from engines.engine_base import TranslatableUnit
+
     engine = CSVEngine()
     units = [
-        TranslatableUnit(id="k1", original="Hello", file_path="test.csv",
-                         translation="你好", status="translated",
-                         metadata={"source_format": "csv"}),
+        TranslatableUnit(
+            id="k1",
+            original="Hello",
+            file_path="test.csv",
+            translation="你好",
+            status="translated",
+            metadata={"source_format": "csv"},
+        ),
     ]
     with tempfile.TemporaryDirectory() as d:
         written = engine.write_back(Path("."), units, Path(d), target_lang="zh")
@@ -164,11 +177,17 @@ def test_jsonl_write_back():
     """JSONL write_back"""
     from engines.csv_engine import CSVEngine
     from engines.engine_base import TranslatableUnit
+
     engine = CSVEngine()
     units = [
-        TranslatableUnit(id="k1", original="Hello", file_path="test.jsonl",
-                         translation="你好", status="translated",
-                         metadata={"source_format": "jsonl"}),
+        TranslatableUnit(
+            id="k1",
+            original="Hello",
+            file_path="test.jsonl",
+            translation="你好",
+            status="translated",
+            metadata={"source_format": "jsonl"},
+        ),
     ]
     with tempfile.TemporaryDirectory() as d:
         written = engine.write_back(Path("."), units, Path(d), target_lang="zh")
@@ -184,6 +203,7 @@ def test_jsonl_write_back():
 def test_csv_directory_scan():
     """CSV 目录扫描提取"""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         (Path(d) / "a.csv").write_text("original\nHello\n", encoding="utf-8")
@@ -202,11 +222,13 @@ def test_csv_engine_rejects_oversized_json():
     instantly without consuming disk; verifies the cap semantics + the
     mixed-directory scan still extracts from the other files."""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         # Legitimate small file — must still be extracted
         (Path(d) / "small.csv").write_text(
-            "original\nHello\n", encoding="utf-8",
+            "original\nHello\n",
+            encoding="utf-8",
         )
         # 51 MB sparse oversized JSONL — must be skipped
         big_jsonl = Path(d) / "big.jsonl"
@@ -224,17 +246,14 @@ def test_csv_engine_rejects_oversized_json():
         # are both skipped by the cap gate.
         rel_files = {u.file_path for u in units}
         assert "big.jsonl" not in rel_files, (
-            "oversized .jsonl must be skipped, got units: "
-            f"{[u.file_path for u in units]}"
+            f"oversized .jsonl must be skipped, got units: {[u.file_path for u in units]}"
         )
         assert "big.json" not in rel_files, (
-            "oversized .json must be skipped, got units: "
-            f"{[u.file_path for u in units]}"
+            f"oversized .json must be skipped, got units: {[u.file_path for u in units]}"
         )
         # Small file unaffected.
         assert len(units) == 1, (
-            f"expected 1 unit from small.csv, got {len(units)}: "
-            f"{[u.file_path for u in units]}"
+            f"expected 1 unit from small.csv, got {len(units)}: {[u.file_path for u in units]}"
         )
     print("[OK] csv_engine_rejects_oversized_json")
 
@@ -248,11 +267,13 @@ def test_csv_engine_rejects_oversized_csv():
     round 45 audit's optional MEDIUM list.  Uses a 51 MB sparse file
     so the test runs instantly without consuming disk."""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         # Legitimate small file — must still be extracted
         (Path(d) / "small.csv").write_text(
-            "original\nHello\n", encoding="utf-8",
+            "original\nHello\n",
+            encoding="utf-8",
         )
         # 51 MB sparse oversized .csv — must be skipped
         big_csv = Path(d) / "big.csv"
@@ -268,16 +289,13 @@ def test_csv_engine_rejects_oversized_csv():
         units = engine.extract_texts(Path(d))
         rel_files = {u.file_path for u in units}
         assert "big.csv" not in rel_files, (
-            "oversized .csv must be skipped, got units: "
-            f"{[u.file_path for u in units]}"
+            f"oversized .csv must be skipped, got units: {[u.file_path for u in units]}"
         )
         assert "big.tsv" not in rel_files, (
-            "oversized .tsv must be skipped, got units: "
-            f"{[u.file_path for u in units]}"
+            f"oversized .tsv must be skipped, got units: {[u.file_path for u in units]}"
         )
         assert len(units) == 1, (
-            f"expected 1 unit from small.csv, got {len(units)}: "
-            f"{[u.file_path for u in units]}"
+            f"expected 1 unit from small.csv, got {len(units)}: {[u.file_path for u in units]}"
         )
     print("[OK] csv_engine_rejects_oversized_csv")
 
@@ -291,6 +309,7 @@ def test_csv_engine_accepts_exact_cap_csv():
     50 MB file."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         exact_csv = Path(d) / "exact.csv"
@@ -312,6 +331,7 @@ def test_csv_engine_handles_empty_csv():
     crash the cap check or csv.DictReader.  Returns 0 units (no header
     means csv.DictReader.fieldnames is None -> early return [])."""
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         empty_csv = Path(d) / "empty.csv"
@@ -319,9 +339,7 @@ def test_csv_engine_handles_empty_csv():
         assert empty_csv.stat().st_size == 0
         units = engine.extract_texts(Path(d))
         empty_units = [u for u in units if u.file_path == "empty.csv"]
-        assert len(empty_units) == 0, (
-            f"empty 0-byte CSV must yield 0 units, got {len(empty_units)}"
-        )
+        assert len(empty_units) == 0, f"empty 0-byte CSV must yield 0 units, got {len(empty_units)}"
     print("[OK] csv_engine_handles_empty_csv")
 
 
@@ -331,19 +349,21 @@ def test_csv_engine_handles_stat_oserror_fail_open():
     csv.DictReader processing rather than being skipped.  Pins the
     intentional fail-open design.  The post-open os.fstat() (r47 D3
     defense) is unaffected because it uses the open file descriptor."""
-    import os as _os
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         target_csv = Path(d) / "target.csv"
         target_csv.write_text("original\nHello\n", encoding="utf-8")
         # Selectively raise OSError only for target.csv path.stat()
         original_stat = Path.stat
+
         def _selective_stat(self, *, follow_symlinks=True):
             if self.name == "target.csv":
                 raise OSError("simulated stat failure")
             return original_stat(self, follow_symlinks=follow_symlinks)
+
         with mock.patch.object(Path, "stat", _selective_stat):
             units = engine.extract_texts(Path(d))
         originals = [u.original for u in units if u.file_path == "target.csv"]
@@ -361,6 +381,7 @@ def test_csv_engine_rejects_toctou_growth_attack():
     Pins the new TOCTOU defense added in round 47 Step 2."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         target_csv = Path(d) / "toctou.csv"
@@ -380,11 +401,14 @@ def test_csv_engine_rejects_toctou_growth_attack():
         # Caught by round 48 Step 3 security audit.
         class _LargeStatResult:
             st_size = 99999  # > small_cap = 100
+
         def _patched_os_fstat(fd):
             return _LargeStatResult()
 
-        with mock.patch("safety.file_safety.os.fstat", _patched_os_fstat), \
-             mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap):
+        with (
+            mock.patch("safety.file_safety.os.fstat", _patched_os_fstat),
+            mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap),
+        ):
             units = engine.extract_texts(Path(d))
 
         originals = [u.original for u in units if u.file_path == "toctou.csv"]
@@ -403,6 +427,7 @@ def test_csv_engine_accepts_cap_minus_1_csv():
     lower / equal / upper edges of the ``>`` operator contract."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         cm1_csv = Path(d) / "cap_minus_1.csv"
@@ -425,6 +450,7 @@ def test_csv_engine_rejects_cap_plus_1_csv():
     be rejected — the upper edge of the ``>`` operator contract."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         cp1_csv = Path(d) / "cap_plus_1.csv"
@@ -435,8 +461,7 @@ def test_csv_engine_rejects_cap_plus_1_csv():
             units = engine.extract_texts(Path(d))
         originals = [u.original for u in units if u.file_path == "cap_plus_1.csv"]
         assert "Hello" not in originals, (
-            f"cap+1 file size must trigger > cap and reject; "
-            f"expected empty, got {originals}"
+            f"cap+1 file size must trigger > cap and reject; expected empty, got {originals}"
         )
     print("[OK] csv_engine_rejects_cap_plus_1_csv")
 
@@ -454,6 +479,7 @@ def test_csv_engine_logs_csv_error_distinct_from_generic():
     import logging
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         target = Path(d) / "bad.csv"
@@ -489,12 +515,10 @@ def test_csv_engine_logs_csv_error_distinct_from_generic():
         csv_error_msgs = [m for m in captured if "CSV 解析错误" in m]
         generic_fail_msgs = [m for m in captured if "解析失败" in m]
         assert csv_error_msgs, (
-            f"csv.Error must trigger the explicit 'CSV 解析错误' branch; "
-            f"captured={captured}"
+            f"csv.Error must trigger the explicit 'CSV 解析错误' branch; captured={captured}"
         )
         assert not generic_fail_msgs, (
-            f"csv.Error must NOT fall through to generic '解析失败' branch; "
-            f"captured={captured}"
+            f"csv.Error must NOT fall through to generic '解析失败' branch; captured={captured}"
         )
     print("[OK] csv_engine_logs_csv_error_distinct_from_generic")
 
@@ -508,12 +532,11 @@ def test_csv_engine_rejects_jsonl_toctou_growth_attack():
     can OOM the host with a sparse-then-grown file)."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         target_jsonl = Path(d) / "toctou.jsonl"
-        target_jsonl.write_text(
-            '{"original": "Hello"}\n', encoding="utf-8"
-        )
+        target_jsonl.write_text('{"original": "Hello"}\n', encoding="utf-8")
         small_cap = 100  # mock cap
 
         # Mock check_fstat_size to return (False, huge) — simulates
@@ -523,8 +546,10 @@ def test_csv_engine_rejects_jsonl_toctou_growth_attack():
         def _patched_check(file_obj, max_size):
             return (False, 99999)  # ok=False, size=99999
 
-        with mock.patch("engines.csv_engine.check_fstat_size", _patched_check), \
-             mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap):
+        with (
+            mock.patch("engines.csv_engine.check_fstat_size", _patched_check),
+            mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap),
+        ):
             units = engine.extract_texts(Path(d))
 
         originals = [u.original for u in units if u.file_path == "toctou.jsonl"]
@@ -543,19 +568,20 @@ def test_csv_engine_rejects_json_toctou_growth_attack():
     _extract_jsonl, mitigated via the same helper."""
     from unittest import mock
     from engines.csv_engine import CSVEngine
+
     engine = CSVEngine()
     with tempfile.TemporaryDirectory() as d:
         target_json = Path(d) / "toctou.json"
-        target_json.write_text(
-            '[{"original": "Hello"}]', encoding="utf-8"
-        )
+        target_json.write_text('[{"original": "Hello"}]', encoding="utf-8")
         small_cap = 100  # mock cap
 
         def _patched_check(file_obj, max_size):
             return (False, 99999)
 
-        with mock.patch("engines.csv_engine.check_fstat_size", _patched_check), \
-             mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap):
+        with (
+            mock.patch("engines.csv_engine.check_fstat_size", _patched_check),
+            mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap),
+        ):
             units = engine.extract_texts(Path(d))
 
         originals = [u.original for u in units if u.file_path == "toctou.json"]
@@ -564,7 +590,6 @@ def test_csv_engine_rejects_json_toctou_growth_attack():
             f"and open must be rejected; got originals={originals}"
         )
     print("[OK] csv_engine_rejects_json_toctou_growth_attack")
-
 
 
 def run_all() -> int:

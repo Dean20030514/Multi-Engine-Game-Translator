@@ -10,3 +10,37 @@ dependencies = []
 
 [project.urls]
 Repository = "https://github.com/Dean20030514/Multi-Engine-Game-Translator"
+
+# Round 58 P1: ruff lint + format configuration.
+# Note: ruff is a CI / dev-time tool, NOT a runtime dependency
+# (zero-dependency contract per ADR 0001 still holds).
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = [
+    "_archive",
+    "tests/artifacts",
+]
+
+[tool.ruff.lint]
+# Default rules (E + F + W) are sufficient for catching unused imports,
+# undefined names, and obvious bugs. Stricter rule sets (B / I / N / etc.)
+# can be added incrementally in future rounds.
+select = ["E", "F", "W"]
+# Tolerated rules (project-specific reasons; don't add to this list
+# without plan-first):
+#   E402: module-level import not at top of file -- tests / scripts
+#         use `sys.path.insert(...)` before imports, intentional pattern.
+#   E501: line too long -- 100-char target is informational; legacy code
+#         and docstring-heavy files exceed this and bulk-rewrap is out
+#         of scope for r58.
+#   F841: unused local variable -- 12 sites kept as debug placeholders
+#         or for clarity; future rounds may revisit each individually.
+extend-ignore = ["E402", "E501", "F841"]
+
+[tool.ruff.format]
+# Match Black-compatible defaults; the r58 P1 introduction round
+# bulk-formatted 98 files via `ruff format .` to clear the initial
+# baseline. New PRs are gated by `ruff format --check .` in CI.
+quote-style = "double"
+indent-style = "space"

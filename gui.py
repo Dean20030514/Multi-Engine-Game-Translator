@@ -24,6 +24,7 @@ from gui_pipeline import AppPipelineMixin
 # DPI 适配（Windows）
 try:
     import ctypes
+
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception:
     pass
@@ -75,9 +76,13 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
     def _build_menu(self) -> None:
         menubar = tk.Menu(self.root)
         tool_menu = tk.Menu(menubar, tearoff=0, font=("", 10))
-        tool_menu.add_command(label="  仅扫描估费（Dry-run，无需 API Key）  ", command=self._run_dry_run)
+        tool_menu.add_command(
+            label="  仅扫描估费（Dry-run，无需 API Key）  ", command=self._run_dry_run
+        )
         tool_menu.add_separator()
-        tool_menu.add_command(label="  Ren'Py 7→8 升级扫描（检测旧 API 问题）  ", command=self._run_upgrade_scan)
+        tool_menu.add_command(
+            label="  Ren'Py 7→8 升级扫描（检测旧 API 问题）  ", command=self._run_upgrade_scan
+        )
         menubar.add_cascade(label=" \u2630 工具 ", menu=tool_menu)
         self.root.config(menu=menubar)
 
@@ -103,21 +108,31 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         # 游戏目录
         ttk.Label(tab, text="游戏目录:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_game_dir = tk.StringVar()
-        ttk.Entry(tab, textvariable=self.var_game_dir, width=55).grid(row=row, column=1, sticky="ew", pady=3)
-        ttk.Button(tab, text="浏览", command=lambda: self._browse_dir(self.var_game_dir)).grid(row=row, column=2, padx=4)
+        ttk.Entry(tab, textvariable=self.var_game_dir, width=55).grid(
+            row=row, column=1, sticky="ew", pady=3
+        )
+        ttk.Button(tab, text="浏览", command=lambda: self._browse_dir(self.var_game_dir)).grid(
+            row=row, column=2, padx=4
+        )
         row += 1
 
         # 输出目录
         ttk.Label(tab, text="输出目录:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_output_dir = tk.StringVar(value="output")
-        ttk.Entry(tab, textvariable=self.var_output_dir, width=55).grid(row=row, column=1, sticky="ew", pady=3)
-        ttk.Button(tab, text="浏览", command=lambda: self._browse_dir(self.var_output_dir)).grid(row=row, column=2, padx=4)
+        ttk.Entry(tab, textvariable=self.var_output_dir, width=55).grid(
+            row=row, column=1, sticky="ew", pady=3
+        )
+        ttk.Button(tab, text="浏览", command=lambda: self._browse_dir(self.var_output_dir)).grid(
+            row=row, column=2, padx=4
+        )
         row += 1
 
         # 引擎
         ttk.Label(tab, text="引擎:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_engine = tk.StringVar(value="auto")
-        cb = ttk.Combobox(tab, textvariable=self.var_engine, values=_ENGINES, state="readonly", width=15)
+        cb = ttk.Combobox(
+            tab, textvariable=self.var_engine, values=_ENGINES, state="readonly", width=15
+        )
         cb.grid(row=row, column=1, sticky="w", pady=3)
         cb.bind("<<ComboboxSelected>>", lambda e: self._on_engine_change())
         row += 1
@@ -125,7 +140,9 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         # 提供商
         ttk.Label(tab, text="API 提供商:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_provider = tk.StringVar(value="xai")
-        cb_prov = ttk.Combobox(tab, textvariable=self.var_provider, values=_PROVIDERS, state="readonly", width=15)
+        cb_prov = ttk.Combobox(
+            tab, textvariable=self.var_provider, values=_PROVIDERS, state="readonly", width=15
+        )
         cb_prov.grid(row=row, column=1, sticky="w", pady=3)
         cb_prov.bind("<<ComboboxSelected>>", lambda e: self._on_provider_change())
         row += 1
@@ -133,13 +150,17 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         # API 密钥
         ttk.Label(tab, text="API 密钥:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_api_key = tk.StringVar()
-        ttk.Entry(tab, textvariable=self.var_api_key, show="*", width=55).grid(row=row, column=1, sticky="ew", pady=3)
+        ttk.Entry(tab, textvariable=self.var_api_key, show="*", width=55).grid(
+            row=row, column=1, sticky="ew", pady=3
+        )
         row += 1
 
         # 模型
         ttk.Label(tab, text="模型:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_model = tk.StringVar(value=_PROVIDER_DEFAULTS["xai"])
-        ttk.Entry(tab, textvariable=self.var_model, width=35).grid(row=row, column=1, sticky="w", pady=3)
+        ttk.Entry(tab, textvariable=self.var_model, width=35).grid(
+            row=row, column=1, sticky="w", pady=3
+        )
         row += 1
 
         # 并发 / RPM / RPS
@@ -147,16 +168,24 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         frame_perf.grid(row=row, column=0, columnspan=3, sticky="w", pady=3)
         ttk.Label(frame_perf, text="chunk并发:").pack(side=tk.LEFT)
         self.var_workers = tk.StringVar(value="3")
-        ttk.Spinbox(frame_perf, from_=1, to=20, textvariable=self.var_workers, width=4).pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Spinbox(frame_perf, from_=1, to=20, textvariable=self.var_workers, width=4).pack(
+            side=tk.LEFT, padx=(0, 15)
+        )
         ttk.Label(frame_perf, text="文件并行:").pack(side=tk.LEFT)
         self.var_file_workers = tk.StringVar(value="1")
-        ttk.Spinbox(frame_perf, from_=1, to=8, textvariable=self.var_file_workers, width=4).pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Spinbox(frame_perf, from_=1, to=8, textvariable=self.var_file_workers, width=4).pack(
+            side=tk.LEFT, padx=(0, 15)
+        )
         ttk.Label(frame_perf, text="RPM:").pack(side=tk.LEFT)
         self.var_rpm = tk.StringVar(value="600")
-        ttk.Spinbox(frame_perf, from_=1, to=9999, textvariable=self.var_rpm, width=6).pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Spinbox(frame_perf, from_=1, to=9999, textvariable=self.var_rpm, width=6).pack(
+            side=tk.LEFT, padx=(0, 15)
+        )
         ttk.Label(frame_perf, text="RPS:").pack(side=tk.LEFT)
         self.var_rps = tk.StringVar(value="10")
-        ttk.Spinbox(frame_perf, from_=1, to=999, textvariable=self.var_rps, width=4).pack(side=tk.LEFT)
+        ttk.Spinbox(frame_perf, from_=1, to=999, textvariable=self.var_rps, width=4).pack(
+            side=tk.LEFT
+        )
 
         tab.columnconfigure(1, weight=1)
 
@@ -167,7 +196,9 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         self.notebook.add(self.tab_translate, text="翻译设置")
 
         # 引擎状态标签
-        self.lbl_engine_hint = ttk.Label(self.tab_translate, text="当前引擎: auto", font=("", 10, "bold"))
+        self.lbl_engine_hint = ttk.Label(
+            self.tab_translate, text="当前引擎: auto", font=("", 10, "bold")
+        )
         self.lbl_engine_hint.pack(anchor="w")
 
         # 动态面板容器
@@ -185,11 +216,20 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         # 翻译模式
         ttk.Label(self.panel_renpy, text="翻译模式:").grid(row=0, column=0, sticky="w", pady=3)
         self.var_renpy_mode = tk.StringVar(value="direct")
-        modes = [("direct-mode（整文件翻译）", "direct"), ("tl-mode（tl 框架翻译）", "tl"),
-                 ("retranslate（补翻残留英文）", "retranslate"), ("一键流水线（试跑+闸门+全量+补翻）", "pipeline")]
+        modes = [
+            ("direct-mode（整文件翻译）", "direct"),
+            ("tl-mode（tl 框架翻译）", "tl"),
+            ("retranslate（补翻残留英文）", "retranslate"),
+            ("一键流水线（试跑+闸门+全量+补翻）", "pipeline"),
+        ]
         for i, (text, val) in enumerate(modes):
-            ttk.Radiobutton(self.panel_renpy, text=text, variable=self.var_renpy_mode,
-                            value=val, command=self._on_renpy_mode_change).grid(row=1 + i, column=0, columnspan=2, sticky="w")
+            ttk.Radiobutton(
+                self.panel_renpy,
+                text=text,
+                variable=self.var_renpy_mode,
+                value=val,
+                command=self._on_renpy_mode_change,
+            ).grid(row=1 + i, column=0, columnspan=2, sticky="w")
 
         row = 5
         # tl 语言
@@ -201,15 +241,21 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
 
         # 断点续传
         self.var_resume = tk.BooleanVar(value=False)
-        ttk.Checkbutton(self.panel_renpy, text="断点续传（--resume）", variable=self.var_resume).grid(
-            row=row, column=0, columnspan=2, sticky="w", pady=3)
+        ttk.Checkbutton(
+            self.panel_renpy, text="断点续传（--resume）", variable=self.var_resume
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=3)
         row += 1
 
         # 风格
         ttk.Label(self.panel_renpy, text="翻译风格:").grid(row=row, column=0, sticky="e", pady=3)
         self.var_genre = tk.StringVar(value="adult")
-        ttk.Combobox(self.panel_renpy, textvariable=self.var_genre, values=_GENRES,
-                      state="readonly", width=15).grid(row=row, column=1, sticky="w", pady=3)
+        ttk.Combobox(
+            self.panel_renpy,
+            textvariable=self.var_genre,
+            values=_GENRES,
+            state="readonly",
+            width=15,
+        ).grid(row=row, column=1, sticky="w", pady=3)
         row += 1
 
         # 流水线参数
@@ -217,28 +263,41 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         self.frame_pipeline.grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
         ttk.Label(self.frame_pipeline, text="试跑文件数:").grid(row=0, column=0, sticky="e")
         self.var_pilot_count = tk.StringVar(value="20")
-        ttk.Spinbox(self.frame_pipeline, from_=1, to=100, textvariable=self.var_pilot_count, width=5).grid(row=0, column=1, sticky="w", padx=5)
-        ttk.Label(self.frame_pipeline, text="闸门最大漏翻比:").grid(row=0, column=2, sticky="e", padx=(10, 0))
+        ttk.Spinbox(
+            self.frame_pipeline, from_=1, to=100, textvariable=self.var_pilot_count, width=5
+        ).grid(row=0, column=1, sticky="w", padx=5)
+        ttk.Label(self.frame_pipeline, text="闸门最大漏翻比:").grid(
+            row=0, column=2, sticky="e", padx=(10, 0)
+        )
         self.var_gate_ratio = tk.StringVar(value="0.08")
-        ttk.Entry(self.frame_pipeline, textvariable=self.var_gate_ratio, width=8).grid(row=0, column=3, sticky="w", padx=5)
+        ttk.Entry(self.frame_pipeline, textvariable=self.var_gate_ratio, width=8).grid(
+            row=0, column=3, sticky="w", padx=5
+        )
 
     def _build_rpgmaker_panel(self) -> None:
         self.panel_rpgmaker = ttk.Frame(self.panel_container)
         ttk.Label(self.panel_rpgmaker, text="RPG Maker MV/MZ 引擎").pack(anchor="w", pady=3)
-        ttk.Label(self.panel_rpgmaker, text="使用基本设置中的共享参数。\n翻译完成后会提示手动安装中文字体。",
-                  foreground="gray").pack(anchor="w", pady=3)
+        ttk.Label(
+            self.panel_rpgmaker,
+            text="使用基本设置中的共享参数。\n翻译完成后会提示手动安装中文字体。",
+            foreground="gray",
+        ).pack(anchor="w", pady=3)
         self.var_rpgm_genre = tk.StringVar(value="rpg")
         f = ttk.Frame(self.panel_rpgmaker)
         f.pack(anchor="w", pady=3)
         ttk.Label(f, text="翻译风格:").pack(side=tk.LEFT)
-        ttk.Combobox(f, textvariable=self.var_rpgm_genre, values=_GENRES,
-                      state="readonly", width=15).pack(side=tk.LEFT, padx=5)
+        ttk.Combobox(
+            f, textvariable=self.var_rpgm_genre, values=_GENRES, state="readonly", width=15
+        ).pack(side=tk.LEFT, padx=5)
 
     def _build_csv_panel(self) -> None:
         self.panel_csv = ttk.Frame(self.panel_container)
         ttk.Label(self.panel_csv, text="CSV/JSONL 通用格式引擎").pack(anchor="w", pady=3)
-        ttk.Label(self.panel_csv, text="支持 CSV、TSV、JSONL、JSON 数组。\n列名自动匹配（original/source/text/en 等）。",
-                  foreground="gray").pack(anchor="w", pady=3)
+        ttk.Label(
+            self.panel_csv,
+            text="支持 CSV、TSV、JSONL、JSON 数组。\n列名自动匹配（original/source/text/en 等）。",
+            foreground="gray",
+        ).pack(anchor="w", pady=3)
 
     # ── Tab 3: 高级设置 ──
 
@@ -265,16 +324,19 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         row = len(fields)
         # 字体补丁
         self.var_patch_font = tk.BooleanVar(value=False)
-        ttk.Checkbutton(tab, text="启用自动字体补丁（--patch-font）", variable=self.var_patch_font).grid(
-            row=row, column=0, columnspan=2, sticky="w", pady=2)
+        ttk.Checkbutton(
+            tab, text="启用自动字体补丁（--patch-font）", variable=self.var_patch_font
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=2)
         row += 1
         self.var_no_clean_rpyc = tk.BooleanVar(value=False)
-        ttk.Checkbutton(tab, text="不清理 .rpyc 缓存（--no-clean-rpyc）", variable=self.var_no_clean_rpyc).grid(
-            row=row, column=0, columnspan=2, sticky="w", pady=2)
+        ttk.Checkbutton(
+            tab, text="不清理 .rpyc 缓存（--no-clean-rpyc）", variable=self.var_no_clean_rpyc
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=2)
         row += 1
         self.var_tl_screen = tk.BooleanVar(value=False)
-        ttk.Checkbutton(tab, text="翻译 screen 裸英文（--tl-screen）", variable=self.var_tl_screen).grid(
-            row=row, column=0, columnspan=2, sticky="w", pady=2)
+        ttk.Checkbutton(
+            tab, text="翻译 screen 裸英文（--tl-screen）", variable=self.var_tl_screen
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=2)
         row += 1
 
         # verbose / quiet
@@ -282,8 +344,14 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         self.var_log_level = tk.StringVar(value="normal")
         f = ttk.Frame(tab)
         f.grid(row=row, column=1, sticky="w", pady=2)
-        for text, val in [("普通", "normal"), ("详细 (--verbose)", "verbose"), ("安静 (--quiet)", "quiet")]:
-            ttk.Radiobutton(f, text=text, variable=self.var_log_level, value=val).pack(side=tk.LEFT, padx=5)
+        for text, val in [
+            ("普通", "normal"),
+            ("详细 (--verbose)", "verbose"),
+            ("安静 (--quiet)", "quiet"),
+        ]:
+            ttk.Radiobutton(f, text=text, variable=self.var_log_level, value=val).pack(
+                side=tk.LEFT, padx=5
+            )
         row += 1
 
         # 配置文件
@@ -292,7 +360,9 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         row += 1
         ttk.Label(tab, text="配置文件:").grid(row=row, column=0, sticky="e", pady=2)
         self.var_config_path = tk.StringVar()
-        ttk.Entry(tab, textvariable=self.var_config_path, width=35).grid(row=row, column=1, sticky="ew", pady=2)
+        ttk.Entry(tab, textvariable=self.var_config_path, width=35).grid(
+            row=row, column=1, sticky="ew", pady=2
+        )
         f2 = ttk.Frame(tab)
         f2.grid(row=row, column=2, padx=4)
         ttk.Button(f2, text="加载", command=self._load_config).pack(side=tk.LEFT, padx=2)
@@ -331,15 +401,16 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         self.progress_frame = ttk.Frame(bottom)
         self.progress_frame.pack(fill=tk.X, padx=8, pady=2)
 
-        self.progress_bar = ttk.Progressbar(self.progress_frame, mode='determinate', maximum=100)
+        self.progress_bar = ttk.Progressbar(self.progress_frame, mode="determinate", maximum=100)
         self.progress_bar.pack(fill=tk.X, side=tk.LEFT, expand=True, padx=(0, 8))
 
         self.lbl_progress = ttk.Label(self.progress_frame, text="")
         self.lbl_progress.pack(side=tk.RIGHT)
 
         # 日志
-        self.log_text = scrolledtext.ScrolledText(bottom, height=12, state="disabled",
-                                                   wrap=tk.WORD, font=("Consolas", 9))
+        self.log_text = scrolledtext.ScrolledText(
+            bottom, height=12, state="disabled", wrap=tk.WORD, font=("Consolas", 9)
+        )
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
     # ============================================================
@@ -364,15 +435,32 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
             genre = self.var_genre.get()
             # API key 通过环境变量而非 --api-key 传递给子进程（见 _run_command）
             cmd = [
-                py, "-u", "one_click_pipeline.py",
-                "--game-dir", game_dir, "--output-dir", output_dir,
-                "--provider", provider,
-                "--model", model, "--genre", genre,
-                "--workers", workers, "--file-workers", file_workers,
-                "--rpm", rpm, "--rps", rps,
+                py,
+                "-u",
+                "one_click_pipeline.py",
+                "--game-dir",
+                game_dir,
+                "--output-dir",
+                output_dir,
+                "--provider",
+                provider,
+                "--model",
+                model,
+                "--genre",
+                genre,
+                "--workers",
+                workers,
+                "--file-workers",
+                file_workers,
+                "--rpm",
+                rpm,
+                "--rps",
+                rps,
                 "--clean-output",
-                "--pilot-count", self.var_pilot_count.get().strip() or "20",
-                "--gate-max-untranslated-ratio", self.var_gate_ratio.get().strip() or "0.08",
+                "--pilot-count",
+                self.var_pilot_count.get().strip() or "20",
+                "--gate-max-untranslated-ratio",
+                self.var_gate_ratio.get().strip() or "0.08",
             ]
             if self.var_renpy_mode.get() == "pipeline" and self.var_tl_lang.get().strip():
                 # 检查是否用 tl-mode 流水线（暂不提供，流水线默认 direct-mode）
@@ -383,10 +471,27 @@ class App(AppHandlersMixin, AppPipelineMixin, AppDialogsMixin):
         # （通过菜单触发，不在这里）
 
         # 通用命令
-        cmd = [py, "-u", "main.py", "--game-dir", game_dir, "--output-dir", output_dir,
-               "--provider", provider, "--model", model,
-               "--workers", workers, "--file-workers", file_workers,
-               "--rpm", rpm, "--rps", rps]
+        cmd = [
+            py,
+            "-u",
+            "main.py",
+            "--game-dir",
+            game_dir,
+            "--output-dir",
+            output_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--workers",
+            workers,
+            "--file-workers",
+            file_workers,
+            "--rpm",
+            rpm,
+            "--rps",
+            rps,
+        ]
 
         # API key 不进 cmd：通过 subprocess env 传递（见 _run_command / _run_dry_run）
         if dry_run:

@@ -11,63 +11,69 @@ or collectively via ``python tests/test_all.py`` (which delegates to
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import api_client
-import file_processor
 from core import glossary
 from core import prompts
 
+
 def test_glossary():
     g = glossary.Glossary()
-    g.terms['Save Game'] = '保存游戏'
-    g.characters['mc'] = 'Main Character'
-    g.memory['Hello world'] = '你好世界'
-    g._memory_count['Hello world'] = 3  # 信心度 >= 2 才输出到 prompt
+    g.terms["Save Game"] = "保存游戏"
+    g.characters["mc"] = "Main Character"
+    g.memory["Hello world"] = "你好世界"
+    g._memory_count["Hello world"] = 3  # 信心度 >= 2 才输出到 prompt
     text = g.to_prompt_text()
-    assert 'mc' in text
-    assert 'Save Game' in text
-    assert '你好世界' in text
+    assert "mc" in text
+    assert "Save Game" in text
+    assert "你好世界" in text
     # update_from_translations filtering
-    g.update_from_translations([
-        {'original': 'ab', 'zh': '甲'},      # too short, skip
-        {'original': 'Hello friend', 'zh': 'Hello friend'},  # same, skip
-        {'original': '1234', 'zh': '一二三四'},   # digit, skip
-        {'original': 'Good morning everyone', 'zh': '大家早上好'},  # OK
-    ])
-    assert 'ab' not in g.memory
-    assert 'Good morning everyone' in g.memory
+    g.update_from_translations(
+        [
+            {"original": "ab", "zh": "甲"},  # too short, skip
+            {"original": "Hello friend", "zh": "Hello friend"},  # same, skip
+            {"original": "1234", "zh": "一二三四"},  # digit, skip
+            {"original": "Good morning everyone", "zh": "大家早上好"},  # OK
+        ]
+    )
+    assert "ab" not in g.memory
+    assert "Good morning everyone" in g.memory
     print("[OK] Glossary")
+
 
 def test_glossary_dedup():
     """测试术语表去重：已在 terms 中的不重复加入 memory"""
     g = glossary.Glossary()
-    g.terms['Save Game'] = '保存游戏'
-    g.update_from_translations([
-        {'original': 'Save Game', 'zh': '存档'},  # 已在 terms 中，应跳过
-        {'original': 'Load Game', 'zh': '读取存档'},  # 新的，应加入
-    ])
-    assert 'Save Game' not in g.memory
-    assert 'Load Game' in g.memory
+    g.terms["Save Game"] = "保存游戏"
+    g.update_from_translations(
+        [
+            {"original": "Save Game", "zh": "存档"},  # 已在 terms 中，应跳过
+            {"original": "Load Game", "zh": "读取存档"},  # 新的，应加入
+        ]
+    )
+    assert "Save Game" not in g.memory
+    assert "Load Game" in g.memory
     print("[OK] glossary dedup")
 
 
 def test_glossary_thread_safety():
     """测试术语表线程安全"""
     import threading
+
     g = glossary.Glossary()
     errors = []
 
     def updater(prefix):
         try:
             for i in range(50):
-                g.update_from_translations([
-                    {'original': f'{prefix} text number {i}', 'zh': f'{prefix} 文本 {i}'}
-                ])
+                g.update_from_translations(
+                    [{"original": f"{prefix} text number {i}", "zh": f"{prefix} 文本 {i}"}]
+                )
         except Exception as e:
             errors.append(e)
 
-    threads = [threading.Thread(target=updater, args=(f'T{t}',)) for t in range(4)]
+    threads = [threading.Thread(target=updater, args=(f"T{t}",)) for t in range(4)]
     for t in threads:
         t.start()
     for t in threads:
@@ -83,8 +89,7 @@ def test_glossary_hyphenated_names():
     g = glossary.Glossary()
     # 模拟翻译数据：Mary-Jane 出现 4 次，同译名"玛丽-简"
     translations = [
-        {"original": f"Mary-Jane says hello {i}", "zh": f"玛丽-简说你好{i}"}
-        for i in range(4)
+        {"original": f"Mary-Jane says hello {i}", "zh": f"玛丽-简说你好{i}"} for i in range(4)
     ]
     terms = g.extract_terms_from_translations(translations, min_freq=3)
     assert "Mary-Jane" in terms, f"Hyphenated name not extracted: {terms}"
@@ -94,15 +99,19 @@ def test_glossary_hyphenated_names():
 def test_glossary_memory_confidence():
     """翻译记忆信心度过滤：出现 1 次的不输出到 prompt"""
     g = glossary.Glossary()
-    g.update_from_translations([
-        {"original": "A long sentence for testing", "zh": "测试用的长句子"},
-    ])
+    g.update_from_translations(
+        [
+            {"original": "A long sentence for testing", "zh": "测试用的长句子"},
+        ]
+    )
     text = g.to_prompt_text()
     assert "测试用的长句子" not in text, "count=1 should not appear in prompt"
     # 再出现一次，count=2 → 应输出
-    g.update_from_translations([
-        {"original": "A long sentence for testing", "zh": "测试用的长句子"},
-    ])
+    g.update_from_translations(
+        [
+            {"original": "A long sentence for testing", "zh": "测试用的长句子"},
+        ]
+    )
     text2 = g.to_prompt_text()
     assert "测试用的长句子" in text2, "count=2 should appear in prompt"
     print("[OK] glossary_memory_confidence")
@@ -122,7 +131,7 @@ def test_glossary_scan_renpy_directory():
     from core.glossary import Glossary
 
     fixture = (
-        '# game/characters.rpy\n'
+        "# game/characters.rpy\n"
         'define mc = Character("Main Hero", color="#c8a")\n'
         'define e = Character("Eileen")\n'
         'define narrator = DynamicCharacter("旁白")\n'
@@ -133,14 +142,14 @@ def test_glossary_scan_renpy_directory():
     with tempfile.TemporaryDirectory() as td:
         game_dir = Path(td) / "game"
         game_dir.mkdir()
-        (game_dir / "characters.rpy").write_text(fixture, encoding='utf-8')
+        (game_dir / "characters.rpy").write_text(fixture, encoding="utf-8")
 
         # 放一个应被跳过的 renpy/ 引擎目录文件（不应被扫描）
         renpy_dir = game_dir / "renpy"
         renpy_dir.mkdir()
         (renpy_dir / "engine.rpy").write_text(
             'define engine_internal = Character("Should NOT appear")\n',
-            encoding='utf-8',
+            encoding="utf-8",
         )
 
         g = Glossary()
@@ -172,6 +181,7 @@ def test_glossary_scan_renpy_directory():
 def test_locked_terms_protect_basic():
     """locked_terms: basic protection and restore."""
     from file_processor.checker import protect_locked_terms, restore_locked_terms
+
     terms = {"MyGame": "我的游戏", "Alice": "爱丽丝"}
     text = 'mc "Welcome to MyGame! Alice is here."'
     protected, mapping = protect_locked_terms(text, terms)
@@ -190,8 +200,9 @@ def test_locked_terms_protect_basic():
 def test_locked_terms_word_boundary():
     """locked_terms: word boundary prevents partial matches."""
     from file_processor.checker import protect_locked_terms
+
     terms = {"Game": "游戏"}
-    text = 'GameOver is not the same as Game end'
+    text = "GameOver is not the same as Game end"
     protected, mapping = protect_locked_terms(text, terms)
     # "Game" should match "Game end" but NOT "GameOver"
     assert "GameOver" in protected  # not replaced
@@ -205,8 +216,9 @@ def test_locked_terms_word_boundary():
 def test_locked_terms_longer_first():
     """locked_terms: longer terms matched first."""
     from file_processor.checker import protect_locked_terms
+
     terms = {"New York": "纽约", "New": "新"}
-    text = 'Visit New York and New Orleans'
+    text = "Visit New York and New Orleans"
     protected, mapping = protect_locked_terms(text, terms)
     # "New York" should be matched before "New"
     assert "New York" not in protected
@@ -218,6 +230,7 @@ def test_locked_terms_longer_first():
 def test_locked_terms_empty():
     """locked_terms: empty terms dict does nothing."""
     from file_processor.checker import protect_locked_terms
+
     text = "Hello world"
     protected, mapping = protect_locked_terms(text, {})
     assert protected == text
@@ -232,6 +245,7 @@ def test_locked_terms_empty():
 def test_locked_terms_no_match():
     """locked_terms: no matching terms in text."""
     from file_processor.checker import protect_locked_terms
+
     terms = {"NotInText": "不在文中"}
     text = 'mc "Hello world"'
     protected, mapping = protect_locked_terms(text, terms)
@@ -243,6 +257,7 @@ def test_locked_terms_no_match():
 def test_locked_terms_multiple_occurrences():
     """locked_terms: same term appearing multiple times."""
     from file_processor.checker import protect_locked_terms, restore_locked_terms
+
     terms = {"Alice": "爱丽丝"}
     text = 'Alice said "Hi Alice" to Alice.'
     protected, mapping = protect_locked_terms(text, terms)
@@ -255,8 +270,9 @@ def test_locked_terms_multiple_occurrences():
 def test_locked_terms_special_chars():
     """locked_terms: terms with regex special characters."""
     from file_processor.checker import protect_locked_terms, restore_locked_terms
+
     terms = {"C++": "C加加", "Mr.Smith": "史密斯先生"}
-    text = 'Learn C++ with Mr.Smith today'
+    text = "Learn C++ with Mr.Smith today"
     protected, mapping = protect_locked_terms(text, terms)
     restored = restore_locked_terms(protected, mapping)
     assert "C加加" in restored
@@ -265,26 +281,30 @@ def test_locked_terms_special_chars():
 
 
 def test_prompts():
-    sp = prompts.build_system_prompt('adult', '## 测试术语表\n- hello → 你好')
-    assert '成人' in sp
-    assert '测试术语表' in sp
-    assert 'old' in sp.lower() or 'new' in sp.lower()  # translate block handling
-    assert '{#' in sp  # menu choice identifier
-    up = prompts.build_user_prompt('test.rpy', 'label start:\n    "Hello"')
-    assert 'test.rpy' in up
+    sp = prompts.build_system_prompt("adult", "## 测试术语表\n- hello → 你好")
+    assert "成人" in sp
+    assert "测试术语表" in sp
+    assert "old" in sp.lower() or "new" in sp.lower()  # translate block handling
+    assert "{#" in sp  # menu choice identifier
+    up = prompts.build_user_prompt("test.rpy", 'label start:\n    "Hello"')
+    assert "test.rpy" in up
     # with chunk_info
-    up2 = prompts.build_user_prompt('test.rpy', '"Hello"', {'part': 2, 'total': 3, 'line_offset': 100})
-    assert '2/3' in up2
-    assert '101' in up2
+    up2 = prompts.build_user_prompt(
+        "test.rpy", '"Hello"', {"part": 2, "total": 3, "line_offset": 100}
+    )
+    assert "2/3" in up2
+    assert "101" in up2
     print("[OK] Prompts")
+
 
 def test_prompt_zh_unchanged():
     """中文 prompt 零变更回归验证 (zh-only since round 52 C4)"""
     from core.prompts import build_system_prompt
     from core.glossary import Glossary
+
     g = Glossary()
-    prompt = build_system_prompt('adult', g.to_prompt_text(), 'TestProject')
-    baseline = open('tests/zh_prompt_baseline.txt', 'r', encoding='utf-8').read()
+    prompt = build_system_prompt("adult", g.to_prompt_text(), "TestProject")
+    baseline = open("tests/zh_prompt_baseline.txt", "r", encoding="utf-8").read()
     assert prompt == baseline, "zh prompt changed!"
     print("[OK] prompt_zh_unchanged")
 
@@ -293,13 +313,19 @@ def test_positive_int_validation():
     """T52: CLI 参数校验函数"""
     from main import _positive_int, _positive_float, _ratio_float
     import argparse
+
     # 正常值
     assert _positive_int("5") == 5
     assert _positive_float("3.14") == 3.14
     assert _ratio_float("0.5") == 0.5
     # 非法值
-    for fn, val in [(_positive_int, "0"), (_positive_int, "-1"),
-                    (_positive_float, "0"), (_ratio_float, "1.5"), (_ratio_float, "0")]:
+    for fn, val in [
+        (_positive_int, "0"),
+        (_positive_int, "-1"),
+        (_positive_float, "0"),
+        (_ratio_float, "1.5"),
+        (_ratio_float, "0"),
+    ]:
         try:
             fn(val)
             assert False, f"应该抛出异常: {fn.__name__}({val})"
@@ -313,6 +339,7 @@ def test_config_load_and_defaults():
     from pathlib import Path as _Path
     from core.config import Config, DEFAULTS
     import tempfile
+
     # 无配置文件时使用默认值
     cfg = Config(game_dir=_Path(tempfile.gettempdir()), cli_args=None)
     assert cfg.get("workers") == DEFAULTS["workers"]
@@ -326,12 +353,14 @@ def test_config_cli_override():
     """CLI 参数覆盖配置文件和默认值"""
     from pathlib import Path as _Path
     from core.config import Config
-    import types, tempfile
+    import types
+    import tempfile
+
     # ��拟 CLI args
     cli = types.SimpleNamespace(workers=8, rpm=None, rps=None, api_key="")
     cfg = Config(game_dir=_Path(tempfile.gettempdir()), cli_args=cli)
-    assert cfg.get("workers") == 8       # CLI 覆盖
-    assert cfg.get("rpm") == 60          # CLI=None → 默认值
+    assert cfg.get("workers") == 8  # CLI 覆盖
+    assert cfg.get("rpm") == 60  # CLI=None → 默认值
     print("[OK] config_cli_override")
 
 
@@ -339,7 +368,10 @@ def test_config_file_load():
     """配置文件正常加载"""
     from pathlib import Path as _Path
     from core.config import Config
-    import tempfile, os, json
+    import tempfile
+    import os
+    import json
+
     # 创建临时配置文件
     tmpdir = tempfile.mkdtemp()
     cfg_path = _Path(tmpdir) / "renpy_translate.json"
@@ -360,14 +392,17 @@ def test_config_validation():
     """配置文件 schema 校验：类型/范围/未知键"""
     from pathlib import Path as _Path
     from core.config import Config
-    import tempfile, os, json, logging
+    import tempfile
+    import os
+    import json
 
     # --- 1. 合法配置无警告 ---
     tmpdir = tempfile.mkdtemp()
     cfg_path = _Path(tmpdir) / "renpy_translate.json"
-    cfg_path.write_text(json.dumps({
-        "workers": 4, "rpm": 30, "temperature": 0.5, "provider": "openai"
-    }), encoding="utf-8")
+    cfg_path.write_text(
+        json.dumps({"workers": 4, "rpm": 30, "temperature": 0.5, "provider": "openai"}),
+        encoding="utf-8",
+    )
     try:
         cfg = Config(game_dir=_Path(tmpdir), cli_args=None)
         warns = cfg.validate()
@@ -415,8 +450,6 @@ def test_config_validation():
         cfg_path.unlink()
         os.rmdir(tmpdir)
     print("[OK] config_validation: unknown key")
-
-
 
 
 def test_config_file_rejects_oversized():
@@ -473,11 +506,129 @@ def test_glossary_load_rejects_oversized():
         assert g.terms == {}
         g.load(str(big_path))
         # Oversized path → skip.  Glossary still empty (no raise, no parse).
-        assert g.terms == {}, (
-            "M2: oversized glossary must leave terms empty"
-        )
+        assert g.terms == {}, "M2: oversized glossary must leave terms empty"
         assert g.characters == {}
     print("[OK] test_glossary_load_rejects_oversized")
+
+
+def test_w_round58_a1_resolve_args_from_config_fills_defaults():
+    """Round 58 A1: resolve_args_from_config fills argparse Namespace
+    from a Config file with documented three-layer precedence.
+
+    Verifies the helper that was extracted from main.py inline code
+    produces identical behaviour: scalar fields filled from config
+    when CLI didn't set them, defaults when neither has it.
+    """
+    import argparse
+    import tempfile
+    import json
+    from pathlib import Path as _Path
+    from core.config import Config, resolve_args_from_config
+
+    with tempfile.TemporaryDirectory() as td:
+        td_p = _Path(td)
+        cfg_path = td_p / "renpy_translate.json"
+        cfg_path.write_text(
+            json.dumps(
+                {
+                    "workers": 8,
+                    "rpm": 100,
+                    "model": "deepseek-chat",
+                    "dict": ["my_dict.csv"],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        # Simulate `args` after argparse: most fields None (CLI didn't set)
+        args = argparse.Namespace(
+            game_dir=str(td),
+            output_dir=None,
+            provider=None,
+            model=None,
+            genre=None,
+            workers=None,
+            file_workers=None,
+            rpm=None,
+            rps=None,
+            timeout=None,
+            temperature=None,
+            max_chunk_tokens=None,
+            max_response_tokens=None,
+            min_dialogue_density=None,
+            tl_lang=None,
+            dict=None,
+            exclude=None,
+            ui_button_whitelist=None,
+        )
+
+        cfg = Config(game_dir=td_p, cli_args=args)
+        resolve_args_from_config(args, cfg)
+
+        # Config-supplied fields: take config values
+        assert args.workers == 8, f"workers: {args.workers}"
+        assert args.rpm == 100, f"rpm: {args.rpm}"
+        assert args.model == "deepseek-chat", f"model: {args.model}"
+        assert args.dict == ["my_dict.csv"], f"dict: {args.dict}"
+        # Config-missing fields: take helper defaults
+        assert args.output_dir == "output"
+        assert args.provider == "xai"
+        assert args.genre == "adult"
+        assert args.timeout == 180.0
+        assert args.temperature == 0.1
+        # r52 C4 BREAKING: target_lang always "zh"
+        assert args.target_lang == "zh"
+
+    print("[OK] w_round58_a1_resolve_args_from_config_fills_defaults")
+
+
+def test_w_round58_a1_resolve_args_target_lang_hardcoded_zh():
+    """Round 58 A1 (r52 C4 BREAKING): target_lang is always "zh" no
+    matter what config says — multi-target language was retired."""
+    import argparse
+    import tempfile
+    import json
+    from pathlib import Path as _Path
+    from core.config import Config, resolve_args_from_config
+
+    with tempfile.TemporaryDirectory() as td:
+        td_p = _Path(td)
+        cfg_path = td_p / "renpy_translate.json"
+        # Adversarial config trying to set non-zh target
+        cfg_path.write_text(
+            json.dumps({"target_lang": "ja"}),
+            encoding="utf-8",
+        )
+
+        args = argparse.Namespace(
+            game_dir=str(td),
+            output_dir=None,
+            provider=None,
+            model=None,
+            genre=None,
+            workers=None,
+            file_workers=None,
+            rpm=None,
+            rps=None,
+            timeout=None,
+            temperature=None,
+            max_chunk_tokens=None,
+            max_response_tokens=None,
+            min_dialogue_density=None,
+            tl_lang=None,
+            dict=None,
+            exclude=None,
+            ui_button_whitelist=None,
+        )
+
+        cfg = Config(game_dir=td_p, cli_args=args)
+        resolve_args_from_config(args, cfg)
+
+        assert args.target_lang == "zh", (
+            f"r52 C4 BREAKING contract violated: target_lang={args.target_lang!r}, "
+            "must always be 'zh' regardless of config"
+        )
+    print("[OK] w_round58_a1_resolve_args_target_lang_hardcoded_zh")
 
 
 def run_all() -> int:
@@ -506,6 +657,9 @@ def run_all() -> int:
         # Round 38 M2: 50 MB size-cap gates on user-supplied JSON paths
         test_config_file_rejects_oversized,
         test_glossary_load_rejects_oversized,
+        # Round 58 A1: shared config-resolver helper
+        test_w_round58_a1_resolve_args_from_config_fills_defaults,
+        test_w_round58_a1_resolve_args_target_lang_hardcoded_zh,
     ]
     for t in tests:
         t()

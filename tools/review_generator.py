@@ -14,7 +14,6 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 from safety.file_safety import check_fstat_size
 
@@ -51,8 +50,10 @@ def generate_review_html(
         file_size = 0
     if file_size > _MAX_REVIEW_DB_SIZE:
         logger.warning(
-            "[REVIEW] %s too large (%d bytes > %d-byte cap), "
-            "refusing to load", db_path, file_size, _MAX_REVIEW_DB_SIZE,
+            "[REVIEW] %s too large (%d bytes > %d-byte cap), refusing to load",
+            db_path,
+            file_size,
+            _MAX_REVIEW_DB_SIZE,
         )
         return 0
     # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
@@ -60,9 +61,10 @@ def generate_review_html(
         ok, fsize2 = check_fstat_size(f, _MAX_REVIEW_DB_SIZE)
         if not ok:
             logger.warning(
-                "[REVIEW] %s grew past cap after stat (TOCTOU?): "
-                "%d bytes > %d, refusing to load",
-                db_path, fsize2, _MAX_REVIEW_DB_SIZE,
+                "[REVIEW] %s grew past cap after stat (TOCTOU?): %d bytes > %d, refusing to load",
+                db_path,
+                fsize2,
+                _MAX_REVIEW_DB_SIZE,
             )
             return 0
         data = json.loads(f.read())
@@ -70,8 +72,11 @@ def generate_review_html(
 
     if show_only_issues:
         entries = [
-            e for e in entries
-            if e.get("error_codes") or e.get("warning_codes") or e.get("status") in ("error", "warning", "writeback_failed", "checker_dropped")
+            e
+            for e in entries
+            if e.get("error_codes")
+            or e.get("warning_codes")
+            or e.get("status") in ("error", "warning", "writeback_failed", "checker_dropped")
         ]
 
     # 按文件分组
@@ -89,24 +94,34 @@ def generate_review_html(
 
     # 生成 HTML
     parts: list[str] = []
-    parts.append(_HTML_HEAD.format(
-        total=total, ok=ok, errors=errors, warnings=warnings, failed=failed,
-        files=len(by_file),
-        mode="仅问题条目" if show_only_issues else "全部条目",
-    ))
+    parts.append(
+        _HTML_HEAD.format(
+            total=total,
+            ok=ok,
+            errors=errors,
+            warnings=warnings,
+            failed=failed,
+            files=len(by_file),
+            mode="仅问题条目" if show_only_issues else "全部条目",
+        )
+    )
 
     for file_path, file_entries in sorted(by_file.items()):
         file_entries.sort(key=lambda e: e.get("line", 0))
         fe = sum(1 for e in file_entries if e.get("status") == "error" or e.get("error_codes"))
         fw = sum(1 for e in file_entries if e.get("status") == "warning" or e.get("warning_codes"))
-        parts.append(f'<details{"" if fe or fw else " open"}>')
+        parts.append(f"<details{'' if fe or fw else ' open'}>")
         badge = ""
         if fe:
             badge += f' <span class="badge err">{fe} error</span>'
         if fw:
             badge += f' <span class="badge warn">{fw} warn</span>'
-        parts.append(f'<summary><b>{html.escape(file_path)}</b> ({len(file_entries)} 条){badge}</summary>')
-        parts.append('<table><tr><th>行</th><th>状态</th><th>原文</th><th>译文</th><th>代码</th></tr>')
+        parts.append(
+            f"<summary><b>{html.escape(file_path)}</b> ({len(file_entries)} 条){badge}</summary>"
+        )
+        parts.append(
+            "<table><tr><th>行</th><th>状态</th><th>原文</th><th>译文</th><th>代码</th></tr>"
+        )
 
         for e in file_entries:
             line = e.get("line", "?")
@@ -126,15 +141,15 @@ def generate_review_html(
 
             parts.append(
                 f'<tr class="{cls}">'
-                f'<td>{line}</td><td>{status}</td>'
-                f'<td>{orig}</td><td>{trans}</td>'
-                f'<td><small>{html.escape(codes)}</small></td></tr>'
+                f"<td>{line}</td><td>{status}</td>"
+                f"<td>{orig}</td><td>{trans}</td>"
+                f"<td><small>{html.escape(codes)}</small></td></tr>"
             )
 
-        parts.append('</table></details>')
+        parts.append("</table></details>")
 
-    parts.append('</body></html>')
-    output_path.write_text('\n'.join(parts), encoding="utf-8")
+    parts.append("</body></html>")
+    output_path.write_text("\n".join(parts), encoding="utf-8")
     return total
 
 
@@ -174,6 +189,7 @@ details {{ margin-bottom: 5px; }}
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="生成翻译校对 HTML 报告")
     parser.add_argument("db_path", help="translation_db.json 路径")
     parser.add_argument("-o", "--output", default="review.html", help="输出 HTML 路径")

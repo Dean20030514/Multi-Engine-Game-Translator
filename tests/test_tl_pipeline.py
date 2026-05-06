@@ -10,6 +10,7 @@ Intended to provide regression coverage before the round 24 refactor of
 ``tl_mode.py`` (928 → ~350 + 2 submodules) and ``tl_parser.py`` (1106 → ~600
 + 2 submodules).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,7 +28,7 @@ from translators.tl_parser import scan_tl_directory, fill_translation
 from translators.tl_mode import run_tl_pipeline
 
 
-_TL_EMPTY_FIXTURE = '''# TODO: Translation updated at 2024-01-01
+_TL_EMPTY_FIXTURE = """# TODO: Translation updated at 2024-01-01
 
 # game/script.rpy:3
 translate chinese hello_001:
@@ -40,10 +41,10 @@ translate chinese world_002:
 
     # "World"
     ""
-'''
+"""
 
 
-_TL_FILLED_FIXTURE = '''# TODO: Translation updated at 2024-01-01
+_TL_FILLED_FIXTURE = """# TODO: Translation updated at 2024-01-01
 
 # game/script.rpy:3
 translate chinese hello_001:
@@ -56,7 +57,7 @@ translate chinese world_002:
 
     # "World"
     "世界"
-'''
+"""
 
 
 def _build_args(game_dir: Path, output_dir: Path) -> argparse.Namespace:
@@ -68,7 +69,10 @@ def _build_args(game_dir: Path, output_dir: Path) -> argparse.Namespace:
         provider="xai",
         api_key="test",
         model="grok",
-        rpm=0, rps=0, timeout=180.0, temperature=0.1,
+        rpm=0,
+        rps=0,
+        timeout=180.0,
+        temperature=0.1,
         max_response_tokens=32768,
         max_chunk_tokens=4000,
         genre="adult",
@@ -96,7 +100,7 @@ def test_tl_scan_and_fill_cycle() -> None:
         tl_dir = tl_root / "chinese"
         tl_dir.mkdir(parents=True)
         fpath = tl_dir / "dialogue.rpy"
-        fpath.write_text(_TL_EMPTY_FIXTURE, encoding='utf-8')
+        fpath.write_text(_TL_EMPTY_FIXTURE, encoding="utf-8")
 
         results = scan_tl_directory(str(tl_root), "chinese")
         assert len(results) == 1, f"expected 1 tl file, got {len(results)}"
@@ -120,9 +124,9 @@ def test_tl_scan_and_fill_cycle() -> None:
                 raise AssertionError(f"unexpected identifier: {e.identifier}")
 
         filled_content = fill_translation(str(fpath), entries)
-        fpath.write_text(filled_content, encoding='utf-8')
+        fpath.write_text(filled_content, encoding="utf-8")
 
-        result = fpath.read_text(encoding='utf-8')
+        result = fpath.read_text(encoding="utf-8")
         assert '"你好"' in result, "hello_001 translation not written back"
         assert '"世界"' in result, "world_002 translation not written back"
         # No untranslated slots should remain
@@ -143,7 +147,7 @@ def test_tl_pipeline_noop_when_fully_translated() -> None:
         game_dir = td_path / "game"
         tl_dir = game_dir / "tl" / "chinese"
         tl_dir.mkdir(parents=True)
-        (tl_dir / "dialogue.rpy").write_text(_TL_FILLED_FIXTURE, encoding='utf-8')
+        (tl_dir / "dialogue.rpy").write_text(_TL_FILLED_FIXTURE, encoding="utf-8")
         output_dir = td_path / "out"
 
         args = _build_args(game_dir, output_dir)
@@ -154,9 +158,11 @@ def test_tl_pipeline_noop_when_fully_translated() -> None:
         #   - _apply_tl_game_patches: would try to patch game/gui.rpy
         #   - _inject_language_buttons: same
         #   - APIClient.translate: catch any API attempts as a hard failure
-        with mock.patch('translators.tl_mode._apply_tl_game_patches'), \
-             mock.patch('translators.tl_mode._inject_language_buttons'), \
-             mock.patch.object(APIClient, 'translate', new=translate_mock):
+        with (
+            mock.patch("translators.tl_mode._apply_tl_game_patches"),
+            mock.patch("translators.tl_mode._inject_language_buttons"),
+            mock.patch.object(APIClient, "translate", new=translate_mock),
+        ):
             run_tl_pipeline(args)
 
         assert translate_mock.call_count == 0, (
@@ -165,13 +171,13 @@ def test_tl_pipeline_noop_when_fully_translated() -> None:
         )
 
         # File content should be untouched (still contains the translations)
-        final = (tl_dir / "dialogue.rpy").read_text(encoding='utf-8')
+        final = (tl_dir / "dialogue.rpy").read_text(encoding="utf-8")
         assert '"你好"' in final
         assert '"世界"' in final
     print("[OK] test_tl_pipeline_noop_when_fully_translated")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_tl_scan_and_fill_cycle()
     test_tl_pipeline_noop_when_fully_translated()
     print()

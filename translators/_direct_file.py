@@ -15,6 +15,7 @@ Both functions share the same 4-tuple return contract:
 delegates low-density files to ``_translate_file_targeted`` which uses the
 retranslate-style prompt on only dialogue-bearing line windows.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -119,13 +120,26 @@ def translate_file(
     # 密度检测：低密度文件走定向翻译，避免 AI 注意力被代码行稀释
     density = calculate_dialogue_density(content)
     if density < min_dialogue_density:
-        logger.debug(f"    [DENSITY] 对话密度 {density * 100:.1f}% < {min_dialogue_density * 100:.0f}%，"
-              f"使用定向翻译模式")
+        logger.debug(
+            f"    [DENSITY] 对话密度 {density * 100:.1f}% < {min_dialogue_density * 100:.0f}%，"
+            f"使用定向翻译模式"
+        )
         return _translate_file_targeted(
-            rpy_path, game_dir, output_dir, content, rel_path,
-            client, glossary, progress, quality_report, genre,
-            translation_db=translation_db, run_id=run_id, stage=stage,
-            provider=provider, model=model,
+            rpy_path,
+            game_dir,
+            output_dir,
+            content,
+            rel_path,
+            client,
+            glossary,
+            progress,
+            quality_report,
+            genre,
+            translation_db=translation_db,
+            run_id=run_id,
+            stage=stage,
+            provider=provider,
+            model=model,
         )
 
     # 拆分大文件
@@ -165,8 +179,12 @@ def translate_file(
                 locked_terms_map[en_term] = zh_term
 
     # 构建翻译上下文（替代嵌套函数闭包捕获）
-    ctx = TranslationContext(client=client, system_prompt=system_prompt,
-                             rel_path=rel_path, locked_terms_map=locked_terms_map)
+    ctx = TranslationContext(
+        client=client,
+        system_prompt=system_prompt,
+        rel_path=rel_path,
+        locked_terms_map=locked_terms_map,
+    )
 
     if workers > 1 and len(pending_chunks) > 1:
         # 并发翻译多个 chunk
@@ -179,10 +197,20 @@ def translate_file(
             return future
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {_submit_with_backpressure(executor, _translate_chunk_with_retry, ctx, c): c for c in pending_chunks}
+            futures = {
+                _submit_with_backpressure(executor, _translate_chunk_with_retry, ctx, c): c
+                for c in pending_chunks
+            }
             for future in concurrent.futures.as_completed(futures):
                 cr = future.result()
-                chunk_stats_list.append({"chunk_idx": cr.part, "expected": cr.expected, "returned": cr.returned, "dropped": cr.dropped_count})
+                chunk_stats_list.append(
+                    {
+                        "chunk_idx": cr.part,
+                        "expected": cr.expected,
+                        "returned": cr.returned,
+                        "dropped": cr.dropped_count,
+                    }
+                )
                 if cr.error:
                     logger.error(f"    [ERROR] {cr.error}")
                     all_warnings.append(cr.error)
@@ -196,7 +224,14 @@ def translate_file(
         # 顺序翻译
         for chunk in pending_chunks:
             cr = _translate_chunk_with_retry(ctx, chunk)
-            chunk_stats_list.append({"chunk_idx": cr.part, "expected": cr.expected, "returned": cr.returned, "dropped": cr.dropped_count})
+            chunk_stats_list.append(
+                {
+                    "chunk_idx": cr.part,
+                    "expected": cr.expected,
+                    "returned": cr.returned,
+                    "dropped": cr.dropped_count,
+                }
+            )
             if cr.error:
                 logger.error(f"    [ERROR] {cr.error}")
                 all_warnings.append(cr.error)
@@ -212,7 +247,7 @@ def translate_file(
         # 没有需要翻译的内容，直接复制原文件
         out_path = output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(content, encoding='utf-8')
+        out_path.write_text(content, encoding="utf-8")
         progress.mark_file_done(rel_path)
         return 0, [], total_checker_dropped, chunk_stats_list
 
@@ -236,7 +271,7 @@ def translate_file(
         with _quality_report_lock:
             quality_report[rel_path] = issues
     for issue in issues:
-        if issue['level'] == 'error':
+        if issue["level"] == "error":
             all_warnings.append(f"行 {issue['line']}: {issue['message']}")
 
     # 将每条翻译写入 translation_db（可选）
@@ -301,19 +336,21 @@ def translate_file(
                 # 若同一 key 已有 kept 条目，不覆盖
                 if translation_db.has_entry(rel_path, line_no, original):
                     continue
-                dropped_db_entries.append({
-                    "file": rel_path,
-                    "line": line_no,
-                    "original": original,
-                    "translation": zh,
-                    "status": "checker_dropped",
-                    "error_codes": [],
-                    "warning_codes": [],
-                    "run_id": run_id,
-                    "stage": stage,
-                    "provider": provider,
-                    "model": model,
-                })
+                dropped_db_entries.append(
+                    {
+                        "file": rel_path,
+                        "line": line_no,
+                        "original": original,
+                        "translation": zh,
+                        "status": "checker_dropped",
+                        "error_codes": [],
+                        "warning_codes": [],
+                        "run_id": run_id,
+                        "stage": stage,
+                        "provider": provider,
+                        "model": model,
+                    }
+                )
             if dropped_db_entries:
                 translation_db.add_entries(dropped_db_entries)
         except (OSError, ValueError, TypeError) as e:
@@ -332,23 +369,25 @@ def translate_file(
                     continue
                 if translation_db.has_entry(rel_path, line_no, original):
                     continue
-                wb_db_entries.append({
-                    "file": rel_path,
-                    "line": line_no,
-                    "original": original,
-                    "translation": zh,
-                    "status": "writeback_failed",
-                    "error_codes": [],
-                    "warning_codes": [],
-                    "run_id": run_id,
-                    "stage": stage,
-                    "provider": provider,
-                    "model": model,
-                    "diagnostic": {
-                        "failure_type": diag.get("failure_type", "WF-08"),
-                        "detail": diag.get("detail", ""),
-                    },
-                })
+                wb_db_entries.append(
+                    {
+                        "file": rel_path,
+                        "line": line_no,
+                        "original": original,
+                        "translation": zh,
+                        "status": "writeback_failed",
+                        "error_codes": [],
+                        "warning_codes": [],
+                        "run_id": run_id,
+                        "stage": stage,
+                        "provider": provider,
+                        "model": model,
+                        "diagnostic": {
+                            "failure_type": diag.get("failure_type", "WF-08"),
+                            "detail": diag.get("detail", ""),
+                        },
+                    }
+                )
             if wb_db_entries:
                 translation_db.add_entries(wb_db_entries)
         except (OSError, ValueError, TypeError) as e:
@@ -357,7 +396,7 @@ def translate_file(
     # 写出翻译后的文件
     out_path = output_dir / rel_path
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(patched, encoding='utf-8')
+    out_path.write_text(patched, encoding="utf-8")
 
     # 更新术语表
     glossary.update_from_translations(unique_translations)
@@ -416,9 +455,7 @@ def _translate_file_targeted(
     chunks = build_retranslate_chunks(all_lines, dialogue_indices, context=3, max_per_chunk=20)
     logger.debug(f"    [TARGETED] {len(dialogue_indices)} 行对话，{len(chunks)} 个 chunk")
 
-    system_prompt = build_retranslate_system_prompt(
-        glossary_text=glossary.to_prompt_text()
-    )
+    system_prompt = build_retranslate_system_prompt(glossary_text=glossary.to_prompt_text())
 
     all_translations: list[dict] = []
     all_warnings: list[str] = []
@@ -426,9 +463,7 @@ def _translate_file_targeted(
     total_checker_dropped = 0
 
     for ci, chunk_lines in enumerate(chunks, 1):
-        raw_for_detect = "\n".join(
-            line for _, line, _ in chunk_lines if line != "..."
-        )
+        raw_for_detect = "\n".join(line for _, line, _ in chunk_lines if line != "...")
         _, ph_mapping = protect_placeholders(raw_for_detect)
 
         if ph_mapping:
@@ -455,8 +490,9 @@ def _translate_file_targeted(
             warn = f"定向块 {ci} API 调用失败: {e}"
             logger.error(f"    [ERROR] {warn}")
             all_warnings.append(warn)
-            chunk_stats_list.append({"chunk_idx": ci, "expected": target_count,
-                                     "returned": 0, "dropped": 0})
+            chunk_stats_list.append(
+                {"chunk_idx": ci, "expected": target_count, "returned": 0, "dropped": 0}
+            )
             continue
 
         _restore_placeholders_in_translations(translations, ph_mapping)
@@ -466,8 +502,14 @@ def _translate_file_targeted(
         all_warnings.extend(check_warns)
         total_checker_dropped += dropped
 
-        chunk_stats_list.append({"chunk_idx": ci, "expected": target_count,
-                                 "returned": len(translations), "dropped": dropped})
+        chunk_stats_list.append(
+            {
+                "chunk_idx": ci,
+                "expected": target_count,
+                "returned": len(translations),
+                "dropped": dropped,
+            }
+        )
 
         if kept:
             logger.debug(f"    [OK  ] 定向块 {ci}: 获得 {len(kept)} 条翻译")
@@ -486,7 +528,9 @@ def _translate_file_targeted(
     all_warnings.extend(patch_warnings)
 
     issues = validate_translation(
-        content, patched, rel_path,
+        content,
+        patched,
+        rel_path,
         glossary_terms=glossary.terms,
         glossary_locked=glossary.locked_terms,
         glossary_no_translate=glossary.no_translate,
@@ -510,18 +554,25 @@ def _translate_file_targeted(
                     continue
                 if translation_db.has_entry(rel_path, line_no, original):
                     continue
-                translation_db.upsert_entry({
-                    "file": rel_path, "line": line_no,
-                    "original": original, "translation": zh,
-                    "status": "writeback_failed",
-                    "error_codes": [], "warning_codes": [],
-                    "run_id": run_id, "stage": stage,
-                    "provider": provider, "model": model,
-                    "diagnostic": {
-                        "failure_type": diag.get("failure_type", "WF-08"),
-                        "detail": diag.get("detail", ""),
-                    },
-                })
+                translation_db.upsert_entry(
+                    {
+                        "file": rel_path,
+                        "line": line_no,
+                        "original": original,
+                        "translation": zh,
+                        "status": "writeback_failed",
+                        "error_codes": [],
+                        "warning_codes": [],
+                        "run_id": run_id,
+                        "stage": stage,
+                        "provider": provider,
+                        "model": model,
+                        "diagnostic": {
+                            "failure_type": diag.get("failure_type", "WF-08"),
+                            "detail": diag.get("detail", ""),
+                        },
+                    }
+                )
         except (OSError, ValueError, TypeError) as e:
             logger.debug(f"记录 writeback_failed 到 translation_db 失败: {e}")
 
@@ -533,19 +584,21 @@ def _translate_file_targeted(
             zh = item.get("zh", "") or ""
             if not line_no or not original:
                 continue
-            db_entries.append({
-                "file": rel_path,
-                "line": line_no,
-                "original": original,
-                "translation": zh,
-                "status": "ok",
-                "error_codes": [],
-                "warning_codes": [],
-                "run_id": run_id,
-                "stage": stage,
-                "provider": provider,
-                "model": model,
-            })
+            db_entries.append(
+                {
+                    "file": rel_path,
+                    "line": line_no,
+                    "original": original,
+                    "translation": zh,
+                    "status": "ok",
+                    "error_codes": [],
+                    "warning_codes": [],
+                    "run_id": run_id,
+                    "stage": stage,
+                    "provider": provider,
+                    "model": model,
+                }
+            )
         if db_entries:
             translation_db.add_entries(db_entries)
 

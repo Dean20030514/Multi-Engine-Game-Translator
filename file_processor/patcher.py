@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import logging
 import re
-from pathlib import Path
 from typing import Optional
 
 from file_processor.checker import _extract_placeholder_sequence
@@ -32,19 +31,19 @@ def _parse_strings_blocks(lines: list[str]) -> tuple[dict, set]:
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
-        if re.match(r'^translate\s+\w+\s+strings\s*:', stripped):
+        if re.match(r"^translate\s+\w+\s+strings\s*:", stripped):
             i += 1
             while i < len(lines):
                 old_m = _RE_STRINGS_OLD.match(lines[i])
                 if old_m:
                     old_line_no = i + 1
-                    old_text = old_m.group(1) if old_m.group(1) else ''
+                    old_text = old_m.group(1) if old_m.group(1) else ""
                     i += 1
                     if i < len(lines):
                         new_m = _RE_STRINGS_NEW.match(lines[i])
                         if new_m:
                             new_line_no = i + 1
-                            new_text = new_m.group(1) if new_m.group(1) else ''
+                            new_text = new_m.group(1) if new_m.group(1) else ""
                             strings_pairs[(old_line_no, old_text)] = {
                                 "new_line": new_line_no,
                                 "old_text": old_text,
@@ -53,7 +52,7 @@ def _parse_strings_blocks(lines: list[str]) -> tuple[dict, set]:
                             strings_old_lines.add(old_line_no)
                             i += 1
                             continue
-                elif stripped.startswith('translate ') or (stripped and not line[0].isspace()):
+                elif stripped.startswith("translate ") or (stripped and not line[0].isspace()):
                     break
                 i += 1
             continue
@@ -68,8 +67,8 @@ def _align_original_with_file(
     Only exact match + prefix/suffix (threshold 0.8). Skip lines that are strings old lines.
     Returns (item, warning_msg or None). When aligned, warning_msg is '行 N: original 已对齐'.
     """
-    line_num = int(item.get('line') or 0)
-    original = item.get('original', '') or ''
+    line_num = int(item.get("line") or 0)
+    original = item.get("original", "") or ""
     if not line_num or not original:
         return item, None
     if line_num in strings_old_lines:
@@ -84,16 +83,18 @@ def _align_original_with_file(
     candidates = dq + sq
     if not candidates:
         return item, None
-    norm_orig = ' '.join(original.split())
+    norm_orig = " ".join(original.split())
     best: Optional[str] = None
     best_score = 0.0
     for seg in candidates:
-        norm_seg = ' '.join(seg.split())
+        norm_seg = " ".join(seg.split())
         if seg == original or norm_seg == norm_orig:
             best = seg
             best_score = 1.0
             break
-        shorter, longer = (norm_orig, norm_seg) if len(norm_orig) <= len(norm_seg) else (norm_seg, norm_orig)
+        shorter, longer = (
+            (norm_orig, norm_seg) if len(norm_orig) <= len(norm_seg) else (norm_seg, norm_orig)
+        )
         if not shorter:
             continue
         if longer.startswith(shorter) or longer.endswith(shorter):
@@ -115,9 +116,9 @@ def _apply_strings_translations(
     applied = 0
     warnings: list[str] = []
     for item in strings_items:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
         if not original or not zh:
             continue
         key = (line_num, original)
@@ -150,12 +151,16 @@ def _build_writeback_diag_index(lines: list[str]) -> list[str]:
     ``_diagnose_writeback_failure`` call.
     """
     import unicodedata
+
     return [unicodedata.normalize("NFKC", line) for line in lines]
 
 
 def _diagnose_writeback_failure(
-    lines: list[str], item: dict, modified_lines: set[int],
-    *, norm_lines: list[str] | None = None,
+    lines: list[str],
+    item: dict,
+    modified_lines: set[int],
+    *,
+    norm_lines: list[str] | None = None,
 ) -> dict:
     """分析单条回写失败的根因，返回诊断信息。
 
@@ -225,12 +230,12 @@ def _diagnose_writeback_failure(
             # 前缀/后缀截断检测
             if len(original) >= 10 and (quoted.startswith(original) or quoted.endswith(original)):
                 diag["failure_type"] = "WF-02"
-                diag["detail"] = f"原文是行 {i+1} 引号文本的截断（完整: {quoted[:60]}）"
+                diag["detail"] = f"原文是行 {i + 1} 引号文本的截断（完整: {quoted[:60]}）"
                 return diag
             # 包含关系
             if len(original) >= 10 and original in quoted and len(original) / len(quoted) >= 0.4:
                 diag["failure_type"] = "WF-02"
-                diag["detail"] = f"原文是行 {i+1} 引号文本的子串"
+                diag["detail"] = f"原文是行 {i + 1} 引号文本的子串"
                 return diag
 
         # 完全不匹配
@@ -253,14 +258,14 @@ def _diagnose_writeback_failure(
         offset = abs(nearest - idx)
         if offset > 50:
             diag["failure_type"] = "WF-01"
-            diag["detail"] = f"最近匹配在行 {nearest+1}（偏移 {offset}）"
+            diag["detail"] = f"最近匹配在行 {nearest + 1}（偏移 {offset}）"
             return diag
         # 在 ±50 范围内但 _replace_string_in_line 失败
         # 可能是引号格式问题
         if diag["failure_type"] == "WF-04":
             return diag
         diag["failure_type"] = "WF-08"
-        diag["detail"] = f"原文在行 {nearest+1} 存在但 _replace_string_in_line 返回 None"
+        diag["detail"] = f"原文在行 {nearest + 1} 存在但 _replace_string_in_line 返回 None"
         return diag
 
     return diag
@@ -283,7 +288,7 @@ def apply_translations(
         (patched_content, warnings, stats)
         stats: {"alignment_count": int, "strings_applied_count": int}
     """
-    lines = original_content.split('\n')
+    lines = original_content.split("\n")
     warnings = []
     applied = 0
     skipped = 0
@@ -297,9 +302,9 @@ def apply_translations(
     # 预过滤：original 对齐 -> 安全检查（支持自动修复）
     safe_items = []
     for item in translations:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
 
         if not original or not zh:
             continue
@@ -309,8 +314,8 @@ def apply_translations(
         if align_msg:
             warnings.append(align_msg)
             alignment_count += 1
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        original = item.get("original", "")
+        zh = item.get("zh", "")
 
         issue = _check_translation_safety(original, zh)
         if issue:
@@ -340,12 +345,14 @@ def apply_translations(
     strings_items = []
     normal_items = []
     for item in safe_items:
-        key = (item.get('line', 0), item.get('original', ''))
+        key = (item.get("line", 0), item.get("original", ""))
         if key in strings_pairs:
             strings_items.append(item)
         else:
             normal_items.append(item)
-    applied_strings, strings_warnings = _apply_strings_translations(lines, strings_items, strings_pairs)
+    applied_strings, strings_warnings = _apply_strings_translations(
+        lines, strings_items, strings_pairs
+    )
     applied += applied_strings
     strings_applied_count = applied_strings
     warnings.extend(strings_warnings)
@@ -377,9 +384,9 @@ def apply_translations(
     # 第一遍：精确行号匹配（仅 normal 条目）
     remaining = []
     for item in normal_items:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
         idx = line_num - 1
         if _try_apply(idx, original, zh):
             applied += 1
@@ -389,9 +396,9 @@ def apply_translations(
     # 第二遍：近偏移搜索（+-5行范围）-- 不报警告
     still_remaining = []
     for item in remaining:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
         idx = line_num - 1
         found = False
 
@@ -407,9 +414,9 @@ def apply_translations(
     # 第三遍：远偏移搜索（+-50行范围）-- 不报警告
     far_remaining = []
     for item in still_remaining:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
         idx = line_num - 1
         found = False
 
@@ -428,9 +435,9 @@ def apply_translations(
     # failure diagnoses in this file instead of re-normalising per item.
     norm_lines_for_diag: list[str] | None = None
     for item in far_remaining:
-        line_num = item.get('line', 0)
-        original = item.get('original', '')
-        zh = item.get('zh', '')
+        line_num = item.get("line", 0)
+        original = item.get("original", "")
+        zh = item.get("zh", "")
         found = False
 
         for try_idx in range(len(lines)):
@@ -440,13 +447,16 @@ def apply_translations(
                 break
 
         if not found:
-            warnings.append(f"行 {line_num}: 未找到原文 \"{original[:50]}\"")
+            warnings.append(f'行 {line_num}: 未找到原文 "{original[:50]}"')
             skipped += 1
             # 诊断：分析失败原因
             if norm_lines_for_diag is None:
                 norm_lines_for_diag = _build_writeback_diag_index(lines)
             diag = _diagnose_writeback_failure(
-                lines, item, modified_lines, norm_lines=norm_lines_for_diag,
+                lines,
+                item,
+                modified_lines,
+                norm_lines=norm_lines_for_diag,
             )
             writeback_failures.append(diag)
 
@@ -463,7 +473,7 @@ def apply_translations(
         "strings_applied_count": strings_applied_count,
         "writeback_failures": writeback_failures,
     }
-    return '\n'.join(lines), warnings, stats
+    return "\n".join(lines), warnings, stats
 
 
 def _replace_string_in_line(line: str, original: str, replacement: str) -> Optional[str]:
@@ -479,10 +489,10 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
 
     # === 阶段 1：精确匹配 ===
     for quote in ('"', "'"):
-        pattern = f'{quote}{original}{quote}'
+        pattern = f"{quote}{original}{quote}"
         if pattern in line:
             safe_replacement = safe_replacement_dq if quote == '"' else safe_replacement_sq
-            return line.replace(pattern, f'{quote}{safe_replacement}{quote}', 1)
+            return line.replace(pattern, f"{quote}{safe_replacement}{quote}", 1)
 
     # 尝试处理转义引号
     escaped = original.replace('"', '\\"')
@@ -500,34 +510,34 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
     # === 阶段 1b：AI 返回了含 Ren'Py 行前缀的 original（如 'text _("...'），剥离后重试 ===
     stripped_original = original
     for prefix_pattern in (
-        r'^(?:text\s+)?_\(\s*"',   # text _(" 或 _("
-        r'^\s*text\s+"',            # text "
-        r'^\s*textbutton\s+"',      # textbutton "
+        r'^(?:text\s+)?_\(\s*"',  # text _(" 或 _("
+        r'^\s*text\s+"',  # text "
+        r'^\s*textbutton\s+"',  # textbutton "
     ):
         m = re.match(prefix_pattern, stripped_original)
         if m:
-            stripped_original = stripped_original[m.end():]
+            stripped_original = stripped_original[m.end() :]
             # 去掉可能的尾部引号/括号
-            stripped_original = stripped_original.rstrip('"').rstrip(')').rstrip('"')
+            stripped_original = stripped_original.rstrip('"').rstrip(")").rstrip('"')
             break
     if stripped_original != original and stripped_original:
         # 用剥离后的原文重试阶段1
         for quote in ('"', "'"):
-            pattern = f'{quote}{stripped_original}{quote}'
+            pattern = f"{quote}{stripped_original}{quote}"
             if pattern in line:
                 safe_replacement = safe_replacement_dq if quote == '"' else safe_replacement_sq
-                return line.replace(pattern, f'{quote}{safe_replacement}{quote}', 1)
+                return line.replace(pattern, f"{quote}{safe_replacement}{quote}", 1)
         if f'_("{stripped_original}")' in line:
             return line.replace(f'_("{stripped_original}")', f'_("{safe_replacement_dq}")', 1)
 
     # === 阶段 2：标准化空白匹配 ===
-    norm_original = ' '.join(original.split())
+    norm_original = " ".join(original.split())
     if norm_original != original:
         for quote in ('"', "'"):
-            pattern = f'{quote}{norm_original}{quote}'
+            pattern = f"{quote}{norm_original}{quote}"
             if pattern in line:
                 safe_replacement = safe_replacement_dq if quote == '"' else safe_replacement_sq
-                return line.replace(pattern, f'{quote}{safe_replacement}{quote}', 1)
+                return line.replace(pattern, f"{quote}{safe_replacement}{quote}", 1)
 
     # === 阶段 3：从行中提取引号内文本，尝试高级匹配 ===
     # 找到行中所有引号内的文本段（支持转义引号 \"）
@@ -541,28 +551,26 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
             return line.replace(f'"{line_text}"', f'"{safe_replacement_dq}"', 1)
 
         # 3b. 标准化空白比较
-        if ' '.join(line_text.split()) == norm_original:
+        if " ".join(line_text.split()) == norm_original:
             return line.replace(f'"{line_text}"', f'"{safe_replacement_dq}"', 1)
 
         # 3c. Ren'Py 格式标签处理：去掉标签后比较
-        stripped_text = re.sub(r'\{/?[^}]+\}', '', line_text)
+        stripped_text = re.sub(r"\{/?[^}]+\}", "", line_text)
         if not stripped_text:
             continue
 
-        norm_stripped = ' '.join(stripped_text.split())
+        norm_stripped = " ".join(stripped_text.split())
         if stripped_text == original or norm_stripped == norm_original:
             # 提取前缀标签和后缀标签，翻译时保留标签结构
-            prefix_m = re.match(r'((?:\{[^}]+\})+)', line_text)
-            prefix_tags = prefix_m.group(0) if prefix_m else ''
-            suffix_m = re.search(r'((?:\{/[^}]+\})+)$', line_text)
-            suffix_tags = suffix_m.group(0) if suffix_m else ''
+            prefix_m = re.match(r"((?:\{[^}]+\})+)", line_text)
+            prefix_tags = prefix_m.group(0) if prefix_m else ""
+            suffix_m = re.search(r"((?:\{/[^}]+\})+)$", line_text)
+            suffix_tags = suffix_m.group(0) if suffix_m else ""
             new_text = prefix_tags + safe_replacement_dq + suffix_tags
             return line.replace(f'"{line_text}"', f'"{new_text}"', 1)
 
         # 3d. 标签子串匹配 -- 原文是被标签包裹的更大文本的一部分
-        tag_wrapped_re = re.compile(
-            r'(\{[^/][^}]*\})' + re.escape(original) + r'(\{/[^}]+\})'
-        )
+        tag_wrapped_re = re.compile(r"(\{[^/][^}]*\})" + re.escape(original) + r"(\{/[^}]+\})")
         tw_match = tag_wrapped_re.search(line_text)
         if tw_match:
             old_segment = tw_match.group(0)
@@ -575,13 +583,13 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
             # AI 的文本可能是原文去掉标签后截断的前缀
             if stripped_text.startswith(original) or norm_stripped.startswith(norm_original):
                 # 如果有标签且 AI 覆盖了足够多的原文，视为有效的截断匹配
-                has_tags = (line_text != stripped_text)
+                has_tags = line_text != stripped_text
                 ratio = len(original) / len(stripped_text) if stripped_text else 0
                 if has_tags and ratio >= 0.7:
-                    prefix_m = re.match(r'((?:\{[^}]+\})+)', line_text)
-                    prefix_tags = prefix_m.group(0) if prefix_m else ''
-                    suffix_m = re.search(r'((?:\{/[^}]+\})+)$', line_text)
-                    suffix_tags = suffix_m.group(0) if suffix_m else ''
+                    prefix_m = re.match(r"((?:\{[^}]+\})+)", line_text)
+                    prefix_tags = prefix_m.group(0) if prefix_m else ""
+                    suffix_m = re.search(r"((?:\{/[^}]+\})+)$", line_text)
+                    suffix_tags = suffix_m.group(0) if suffix_m else ""
                     new_text = prefix_tags + safe_replacement_dq + suffix_tags
                     return line.replace(f'"{line_text}"', f'"{new_text}"', 1)
                 # 无标签时，截断前缀不安全，跳过
@@ -592,28 +600,31 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
                 continue
             # AI 截断了文本末尾（警告中显示50字符截断）
             if len(original) >= 45 and stripped_text.startswith(original[:40]):
-                prefix_m = re.match(r'((?:\{[^}]+\})+)', line_text)
-                prefix_tags = prefix_m.group(0) if prefix_m else ''
-                suffix_m = re.search(r'((?:\{/[^}]+\})+)$', line_text)
-                suffix_tags = suffix_m.group(0) if suffix_m else ''
+                prefix_m = re.match(r"((?:\{[^}]+\})+)", line_text)
+                prefix_tags = prefix_m.group(0) if prefix_m else ""
+                suffix_m = re.search(r"((?:\{/[^}]+\})+)$", line_text)
+                suffix_tags = suffix_m.group(0) if suffix_m else ""
                 new_text = prefix_tags + safe_replacement_dq + suffix_tags
                 return line.replace(f'"{line_text}"', f'"{new_text}"', 1)
 
     # === 阶段 3f：用剥离前缀后的 original 在 quoted_parts 中再找一次 ===
     if stripped_original != original and stripped_original and quoted_parts:
-        norm_stripped_orig = ' '.join(stripped_original.split())
+        norm_stripped_orig = " ".join(stripped_original.split())
         for line_text in quoted_parts:
             if line_text == stripped_original:
                 return line.replace(f'"{line_text}"', f'"{safe_replacement_dq}"', 1)
-            if ' '.join(line_text.split()) == norm_stripped_orig:
+            if " ".join(line_text.split()) == norm_stripped_orig:
                 return line.replace(f'"{line_text}"', f'"{safe_replacement_dq}"', 1)
             # 去标签后比较
-            stripped_lt = re.sub(r'\{/?[^}]+\}', '', line_text)
-            if stripped_lt == stripped_original or ' '.join(stripped_lt.split()) == norm_stripped_orig:
-                prefix_m = re.match(r'((?:\{[^}]+\})+)', line_text)
-                prefix_tags = prefix_m.group(0) if prefix_m else ''
-                suffix_m = re.search(r'((?:\{/[^}]+\})+)$', line_text)
-                suffix_tags = suffix_m.group(0) if suffix_m else ''
+            stripped_lt = re.sub(r"\{/?[^}]+\}", "", line_text)
+            if (
+                stripped_lt == stripped_original
+                or " ".join(stripped_lt.split()) == norm_stripped_orig
+            ):
+                prefix_m = re.match(r"((?:\{[^}]+\})+)", line_text)
+                prefix_tags = prefix_m.group(0) if prefix_m else ""
+                suffix_m = re.search(r"((?:\{/[^}]+\})+)$", line_text)
+                suffix_tags = suffix_m.group(0) if suffix_m else ""
                 new_text = prefix_tags + safe_replacement_dq + suffix_tags
                 return line.replace(f'"{line_text}"', f'"{new_text}"', 1)
 
@@ -622,10 +633,10 @@ def _replace_string_in_line(line: str, original: str, replacement: str) -> Optio
 
 def _escape_for_renpy_string(text: str, quote: str = '"') -> str:
     """将译文转义为可安全写入 Ren'Py 字符串的内容。"""
-    escaped = text.replace('\\', '\\\\').replace('\r', '')
-    escaped = escaped.replace('\n', r'\n')
+    escaped = text.replace("\\", "\\\\").replace("\r", "")
+    escaped = escaped.replace("\n", r"\n")
     if quote == '"':
-        escaped = escaped.replace('"', r'\"')
+        escaped = escaped.replace('"', r"\"")
     else:
         escaped = escaped.replace("'", r"\\'")
     return escaped
@@ -639,7 +650,7 @@ def _count_unescaped_quote(line: str, quote: str) -> int:
         if escaped:
             escaped = False
             continue
-        if ch == '\\':
+        if ch == "\\":
             escaped = True
             continue
         if ch == quote:
@@ -664,10 +675,10 @@ def _auto_fix_translation(original: str, zh: str) -> Optional[str]:
     常见问题：AI 翻译了变量名（如 [mother] -> [母亲]），或丢失/多出变量。
     """
     # 修复变量：将原文中的变量占位符恢复到译文中
-    orig_vars = re.findall(r'\[\w+\]', original)
-    zh_vars = re.findall(r'\[\w+\]', zh)
-    orig_var_names = set(re.findall(r'\[(\w+)\]', original))
-    zh_var_names = set(re.findall(r'\[(\w+)\]', zh))
+    orig_vars = re.findall(r"\[\w+\]", original)
+    zh_vars = re.findall(r"\[\w+\]", zh)
+    orig_var_names = set(re.findall(r"\[(\w+)\]", original))
+    zh_var_names = set(re.findall(r"\[(\w+)\]", zh))
 
     fixed = zh
     missing = orig_var_names - zh_var_names
@@ -679,9 +690,9 @@ def _auto_fix_translation(original: str, zh: str) -> Optional[str]:
         for extra_var in list(extra):
             # 找最可能对应的原始变量
             for miss_var in list(missing):
-                zh_pattern = f'[{extra_var}]'
+                zh_pattern = f"[{extra_var}]"
                 if zh_pattern in fixed:
-                    fixed = fixed.replace(zh_pattern, f'[{miss_var}]', 1)
+                    fixed = fixed.replace(zh_pattern, f"[{miss_var}]", 1)
                     extra.discard(extra_var)
                     missing.discard(miss_var)
                     break
@@ -690,14 +701,14 @@ def _auto_fix_translation(original: str, zh: str) -> Optional[str]:
         return None
 
     # 修复标签：确保 Ren'Py 标签匹配
-    orig_tags = re.findall(r'\{/?[a-z]+=?[^}]*\}', original, re.I)
-    zh_tags = re.findall(r'\{/?[a-z]+=?[^}]*\}', fixed, re.I)
+    orig_tags = re.findall(r"\{/?[a-z]+=?[^}]*\}", original, re.I)
+    zh_tags = re.findall(r"\{/?[a-z]+=?[^}]*\}", fixed, re.I)
     if sorted(orig_tags) != sorted(zh_tags):
         # 如果原文有标签但译文没有，AI 可能故意移除了（因为我们会在匹配时重新加上）
         # 不自动修复标签
         if not orig_tags and zh_tags:
             # 译文多出标签，尝试移除
-            fixed = re.sub(r'\{/?[a-z]+=?[^}]*\}', '', fixed, flags=re.I)
+            fixed = re.sub(r"\{/?[a-z]+=?[^}]*\}", "", fixed, flags=re.I)
         else:
             return None
 
@@ -711,8 +722,8 @@ def _check_translation_safety(original: str, zh: str) -> Optional[str]:
         问题描述字符串，如果安全返回 None
     """
     # 检查变量占位符是否保留
-    orig_vars = set(re.findall(r'\[(\w+)\]', original))
-    zh_vars = set(re.findall(r'\[(\w+)\]', zh))
+    orig_vars = set(re.findall(r"\[(\w+)\]", original))
+    zh_vars = set(re.findall(r"\[(\w+)\]", zh))
     missing_vars = orig_vars - zh_vars
     if missing_vars:
         return f"变量丢失: {missing_vars}"
@@ -721,24 +732,24 @@ def _check_translation_safety(original: str, zh: str) -> Optional[str]:
         return f"变量多出: {extra_vars}"
 
     # 检查 Ren'Py 标签是否保留
-    orig_tags = re.findall(r'\{/?[a-z]+=?[^}]*\}', original, re.I)
-    zh_tags = re.findall(r'\{/?[a-z]+=?[^}]*\}', zh, re.I)
+    orig_tags = re.findall(r"\{/?[a-z]+=?[^}]*\}", original, re.I)
+    zh_tags = re.findall(r"\{/?[a-z]+=?[^}]*\}", zh, re.I)
     if sorted(orig_tags) != sorted(zh_tags):
         return f"标签不匹配: 原={orig_tags}, 译={zh_tags}"
 
     # 检查换行符数量是否一致（统一用字面量 '\n' 比较）
-    if original.count('\\n') != zh.count('\\n'):
+    if original.count("\\n") != zh.count("\\n"):
         return f"换行符数量不匹配: 原={original.count(chr(92) + 'n')}, 译={zh.count(chr(92) + 'n')}"
 
     # 检查 {#identifier} 菜单标识符是否保留
-    orig_ids = re.findall(r'\{#[^}]+\}', original)
-    zh_ids = re.findall(r'\{#[^}]+\}', zh)
+    orig_ids = re.findall(r"\{#[^}]+\}", original)
+    zh_ids = re.findall(r"\{#[^}]+\}", zh)
     if sorted(orig_ids) != sorted(zh_ids):
         return f"菜单标识符不匹配: 原={orig_ids}, 译={zh_ids}"
 
     # 检查 %(name)s 格式化占位符是否保留
-    orig_fmt = set(re.findall(r'%\([^)]+\)[sd]', original))
-    zh_fmt = set(re.findall(r'%\([^)]+\)[sd]', zh))
+    orig_fmt = set(re.findall(r"%\([^)]+\)[sd]", original))
+    zh_fmt = set(re.findall(r"%\([^)]+\)[sd]", zh))
     if orig_fmt != zh_fmt:
         return f"格式化占位符不匹配: 原={orig_fmt}, 译={zh_fmt}"
 

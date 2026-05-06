@@ -59,20 +59,16 @@ RPYC binary format handling is based on public Ren'Py source.
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import logging
 import os
-import pickle
 import platform
-import struct
 import subprocess
 import sys
 import tempfile
 import textwrap
-import zlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +83,6 @@ logger = logging.getLogger(__name__)
 # exported at module level below for any legacy caller / test that
 # imported them from ``tools.rpyc_decompiler`` directly.
 from tools._rpyc_shared import (
-    RPYC2_HEADER,
-    _AST_SLOT,
     _SHARED_WHITELIST,
     _WHITELIST_TIER1_PY2_EXTRAS,
 )
@@ -97,6 +91,7 @@ from tools._rpyc_shared import (
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 class RPYCError(Exception):
     """Base exception for RPYC operations."""
@@ -123,6 +118,7 @@ class DecompileError(RPYCError):
 # ---------------------------------------------------------------------------
 # Platform + version detection (Tier 1)
 # ---------------------------------------------------------------------------
+
 
 def _find_renpy_python(game_dir: Path) -> Optional[Path]:
     """Locate the Python interpreter bundled with a Ren'Py game.
@@ -160,11 +156,13 @@ def _find_renpy_python(game_dir: Path) -> Optional[Path]:
         ]
         # Also try 32-bit on 64-bit Windows
         if arch == "x86_64":
-            candidates.extend([
-                "py3-windows-i686",
-                "windows-i686",
-                "py2-windows-i686",
-            ])
+            candidates.extend(
+                [
+                    "py3-windows-i686",
+                    "windows-i686",
+                    "py2-windows-i686",
+                ]
+            )
     elif system == "linux":
         candidates = [
             f"py3-linux-{arch}",
@@ -342,8 +340,7 @@ def _render_decompile_helper() -> str:
     single source of truth at the top of this file.
     """
     builtins_list = sorted(
-        set(_SHARED_WHITELIST["builtins"])
-        | set(_WHITELIST_TIER1_PY2_EXTRAS.get("builtins", []))
+        set(_SHARED_WHITELIST["builtins"]) | set(_WHITELIST_TIER1_PY2_EXTRAS.get("builtins", []))
     )
     replacements = {
         "{SAFE_BUILTINS_JSON}": json.dumps(builtins_list),
@@ -404,24 +401,17 @@ def _run_decompile_with_game_python(
                 cwd=str(renpy_base),
             )
         except subprocess.TimeoutExpired:
-            raise DecompileError(
-                f"反编译超时（{timeout}秒）。游戏可能过大或 Python 解释器无响应。"
-            )
+            raise DecompileError(f"反编译超时（{timeout}秒）。游戏可能过大或 Python 解释器无响应。")
         except FileNotFoundError:
-            raise NoRenpyRuntime(
-                f"无法执行 Python 解释器: {python_path}"
-            )
+            raise NoRenpyRuntime(f"无法执行 Python 解释器: {python_path}")
 
         if proc.returncode != 0:
             stderr = proc.stderr[:500] if proc.stderr else "(无错误输出)"
-            logger.warning("[RPYC] 游戏 Python 返回非零退出码 %d: %s",
-                           proc.returncode, stderr)
+            logger.warning("[RPYC] 游戏 Python 返回非零退出码 %d: %s", proc.returncode, stderr)
 
         if not result_path.is_file():
             stderr = proc.stderr[:500] if proc.stderr else "(无错误输出)"
-            raise DecompileError(
-                f"反编译辅助脚本未产生输出。stderr: {stderr}"
-            )
+            raise DecompileError(f"反编译辅助脚本未产生输出。stderr: {stderr}")
 
         # Round 45 audit-tail: 50 MB cap on the subprocess-produced
         # result JSON.  Prevents a runaway helper (e.g. a game with
@@ -445,8 +435,9 @@ def _run_decompile_with_game_python(
         if result.get("ok"):
             successes[rpyc_path_str] = result["code"]
         else:
-            logger.warning("[RPYC] 反编译失败 %s: %s",
-                           rpyc_path_str, result.get("error", "unknown"))
+            logger.warning(
+                "[RPYC] 反编译失败 %s: %s", rpyc_path_str, result.get("error", "unknown")
+            )
 
     return successes
 
@@ -455,17 +446,13 @@ def _run_decompile_with_game_python(
 # Re-exported below so callers / tests that used to import these
 # symbols from tools.rpyc_decompiler continue to work.
 from tools._rpyc_tier2 import (
-    _DummyClass,
-    _RestrictedUnpickler,
-    _read_rpyc_data,
-    _safe_unpickle,
-    _extract_text_from_node,
     extract_strings_from_rpyc,
 )
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def decompile_game(
     game_dir: Path,
@@ -506,9 +493,7 @@ def decompile_game(
         renpy_base = _find_renpy_base(game_dir)
 
     if renpy_base is None:
-        raise NoRenpyRuntime(
-            f"未找到 renpy/ 模块目录。请确认游戏目录结构完整。"
-        )
+        raise NoRenpyRuntime("未找到 renpy/ 模块目录。请确认游戏目录结构完整。")
 
     # Collect .rpyc files
     rpyc_files: list[Path] = []
@@ -534,12 +519,15 @@ def decompile_game(
         logger.info("[RPYC] 没有需要反编译的 .rpyc 文件")
         return [], []
 
-    logger.info("[RPYC] 找到 %d 个 .rpyc 文件，使用 %s 进行反编译",
-                len(rpyc_files), python_path)
+    logger.info("[RPYC] 找到 %d 个 .rpyc 文件，使用 %s 进行反编译", len(rpyc_files), python_path)
 
     # Run decompilation
     successes = _run_decompile_with_game_python(
-        python_path, renpy_base, rpyc_files, output_dir or search_dir, timeout,
+        python_path,
+        renpy_base,
+        rpyc_files,
+        output_dir or search_dir,
+        timeout,
     )
 
     succeeded: list[Path] = []
@@ -555,9 +543,7 @@ def decompile_game(
                     ".rpy" if rpyc_path.suffix == ".rpyc" else ".rpym"
                 )
             else:
-                rpy_path = rpyc_path.with_suffix(
-                    ".rpy" if rpyc_path.suffix == ".rpyc" else ".rpym"
-                )
+                rpy_path = rpyc_path.with_suffix(".rpy" if rpyc_path.suffix == ".rpyc" else ".rpym")
 
             rpy_path.parent.mkdir(parents=True, exist_ok=True)
             rpy_path.write_text(successes[rpyc_str], encoding="utf-8")
@@ -566,8 +552,7 @@ def decompile_game(
         else:
             failed.append(rpyc_path)
 
-    logger.info("[RPYC] 反编译完成: 成功 %d, 失败 %d",
-                len(succeeded), len(failed))
+    logger.info("[RPYC] 反编译完成: 成功 %d, 失败 %d", len(succeeded), len(failed))
     return succeeded, failed
 
 
@@ -613,8 +598,7 @@ def extract_strings_standalone(
             all_strings[str(rel)] = strings
             total_count += len(strings)
 
-    logger.info("[RPYC] 提取完成: %d 个文件, %d 条文本",
-                len(all_strings), total_count)
+    logger.info("[RPYC] 提取完成: %d 个文件, %d 条文本", len(all_strings), total_count)
 
     if output_json:
         output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -631,6 +615,7 @@ def extract_strings_standalone(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rpyc_decompiler",
@@ -641,7 +626,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="游戏目录路径（包含 game/ 子目录或直接包含 .rpyc 文件）",
     )
     parser.add_argument(
-        "--outdir", "-o",
+        "--outdir",
+        "-o",
         default=None,
         help="输出目录（默认: .rpyc 文件所在目录）",
     )
@@ -656,7 +642,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Tier 2 模式的 JSON 输出文件路径",
     )
     parser.add_argument(
-        "--force", "-f",
+        "--force",
+        "-f",
         action="store_true",
         help="覆盖已存在的 .rpy 文件",
     )
@@ -703,9 +690,10 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.fallback:
         # Tier 2
-        json_out = Path(args.json_out) if args.json_out else (
-            outdir / "rpyc_strings.json" if outdir else
-            game_dir / "rpyc_strings.json"
+        json_out = (
+            Path(args.json_out)
+            if args.json_out
+            else (outdir / "rpyc_strings.json" if outdir else game_dir / "rpyc_strings.json")
         )
         strings = extract_strings_standalone(game_dir, json_out)
         total = sum(len(v) for v in strings.values())
@@ -715,12 +703,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Tier 1 (with fallback to Tier 2)
     try:
         succeeded, failed = decompile_game(
-            game_dir, outdir, timeout=args.timeout, force=args.force,
+            game_dir,
+            outdir,
+            timeout=args.timeout,
+            force=args.force,
         )
         print(f"Tier 1 反编译完成: 成功 {len(succeeded)}, 失败 {len(failed)}")
 
         if failed:
-            print(f"\n以下文件反编译失败:")
+            print("\n以下文件反编译失败:")
             for p in failed[:20]:
                 print(f"  {p}")
             if len(failed) > 20:
@@ -732,9 +723,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         logger.warning("[RPYC] Tier 1 不可用: %s", exc)
         logger.info("[RPYC] 自动降级到 Tier 2（独立文本提取）...")
 
-        json_out = Path(args.json_out) if args.json_out else (
-            outdir / "rpyc_strings.json" if outdir else
-            game_dir / "rpyc_strings.json"
+        json_out = (
+            Path(args.json_out)
+            if args.json_out
+            else (outdir / "rpyc_strings.json" if outdir else game_dir / "rpyc_strings.json")
         )
         strings = extract_strings_standalone(game_dir, json_out)
         total = sum(len(v) for v in strings.values())

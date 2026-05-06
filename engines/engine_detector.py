@@ -22,12 +22,13 @@ logger = logging.getLogger("multi_engine_translator")
 
 class EngineType(enum.Enum):
     """支持的引擎类型枚举。"""
+
     RENPY = "renpy"
     RPGMAKER_MV = "rpgmaker_mv"
     RPGMAKER_VXACE = "rpgmaker_vxace"
     CSV = "csv"
     JSONL = "jsonl"
-    UNITY_XUNITY = "unity_xunity"   # Round 55
+    UNITY_XUNITY = "unity_xunity"  # Round 55
     UNKNOWN = "unknown"
 
 
@@ -84,12 +85,14 @@ def create_engine(engine_type: EngineType):
     """
     if engine_type == EngineType.RENPY:
         from engines.renpy_engine import RenPyEngine
+
         return RenPyEngine()
 
     if engine_type == EngineType.RPGMAKER_MV:
         # RPG Maker MV/MZ 引擎（待实现）
         try:
             from engines.rpgmaker_engine import RPGMakerMVEngine
+
             return RPGMakerMVEngine()
         except ImportError:
             logger.error("[DETECT] RPG Maker 引擎模块尚未实现")
@@ -98,6 +101,7 @@ def create_engine(engine_type: EngineType):
     if engine_type == EngineType.CSV:
         try:
             from engines.csv_engine import CSVEngine
+
             return CSVEngine()
         except ImportError:
             logger.error("[DETECT] CSV 引擎模块尚未实现")
@@ -106,6 +110,7 @@ def create_engine(engine_type: EngineType):
     if engine_type == EngineType.JSONL:
         try:
             from engines.csv_engine import CSVEngine
+
             return CSVEngine()  # JSONL 复用 CSV 引擎
         except ImportError:
             logger.error("[DETECT] CSV/JSONL 引擎模块尚未实现")
@@ -118,6 +123,7 @@ def create_engine(engine_type: EngineType):
     if engine_type == EngineType.UNITY_XUNITY:
         try:
             from engines.unity_xunity import UnityXUnityEngine
+
             return UnityXUnityEngine()
         except ImportError:
             logger.error("[DETECT] Unity XUnity 引擎模块加载失败")

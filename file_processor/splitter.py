@@ -7,12 +7,12 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 logger = logging.getLogger(__name__)
 
 
-_WORD_RE = re.compile(r'[a-zA-Z]+')
+_WORD_RE = re.compile(r"[a-zA-Z]+")
 
 
 def estimate_tokens(text: str) -> int:
@@ -41,7 +41,7 @@ def estimate_tokens(text: str) -> int:
         if cp < 128:
             if not c.isalpha():
                 non_alpha_ascii += 1
-        elif '\u4e00' <= c <= '\u9fff' or '\u3040' <= c <= '\u30ff' or '\uac00' <= c <= '\ud7af':
+        elif "\u4e00" <= c <= "\u9fff" or "\u3040" <= c <= "\u30ff" or "\uac00" <= c <= "\ud7af":
             cjk += 1
         else:
             other_non_ascii += 1
@@ -60,13 +60,13 @@ def _find_block_boundaries(lines: list[str]) -> list[int]:
     """
     boundaries = [0]  # 文件开始
     top_level_re = re.compile(
-        r'^(label\s|screen\s|init\s|init\b|define\s|default\s|'
-        r'transform\s|style\s|translate\s|python\s|menu\s*:|image\s)'
+        r"^(label\s|screen\s|init\s|init\b|define\s|default\s|"
+        r"transform\s|style\s|translate\s|python\s|menu\s*:|image\s)"
     )
 
     for i, line in enumerate(lines):
         stripped = line.rstrip()
-        if not stripped or stripped.startswith('#'):
+        if not stripped or stripped.startswith("#"):
             continue
         # 顶层块：没有前导空格的关键字
         if not line[0].isspace() and top_level_re.match(stripped):
@@ -94,7 +94,7 @@ def split_file(filepath: str, max_tokens: int = 50000) -> list[dict]:
     if total_tokens <= max_tokens:
         return [{"content": content, "line_offset": 0, "part": 1, "total": 1}]
 
-    lines = content.split('\n')
+    lines = content.split("\n")
     boundaries = _find_block_boundaries(lines)
 
     # 在边界处将行分组为 chunk
@@ -102,42 +102,50 @@ def split_file(filepath: str, max_tokens: int = 50000) -> list[dict]:
     current_start = 0
 
     for i in range(1, len(boundaries)):
-        chunk_lines = lines[current_start:boundaries[i]]
-        chunk_text = '\n'.join(chunk_lines)
+        chunk_lines = lines[current_start : boundaries[i]]
+        chunk_text = "\n".join(chunk_lines)
         chunk_tokens = estimate_tokens(chunk_text)
 
         if chunk_tokens > max_tokens and current_start < boundaries[i - 1]:
             # 当前累积块太大，在前一个边界处切割
-            cut_lines = lines[current_start:boundaries[i - 1]]
-            chunks.append({
-                "content": '\n'.join(cut_lines),
-                "line_offset": current_start,
-            })
+            cut_lines = lines[current_start : boundaries[i - 1]]
+            chunks.append(
+                {
+                    "content": "\n".join(cut_lines),
+                    "line_offset": current_start,
+                }
+            )
             current_start = boundaries[i - 1]
 
     # 最后一个块
     if current_start < len(lines):
-        remaining = '\n'.join(lines[current_start:])
+        remaining = "\n".join(lines[current_start:])
         remaining_tokens = estimate_tokens(remaining)
         if remaining_tokens > max_tokens:
             # 单个块超过上限，按行数强制拆分
             sub_chunks = _force_split_lines(lines, current_start, len(lines), max_tokens)
             chunks.extend(sub_chunks)
         else:
-            chunks.append({
-                "content": remaining,
-                "line_offset": current_start,
-            })
+            chunks.append(
+                {
+                    "content": remaining,
+                    "line_offset": current_start,
+                }
+            )
 
     # 对所有超大块进行强制拆分
     final_chunks = []
     for chunk in chunks:
-        tok = estimate_tokens(chunk['content'])
+        tok = estimate_tokens(chunk["content"])
         if tok > max_tokens:
-            c_lines = chunk['content'].split('\n')
-            sub = _force_split_lines(c_lines, chunk['line_offset'],
-                                     chunk['line_offset'] + len(c_lines), max_tokens,
-                                     base_offset=chunk['line_offset'])
+            c_lines = chunk["content"].split("\n")
+            sub = _force_split_lines(
+                c_lines,
+                chunk["line_offset"],
+                chunk["line_offset"] + len(c_lines),
+                max_tokens,
+                base_offset=chunk["line_offset"],
+            )
             final_chunks.extend(sub)
         else:
             final_chunks.append(chunk)
@@ -150,16 +158,19 @@ def split_file(filepath: str, max_tokens: int = 50000) -> list[dict]:
         chunk["total"] = total
         if i > 0:
             prev_content = final_chunks[i - 1]["content"]
-            prev_lines = prev_content.split('\n')
+            prev_lines = prev_content.split("\n")
             tail = prev_lines[-context_lines:] if len(prev_lines) >= context_lines else prev_lines
-            chunk["prev_context"] = '\n'.join(tail)
-            chunk["prev_context_offset"] = final_chunks[i - 1]["line_offset"] + len(prev_lines) - len(tail)
+            chunk["prev_context"] = "\n".join(tail)
+            chunk["prev_context_offset"] = (
+                final_chunks[i - 1]["line_offset"] + len(prev_lines) - len(tail)
+            )
 
     return final_chunks
 
 
-def _force_split_lines(lines: list[str], start: int, end: int,
-                       max_tokens: int, base_offset: int = -1) -> list[dict]:
+def _force_split_lines(
+    lines: list[str], start: int, end: int, max_tokens: int, base_offset: int = -1
+) -> list[dict]:
     """当单个块超过 max_tokens 时，按行数均匀拆分
 
     优先在空行处切割，降低截断上下文的风险。
@@ -167,7 +178,7 @@ def _force_split_lines(lines: list[str], start: int, end: int,
     if base_offset < 0:
         base_offset = start
     subset = lines[start:end] if start < end else lines
-    total_tok = estimate_tokens('\n'.join(subset))
+    total_tok = estimate_tokens("\n".join(subset))
     n_parts = (total_tok // max_tokens) + 1
     part_size = max(len(subset) // n_parts, 100)
 
@@ -186,7 +197,7 @@ def _force_split_lines(lines: list[str], start: int, end: int,
                     best = target_end - delta + 1
                     break
             target_end = best
-        chunk_text = '\n'.join(subset[cur:target_end])
+        chunk_text = "\n".join(subset[cur:target_end])
         chunks.append({"content": chunk_text, "line_offset": base_offset + cur})
         cur = target_end
 
@@ -197,9 +208,9 @@ def read_file(path: Union[str, Path]) -> str:
     """读取文件，自动处理编码"""
     if not isinstance(path, Path):
         path = Path(path)
-    for enc in ['utf-8', 'utf-8-sig', 'latin-1', 'gbk']:
+    for enc in ["utf-8", "utf-8-sig", "latin-1", "gbk"]:
         try:
             return path.read_text(encoding=enc)
         except (UnicodeDecodeError, UnicodeError):
             continue
-    return path.read_text(encoding='utf-8', errors='replace')
+    return path.read_text(encoding="utf-8", errors="replace")

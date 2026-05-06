@@ -11,7 +11,6 @@ import re
 import string
 import threading
 from pathlib import Path
-from typing import Optional
 
 from safety.file_safety import check_fstat_size
 
@@ -44,8 +43,10 @@ def _json_file_too_large(path: Path) -> bool:
         return False
     if size > _MAX_GLOSSARY_JSON_SIZE:
         logger.warning(
-            "[GLOSSARY] JSON file too large (%d bytes > %d-byte cap), "
-            "skipping: %s", size, _MAX_GLOSSARY_JSON_SIZE, path,
+            "[GLOSSARY] JSON file too large (%d bytes > %d-byte cap), skipping: %s",
+            size,
+            _MAX_GLOSSARY_JSON_SIZE,
+            path,
         )
         return True
     return False
@@ -79,31 +80,29 @@ class Glossary:
         # 匹配 define xxx = Character("Name", ...) 和 DynamicCharacter
         char_re = re.compile(
             r'^\s*define\s+(\w+)\s*=\s*(?:Character|DynamicCharacter)\s*\(\s*["\']([^"\']+)["\']',
-            re.MULTILINE
+            re.MULTILINE,
         )
         # 匹配 define config.name = "..."
         config_name_re = re.compile(
-            r'^\s*define\s+config\.name\s*=\s*["\']([^"\']+)["\']',
-            re.MULTILINE
-        )        # 匹配 define config.version = "..."  (不翻译，但可用于报告)
+            r'^\s*define\s+config\.name\s*=\s*["\']([^"\']+)["\']', re.MULTILINE
+        )  # 匹配 define config.version = "..."  (不翻译，但可用于报告)
         config_ver_re = re.compile(
-            r'^\s*define\s+config\.version\s*=\s*["\']((?:[^"\']|\\.)*)["\'\)]',
-            re.MULTILINE
+            r'^\s*define\s+config\.version\s*=\s*["\']((?:[^"\']|\\.)*)["\'\)]', re.MULTILINE
         )
-        for rpy in game_path.rglob('*.rpy'):
+        for rpy in game_path.rglob("*.rpy"):
             # 跳过引擎自带文件
             try:
                 rel_parts = rpy.relative_to(game_path).parts
             except ValueError:
                 continue
-            if rel_parts and rel_parts[0].lower() in ('renpy', 'lib', '__pycache__'):
+            if rel_parts and rel_parts[0].lower() in ("renpy", "lib", "__pycache__"):
                 continue
 
             try:
-                content = rpy.read_text(encoding='utf-8')
+                content = rpy.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 try:
-                    content = rpy.read_text(encoding='latin-1')
+                    content = rpy.read_text(encoding="latin-1")
                 except (UnicodeDecodeError, OSError):
                     continue
 
@@ -113,10 +112,10 @@ class Glossary:
                 self.characters[var_name] = display_name
 
             for m in config_name_re.finditer(content):
-                self.terms['__game_name__'] = m.group(1)
+                self.terms["__game_name__"] = m.group(1)
 
             for m in config_ver_re.finditer(content):
-                self.terms['__game_version__'] = m.group(1)
+                self.terms["__game_version__"] = m.group(1)
 
         if self.characters:
             logger.info(f"扫描到 {len(self.characters)} 个角色定义")
@@ -133,6 +132,7 @@ class Glossary:
         读取 System.json 提取系统术语（terms.basic, terms.commands, terms.params）。
         """
         import json as _json
+
         game_dir = Path(game_dir)
 
         # 定位 data 目录（MV: www/data/, MZ: data/）
@@ -159,7 +159,9 @@ class Glossary:
                         logger.warning(
                             "[GLOSSARY] Actors.json grew past cap after stat "
                             "(TOCTOU?): %d bytes > %d, skipping: %s",
-                            fsize2, _MAX_GLOSSARY_JSON_SIZE, actors_path,
+                            fsize2,
+                            _MAX_GLOSSARY_JSON_SIZE,
+                            actors_path,
                         )
                         actors = None
                     else:
@@ -190,7 +192,9 @@ class Glossary:
                         logger.warning(
                             "[GLOSSARY] System.json grew past cap after stat "
                             "(TOCTOU?): %d bytes > %d, skipping: %s",
-                            fsize2, _MAX_GLOSSARY_JSON_SIZE, system_path,
+                            fsize2,
+                            _MAX_GLOSSARY_JSON_SIZE,
+                            system_path,
                         )
                         system = {}
                     else:
@@ -225,28 +229,28 @@ class Glossary:
 
         count = 0
         suffix = path.suffix.lower()
-        text = path.read_text(encoding='utf-8')
+        text = path.read_text(encoding="utf-8")
 
-        if suffix == '.jsonl':
+        if suffix == ".jsonl":
             for line in text.splitlines():
                 line = line.strip()
                 if not line:
                     continue
                 try:
                     obj = json.loads(line)
-                    en = obj.get('en', obj.get('original', obj.get('source', '')))
-                    zh = obj.get('zh', obj.get('translation', obj.get('target', '')))
+                    en = obj.get("en", obj.get("original", obj.get("source", "")))
+                    zh = obj.get("zh", obj.get("translation", obj.get("target", "")))
                     if en and zh:
                         self.terms[en] = zh
                         count += 1
                 except json.JSONDecodeError:
                     continue
-        elif suffix in ('.csv', '.tsv', '.txt'):
-            delimiter = '\t' if suffix == '.tsv' else ','
+        elif suffix in (".csv", ".tsv", ".txt"):
+            delimiter = "\t" if suffix == ".tsv" else ","
             for row in csv.reader(text.splitlines(), delimiter=delimiter):
                 if len(row) >= 2 and row[0].strip() and row[1].strip():
                     # 跳过表头
-                    if row[0].lower() in ('en', 'english', 'source', 'original'):
+                    if row[0].lower() in ("en", "english", "source", "original"):
                         continue
                     self.terms[row[0].strip()] = row[1].strip()
                     count += 1
@@ -270,13 +274,15 @@ class Glossary:
 
         try:
             # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 ok, fsize2 = check_fstat_size(f, _MAX_GLOSSARY_JSON_SIZE)
                 if not ok:
                     logger.warning(
                         "[GLOSSARY] system terms JSON grew past cap after stat "
                         "(TOCTOU?): %d bytes > %d, skipping: %s",
-                        fsize2, _MAX_GLOSSARY_JSON_SIZE, path,
+                        fsize2,
+                        _MAX_GLOSSARY_JSON_SIZE,
+                        path,
                     )
                     return
                 data = json.loads(f.read())
@@ -303,47 +309,51 @@ class Glossary:
         if _json_file_too_large(path):
             return
         # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
-        with open(path, encoding='utf-8') as f:
+        with open(path, encoding="utf-8") as f:
             ok, fsize2 = check_fstat_size(f, _MAX_GLOSSARY_JSON_SIZE)
             if not ok:
                 logger.warning(
                     "[GLOSSARY] glossary JSON grew past cap after stat "
                     "(TOCTOU?): %d bytes > %d, skipping: %s",
-                    fsize2, _MAX_GLOSSARY_JSON_SIZE, path,
+                    fsize2,
+                    _MAX_GLOSSARY_JSON_SIZE,
+                    path,
                 )
                 return
             data = json.loads(f.read())
-        self.characters.update(data.get('characters', {}))
-        self.terms.update(data.get('terms', {}))
-        self.memory.update(data.get('memory', {}))
+        self.characters.update(data.get("characters", {}))
+        self.terms.update(data.get("terms", {}))
+        self.memory.update(data.get("memory", {}))
         # 新字段向下兼容：旧版本 glossary.json 没有这些字段时，默认空集合
-        self.locked_terms = set(data.get('locked_terms', []))
-        self.no_translate = set(data.get('no_translate', []))
-        logger.info(f"加载术语表: {len(self.characters)} 角色, "
-                    f"{len(self.terms)} 术语, {len(self.memory)} 翻译记忆, "
-                    f"{len(self.locked_terms)} 锁定术语, {len(self.no_translate)} 禁翻片段")
+        self.locked_terms = set(data.get("locked_terms", []))
+        self.no_translate = set(data.get("no_translate", []))
+        logger.info(
+            f"加载术语表: {len(self.characters)} 角色, "
+            f"{len(self.terms)} 术语, {len(self.memory)} 翻译记忆, "
+            f"{len(self.locked_terms)} 锁定术语, {len(self.no_translate)} 禁翻片段"
+        )
 
     def save(self, filepath: str) -> None:
         """保存术语表"""
         with self._lock:
             data = {
-                'characters': self.characters,
-                'terms': self.terms,
-                'memory': self.memory,
+                "characters": self.characters,
+                "terms": self.terms,
+                "memory": self.memory,
                 # locked_terms / no_translate 主要由高级用户少量维护，避免滥用
-                'locked_terms': sorted(self.locked_terms),
-                'no_translate': sorted(self.no_translate),
+                "locked_terms": sorted(self.locked_terms),
+                "no_translate": sorted(self.no_translate),
             }
             path = Path(filepath)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def update_from_translations(self, translations: list[dict]) -> None:
         """从翻译结果中更新翻译记忆（过滤低质量/太短的条目）"""
         with self._lock:
             for item in translations:
-                original = item.get('original', '')
-                zh = item.get('zh', '')
+                original = item.get("original", "")
+                zh = item.get("zh", "")
                 if not original or not zh:
                     continue
                 if len(original) <= 3:
@@ -382,7 +392,9 @@ class Glossary:
                 return self.memory[original]
             return None
 
-    def extract_terms_from_translations(self, translations: list[dict], min_freq: int = 3) -> dict[str, str]:
+    def extract_terms_from_translations(
+        self, translations: list[dict], min_freq: int = 3
+    ) -> dict[str, str]:
         """从翻译结果中自动提取高频专有名词（人名/地名），返回 {en: zh} 词典。
 
         策略：
@@ -394,37 +406,101 @@ class Glossary:
 
         # Ren'Py 关键字和常见英文词不应提取为术语
         _STOP_WORDS = {
-            "The", "This", "That", "What", "When", "Where", "Which", "Who", "How",
-            "And", "But", "For", "Not", "You", "Your", "Her", "His", "She", "Are",
-            "Was", "Were", "Has", "Have", "Had", "Can", "Could", "Would", "Should",
-            "Will", "Did", "Does", "May", "Just", "Then", "Than", "Very", "Only",
-            "Also", "Some", "Any", "All", "Both", "Each", "Every", "Such", "Much",
-            "Well", "Now", "Here", "There", "Why", "Yes", "Yeah", "Okay",
-            "True", "False", "None", "Character", "DynamicCharacter",
-            "Jump", "Call", "Show", "Hide", "Scene", "Menu", "Return",
-            "Good", "Bad", "New", "Old", "Big", "Little", "Great",
+            "The",
+            "This",
+            "That",
+            "What",
+            "When",
+            "Where",
+            "Which",
+            "Who",
+            "How",
+            "And",
+            "But",
+            "For",
+            "Not",
+            "You",
+            "Your",
+            "Her",
+            "His",
+            "She",
+            "Are",
+            "Was",
+            "Were",
+            "Has",
+            "Have",
+            "Had",
+            "Can",
+            "Could",
+            "Would",
+            "Should",
+            "Will",
+            "Did",
+            "Does",
+            "May",
+            "Just",
+            "Then",
+            "Than",
+            "Very",
+            "Only",
+            "Also",
+            "Some",
+            "Any",
+            "All",
+            "Both",
+            "Each",
+            "Every",
+            "Such",
+            "Much",
+            "Well",
+            "Now",
+            "Here",
+            "There",
+            "Why",
+            "Yes",
+            "Yeah",
+            "Okay",
+            "True",
+            "False",
+            "None",
+            "Character",
+            "DynamicCharacter",
+            "Jump",
+            "Call",
+            "Show",
+            "Hide",
+            "Scene",
+            "Menu",
+            "Return",
+            "Good",
+            "Bad",
+            "New",
+            "Old",
+            "Big",
+            "Little",
+            "Great",
         }
         _stop_lower = {w.lower() for w in _STOP_WORDS}
 
         # 匹配首字母大写词，含连字符人名（如 Mary-Jane）
-        _word_re = re.compile(r'\b([A-Z][a-z]{1,15}(?:-[A-Z][a-z]{1,15})*)\b')
+        _word_re = re.compile(r"\b([A-Z][a-z]{1,15}(?:-[A-Z][a-z]{1,15})*)\b")
 
         def _zh_ngrams(text: str, min_len: int = 2, max_len: int = 5) -> list[str]:
             """从中文文本中提取所有 2~5 字的连续中文子串。"""
-            runs = re.findall(r'[\u4e00-\u9fff]+', text)
+            runs = re.findall(r"[\u4e00-\u9fff]+", text)
             ngrams = []
             for run in runs:
                 for n in range(min_len, min(max_len + 1, len(run) + 1)):
                     for i in range(len(run) - n + 1):
-                        ngrams.append(run[i:i + n])
+                        ngrams.append(run[i : i + n])
             return ngrams
 
         # 1. 收集：每个大写词出现时，对应译文中有哪些中文 n-gram
         word_zh_segments: dict[str, Counter] = {}
 
         for item in translations:
-            original = item.get('original', '')
-            zh = item.get('zh', '')
+            original = item.get("original", "")
+            zh = item.get("zh", "")
             if not original or not zh:
                 continue
             words = set(_word_re.findall(original))
@@ -444,11 +520,15 @@ class Glossary:
         # 2. 统计每个英文词出现了多少次（句子级频次）
         word_freq: Counter = Counter()
         for item in translations:
-            original = item.get('original', '')
+            original = item.get("original", "")
             if not original:
                 continue
             for w in set(_word_re.findall(original)):
-                if w.lower() not in _stop_lower and w not in self.characters and w not in self.terms:
+                if (
+                    w.lower() not in _stop_lower
+                    and w not in self.characters
+                    and w not in self.terms
+                ):
                     word_freq[w] += 1
 
         # 3. 筛选：词频 ≥ min_freq，且最频繁的中文 n-gram 出现在 ≥ 50% 的句子中
@@ -496,7 +576,7 @@ class Glossary:
         if self.terms:
             parts.append("\n### 固定术语")
             for en, zh in sorted(self.terms.items()):
-                if not en.startswith('__'):
+                if not en.startswith("__"):
                     parts.append(f"- {en} → {zh}")
 
         # 锁定术语：这些 key 出现在原文中时，AI 必须使用指定译名（建议数量少而精）
@@ -518,10 +598,13 @@ class Glossary:
         if self.memory:
             # 高置信度（count ≥ 3）：作为必须遵循的翻译约束
             mandatory = sorted(
-                [(en, zh) for en, zh in self.memory.items()
-                 if len(en) > 10 and self._memory_count.get(en, 1) >= 3],
+                [
+                    (en, zh)
+                    for en, zh in self.memory.items()
+                    if len(en) > 10 and self._memory_count.get(en, 1) >= 3
+                ],
                 key=lambda x: self._memory_count.get(x[0], 1),
-                reverse=True
+                reverse=True,
             )
             if mandatory:
                 parts.append("\n### 确定翻译（必须严格遵循，保持跨文件一致）")
@@ -536,10 +619,13 @@ class Glossary:
 
             # 普通参考（count ≥ 2 但 < 3）：作为翻译参考
             reference = sorted(
-                [(en, zh) for en, zh in self.memory.items()
-                 if len(en) > 10 and self._memory_count.get(en, 1) == 2],
+                [
+                    (en, zh)
+                    for en, zh in self.memory.items()
+                    if len(en) > 10 and self._memory_count.get(en, 1) == 2
+                ],
                 key=lambda x: len(x[0]),
-                reverse=True
+                reverse=True,
             )
             if reference:
                 parts.append("\n### 翻译参考（请尽量保持一致）")
@@ -552,4 +638,4 @@ class Glossary:
                     parts.append(entry)
                     used += len(entry)
 
-        return '\n'.join(parts) if parts else ""
+        return "\n".join(parts) if parts else ""

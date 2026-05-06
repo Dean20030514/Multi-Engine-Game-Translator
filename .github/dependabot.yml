@@ -1,0 +1,31 @@
+# Dependabot config for Multi-Engine-Game-Translator
+# r58 P2: 项目零 runtime 第三方依赖（CLAUDE.md 第 9 原则 / ADR 0001），
+# 但 GitHub Actions 仍可被 dependabot 自动管理 — actions/setup-python
+# 之类的 action 版本会持续升级，每个 PR 由 maintainer review 即可。
+#
+# 见：https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # Keep GitHub Actions versions fresh
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci"
+      - "dependencies"
+    # Group all action updates into a single PR per cycle
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Note: NO `pip` ecosystem here — runtime is zero third-party dependencies
+  # (ADR 0001). If a future PR adds runtime deps via plan-first override,
+  # add a `pip` ecosystem block here. Dev tools (mypy, ruff, PyInstaller)
+  # are CI / build-time and managed via CI step `pip install` calls, not
+  # tracked here to avoid noise.

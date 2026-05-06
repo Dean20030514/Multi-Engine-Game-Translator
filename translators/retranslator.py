@@ -61,6 +61,7 @@ def calculate_dialogue_density(content: str) -> float:
 # 补翻模式 (--retranslate)
 # ============================================================
 
+
 def find_untranslated_lines(content: str) -> list[tuple[int, str]]:
     """扫描文件内容，找出仍含英文对话的行。
 
@@ -73,9 +74,24 @@ def find_untranslated_lines(content: str) -> list[tuple[int, str]]:
     from translators.renpy_text_utils import _is_user_visible_string_line
 
     # screen 属性关键字——引号后紧跟这些词说明是 UI 布局行而非对话
-    _SCREEN_ATTR_KW = {"xalign", "yalign", "xpos", "ypos", "xsize", "ysize",
-                       "xoffset", "yoffset", "xanchor", "yanchor", "at",
-                       "align", "pos", "anchor", "size", "area"}
+    _SCREEN_ATTR_KW = {
+        "xalign",
+        "yalign",
+        "xpos",
+        "ypos",
+        "xsize",
+        "ysize",
+        "xoffset",
+        "yoffset",
+        "xanchor",
+        "yanchor",
+        "at",
+        "align",
+        "pos",
+        "anchor",
+        "size",
+        "area",
+    }
 
     results = []
     for i, line in enumerate(content.splitlines()):
@@ -102,7 +118,7 @@ def find_untranslated_lines(content: str) -> list[tuple[int, str]]:
 
         # screen 布局行：text "..." 后紧跟 xalign/ypos 等属性
         # 样本：text "Davide" xalign .5 ypos 150
-        after_quote = line[m.end():]
+        after_quote = line[m.end() :]
         first_word = after_quote.split()[0] if after_quote.split() else ""
         if first_word.lower() in _SCREEN_ATTR_KW:
             continue
@@ -147,7 +163,7 @@ def build_retranslate_chunks(
 
     chunks: list[list[tuple[int, str, bool]]] = []
     for start in range(0, len(untranslated_indices), max_per_chunk):
-        group = untranslated_indices[start:start + max_per_chunk]
+        group = untranslated_indices[start : start + max_per_chunk]
         ranges = _merge_ranges(group)
         chunk_lines: list[tuple[int, str, bool]] = []
         for ri, (lo, hi) in enumerate(ranges):
@@ -213,9 +229,7 @@ def retranslate_file(
 
     for ci, chunk_lines in enumerate(chunks, 1):
         # 占位符保护：先在拼接的原始文本上检测模式，再逐行替换
-        raw_for_detect = "\n".join(
-            line for _, line, _ in chunk_lines if line != "..."
-        )
+        raw_for_detect = "\n".join(line for _, line, _ in chunk_lines if line != "...")
         _, ph_mapping = protect_placeholders(raw_for_detect)
 
         if ph_mapping:
@@ -268,7 +282,9 @@ def retranslate_file(
     all_warnings.extend(patch_warnings)
 
     issues = validate_translation(
-        content, patched, rel_path,
+        content,
+        patched,
+        rel_path,
         glossary_terms=glossary.terms,
         glossary_locked=glossary.locked_terms,
         glossary_no_translate=glossary.no_translate,
@@ -287,19 +303,21 @@ def retranslate_file(
             zh = item.get("zh", "") or ""
             if not line_no or not original:
                 continue
-            db_entries.append({
-                "file": rel_path,
-                "line": line_no,
-                "original": original,
-                "translation": zh,
-                "status": "ok",
-                "error_codes": [],
-                "warning_codes": [],
-                "run_id": run_id,
-                "stage": stage,
-                "provider": provider,
-                "model": model,
-            })
+            db_entries.append(
+                {
+                    "file": rel_path,
+                    "line": line_no,
+                    "original": original,
+                    "translation": zh,
+                    "status": "ok",
+                    "error_codes": [],
+                    "warning_codes": [],
+                    "run_id": run_id,
+                    "stage": stage,
+                    "provider": provider,
+                    "model": model,
+                }
+            )
         if db_entries:
             translation_db.add_entries(db_entries)
 
@@ -409,12 +427,13 @@ def run_retranslate_pipeline(args: argparse.Namespace) -> None:
         return
 
     done_count = sum(
-        1 for f, _ in files_with_untranslated
-        if progress.is_file_done(str(f.relative_to(game_dir)))
+        1 for f, _ in files_with_untranslated if progress.is_file_done(str(f.relative_to(game_dir)))
     )
-    logger.info(f"[SCAN] 发现 {total_untranslated} 行漏翻，分布在 "
-          f"{len(files_with_untranslated)} 个文件中"
-          f"（已完成 {done_count} 个）")
+    logger.info(
+        f"[SCAN] 发现 {total_untranslated} 行漏翻，分布在 "
+        f"{len(files_with_untranslated)} 个文件中"
+        f"（已完成 {done_count} 个）"
+    )
 
     start_time = time.time()
     total_translated = 0
@@ -426,11 +445,18 @@ def run_retranslate_pipeline(args: argparse.Namespace) -> None:
 
         try:
             count, warnings = retranslate_file(
-                rpy_path, game_dir, output_dir, client, glossary, progress,
+                rpy_path,
+                game_dir,
+                output_dir,
+                client,
+                glossary,
+                progress,
                 genre=args.genre,
                 translation_db=translation_db,
-                run_id=run_id, stage="retranslate",
-                provider=config.provider, model=config.model,
+                run_id=run_id,
+                stage="retranslate",
+                provider=config.provider,
+                model=config.model,
             )
             total_translated += count
             total_warnings.extend(warnings)
@@ -462,6 +488,7 @@ def run_retranslate_pipeline(args: argparse.Namespace) -> None:
     # Round 31 Tier C: opt-in runtime-hook emit (skipped unless --emit-runtime-hook)
     try:
         from core.runtime_hook_emitter import emit_if_requested
+
         emit_if_requested(args, output_dir, translation_db)
     except ImportError:
         pass
@@ -490,8 +517,5 @@ def run_retranslate_pipeline(args: argparse.Namespace) -> None:
         "estimated_cost_usd": round(client.usage.estimated_cost, 4),
     }
     report_path = output_dir / "retranslate_report.json"
-    report_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info(f"补翻报告: {report_path}")
-

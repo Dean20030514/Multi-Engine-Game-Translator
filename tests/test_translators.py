@@ -11,19 +11,20 @@ or collectively via ``python tests/test_all.py`` (which delegates to
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import api_client
-import file_processor
-from core import glossary
-from core import prompts
 
 def test_dialogue_density():
     """T6: calculate_dialogue_density 密度自适应路由"""
     from translators.retranslator import calculate_dialogue_density
+
     # 低密度：多代码少对话
-    low = "label start:\n    pass\n    pass\n    pass\n    pass\n" + \
-          '    e "Hello"\n' + "    pass\n    pass\n    pass\n    pass\n"
+    low = (
+        "label start:\n    pass\n    pass\n    pass\n    pass\n"
+        + '    e "Hello"\n'
+        + "    pass\n    pass\n    pass\n    pass\n"
+    )
     d_low = calculate_dialogue_density(low)
     assert d_low < 0.20, f"Expected low density, got {d_low}"
 
@@ -41,6 +42,7 @@ def test_dialogue_density():
 def test_find_untranslated_lines():
     """T8: find_untranslated_lines 二次过滤"""
     from translators.retranslator import find_untranslated_lines
+
     content = (
         '    auto "path_%s.png"\n'
         '    idle "icon_hover.png"\n'
@@ -62,8 +64,11 @@ def test_find_untranslated_lines():
 def test_is_untranslated_dialogue():
     """测试 one_click_pipeline._is_untranslated_dialogue 辅助函数"""
     from translators.renpy_text_utils import _is_untranslated_dialogue
+
     # 纯英文长文本 → 应判定为未翻译
-    assert _is_untranslated_dialogue("This is a long English sentence that should be detected as untranslated.")
+    assert _is_untranslated_dialogue(
+        "This is a long English sentence that should be detected as untranslated."
+    )
     # 含中文 → 不应判定
     assert not _is_untranslated_dialogue("这是一个中文句子 with some English mixed in for testing.")
     # 太短 → 不应判定
@@ -75,6 +80,7 @@ def test_should_retry_truncation():
     """_should_retry 截断检测：returned < expected * 0.5 → needs_split"""
     from translators.direct import _should_retry
     from core.translation_utils import ChunkResult
+
     # 正常情况
     cr_ok = ChunkResult(part=1, expected=10, returned=8)
     should, split = _should_retry(cr_ok)
@@ -102,6 +108,7 @@ def test_should_retry_normal():
     """_should_retry 正常和丢弃率过高"""
     from translators.direct import _should_retry
     from core.translation_utils import ChunkResult
+
     # 正常返回
     cr = ChunkResult(part=1, expected=10, returned=10, dropped_count=0)
     should, split = _should_retry(cr)
@@ -116,6 +123,7 @@ def test_should_retry_normal():
 def test_split_chunk_basic():
     """_split_chunk 基本拆分：行数守恒"""
     from translators.direct import _split_chunk
+
     lines = [f"line {i}\n" for i in range(20)]
     chunk = {"content": "".join(lines), "line_offset": 0, "part": 1, "total": 1}
     a, b = _split_chunk(chunk)
@@ -130,6 +138,7 @@ def test_split_chunk_basic():
 def test_split_chunk_at_empty_line():
     """_split_chunk 优先在空行处拆分"""
     from translators.direct import _split_chunk
+
     lines = []
     for i in range(20):
         if i == 10:
@@ -147,7 +156,12 @@ def test_split_chunk_at_empty_line():
 def test_fix_nvl_ids_basic():
     """含 nvl clear 的块：say-only ID 应被替换为 nvl+say ID"""
     import tempfile
-    from translators.tl_parser import fix_nvl_translation_ids, _compute_say_only_hash, _compute_nvl_say_hash
+    from translators.tl_parser import (
+        fix_nvl_translation_ids,
+        _compute_say_only_hash,
+        _compute_nvl_say_hash,
+    )
+
     say_code = 's "Hello world"'
     say_hash = _compute_say_only_hash(say_code)
     nvl_hash = _compute_nvl_say_hash(say_code)
@@ -178,6 +192,7 @@ def test_fix_nvl_ids_no_nvl():
     """不含 nvl clear 的块不应被修改"""
     import tempfile
     from translators.tl_parser import fix_nvl_translation_ids
+
     tl_content = (
         "# game/test.rpy:10\n"
         "translate chinese my_label_abcd1234:\n"
@@ -200,6 +215,7 @@ def test_fix_nvl_ids_already_correct():
     """ID 已经是 nvl+say 哈希时不应重复修改"""
     import tempfile
     from translators.tl_parser import fix_nvl_translation_ids, _compute_nvl_say_hash
+
     say_code = 's "Already correct"'
     nvl_hash = _compute_nvl_say_hash(say_code)
     tl_content = (
@@ -223,24 +239,33 @@ def test_fix_nvl_ids_already_correct():
 def test_fix_nvl_ids_real_hashes():
     """用 begin.rpy 的真实数据验证 7 个已知 case"""
     from translators.tl_parser import _compute_say_only_hash, _compute_nvl_say_hash
+
     cases = [
-        ('s "The {color=#3cff00}Love{/color} and {color=#ff0000}Corruption{/color}'
-         ' paths have been extended to help make them more robust. There are'
-         ' corruption scenes written for the love path scenes and vice versa.'
-         ' Essentially doubling the amount of love and corruption content."',
-         'bcc2e904', '8c492e19'),
-        ('s "Turn {color=#0000ff}NTR{/color} on? These are the'
-         ' {color=#0000ff}Darker Paths{/color} in the Mod. This will allow'
-         ' access to the {color=#0000ff}Voyeur{/color},'
-         ' {color=#0000ff}NTR{/color}, {color=#0000ff}Sadist{/color},'
-         ' and {color=#0000ff}Revenge{/color} Paths."',
-         '735a34f0', 'df92c7d1'),
+        (
+            's "The {color=#3cff00}Love{/color} and {color=#ff0000}Corruption{/color}'
+            " paths have been extended to help make them more robust. There are"
+            " corruption scenes written for the love path scenes and vice versa."
+            ' Essentially doubling the amount of love and corruption content."',
+            "bcc2e904",
+            "8c492e19",
+        ),
+        (
+            's "Turn {color=#0000ff}NTR{/color} on? These are the'
+            " {color=#0000ff}Darker Paths{/color} in the Mod. This will allow"
+            " access to the {color=#0000ff}Voyeur{/color},"
+            " {color=#0000ff}NTR{/color}, {color=#0000ff}Sadist{/color},"
+            ' and {color=#0000ff}Revenge{/color} Paths."',
+            "735a34f0",
+            "df92c7d1",
+        ),
     ]
     for say_code, expected_say, expected_nvl in cases:
-        assert _compute_say_only_hash(say_code) == expected_say, \
+        assert _compute_say_only_hash(say_code) == expected_say, (
             f"say-only mismatch for {say_code[:40]}..."
-        assert _compute_nvl_say_hash(say_code) == expected_nvl, \
+        )
+        assert _compute_nvl_say_hash(say_code) == expected_nvl, (
             f"nvl+say mismatch for {say_code[:40]}..."
+        )
     print(f"[OK] fix_nvl_ids_real_hashes: {len(cases)} cases verified")
 
 
@@ -248,8 +273,10 @@ def test_fix_nvl_ids_real_hashes():
 # I: screen_translator 测试
 # ─────────────────────────────────────────────────────────────────
 
+
 def test_screen_should_skip():
     from translators.screen import _should_skip
+
     assert _should_skip("") is True
     assert _should_skip("[var]") is True
     assert _should_skip("[mother]") is True
@@ -271,7 +298,9 @@ def test_screen_should_skip():
 
 def test_screen_extract_basic():
     from translators.screen import extract_screen_strings
-    import tempfile, os
+    import tempfile
+    import os
+
     content = """\
 screen test_screen():
     vbox:
@@ -281,8 +310,7 @@ screen test_screen():
         text "{color=#f00}Warning{/color}"
         text "[pure_var]"
 """
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -305,14 +333,15 @@ screen test_screen():
 
 def test_screen_extract_skips_underscore():
     from translators.screen import extract_screen_strings
-    import tempfile, os
+    import tempfile
+    import os
+
     content = """\
 screen menu_screen():
     textbutton _("Back") action Rollback()
     textbutton "Visible" action Jump("x")
 """
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -328,7 +357,9 @@ screen menu_screen():
 
 def test_screen_extract_skips_outside_screen():
     from translators.screen import extract_screen_strings
-    import tempfile, os
+    import tempfile
+    import os
+
     content = """\
 label start:
     text "Outside screen"
@@ -340,8 +371,7 @@ screen inner():
 define x = 1
     text "After screen"
 """
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -358,6 +388,7 @@ define x = 1
 
 def test_screen_dedup():
     from translators.screen import _deduplicate_entries, ScreenTextEntry
+
     entries = [
         ScreenTextEntry("a.rpy", 1, "text", "Hello"),
         ScreenTextEntry("b.rpy", 5, "text", "Hello"),
@@ -372,10 +403,11 @@ def test_screen_dedup():
 
 def test_screen_replace_text():
     from translators.screen import _replace_screen_strings_in_file, ScreenTextEntry
-    import tempfile, os
+    import tempfile
+    import os
+
     content = '    text "Save Game"\n'
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -393,10 +425,11 @@ def test_screen_replace_text():
 
 def test_screen_replace_textbutton_preserves_action():
     from translators.screen import _replace_screen_strings_in_file, ScreenTextEntry
-    import tempfile, os
+    import tempfile
+    import os
+
     content = '    textbutton "Start" action Start() style "btn_style"\n'
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -407,7 +440,7 @@ def test_screen_replace_textbutton_preserves_action():
         assert count == 1
         assert '"开始"' in new_content
         assert 'style "btn_style"' in new_content  # action 参数不动
-        assert 'Start()' in new_content  # action 函数不动
+        assert "Start()" in new_content  # action 函数不动
     finally:
         os.unlink(tmp)
     print("[OK] test_screen_replace_textbutton_preserves_action")
@@ -415,10 +448,11 @@ def test_screen_replace_textbutton_preserves_action():
 
 def test_screen_replace_tt_action():
     from translators.screen import _replace_screen_strings_in_file, ScreenTextEntry
-    import tempfile, os
+    import tempfile
+    import os
+
     content = '    imagebutton hovered tt.Action("Go closer") focus_mask True\n'
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -428,7 +462,7 @@ def test_screen_replace_tt_action():
         new_content, count = _replace_screen_strings_in_file(tmp, entries, table)
         assert count == 1
         assert '"靠近"' in new_content
-        assert 'focus_mask True' in new_content
+        assert "focus_mask True" in new_content
     finally:
         os.unlink(tmp)
     print("[OK] test_screen_replace_tt_action")
@@ -436,18 +470,23 @@ def test_screen_replace_tt_action():
 
 def test_screen_replace_with_tags_and_vars():
     from translators.screen import _replace_screen_strings_in_file, ScreenTextEntry
-    import tempfile, os
+    import tempfile
+    import os
+
     content = '    text "Relationship: {color=3cff00}[momrelationship]{/color}"\n'
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
     try:
-        entries = [ScreenTextEntry(str(tmp), 1, "text",
-                                   "Relationship: {color=3cff00}[momrelationship]{/color}")]
-        table = {"Relationship: {color=3cff00}[momrelationship]{/color}":
-                 "关系: {color=3cff00}[momrelationship]{/color}"}
+        entries = [
+            ScreenTextEntry(
+                str(tmp), 1, "text", "Relationship: {color=3cff00}[momrelationship]{/color}"
+            )
+        ]
+        table = {
+            "Relationship: {color=3cff00}[momrelationship]{/color}": "关系: {color=3cff00}[momrelationship]{/color}"
+        }
         new_content, count = _replace_screen_strings_in_file(tmp, entries, table)
         assert count == 1
         assert "关系:" in new_content
@@ -459,10 +498,11 @@ def test_screen_replace_with_tags_and_vars():
 
 def test_screen_replace_notify():
     from translators.screen import _replace_screen_strings_in_file, ScreenTextEntry
-    import tempfile, os
+    import tempfile
+    import os
+
     content = '    imagebutton action Jump("x") hovered Notify("Help needed") focus_mask True\n'
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write(content)
         f.flush()
         tmp = Path(f.name)
@@ -472,7 +512,7 @@ def test_screen_replace_notify():
         new_content, count = _replace_screen_strings_in_file(tmp, entries, table)
         assert count == 1
         assert '"需要帮助"' in new_content
-        assert 'Notify' in new_content
+        assert "Notify" in new_content
         assert 'Jump("x")' in new_content  # action 参数不动
     finally:
         os.unlink(tmp)
@@ -481,9 +521,10 @@ def test_screen_replace_notify():
 
 def test_screen_backup_no_overwrite():
     from translators.screen import _create_backup
-    import tempfile, os
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', delete=False,
-                                     encoding='utf-8') as f:
+    import tempfile
+    import os
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".rpy", delete=False, encoding="utf-8") as f:
         f.write("original content")
         f.flush()
         tmp = Path(f.name)
@@ -506,6 +547,7 @@ def test_screen_backup_no_overwrite():
 
 def test_screen_chunks():
     from translators.screen import _build_screen_chunks
+
     texts = [f"text_{i}" for i in range(100)]
     chunks = _build_screen_chunks(texts, max_per_chunk=40)
     assert len(chunks) == 3
@@ -520,6 +562,7 @@ def test_screen_chunks():
 # ============================================================
 # J: 锁定术语预替换 (locked_terms protection)
 # ============================================================
+
 
 def test_pipeline_imports_smoke():
     """Pipeline sub-package lazy imports must resolve.
@@ -536,6 +579,7 @@ def test_pipeline_imports_smoke():
     from translators.retranslator import retranslate_file, find_untranslated_lines
     from core.translation_utils import ProgressTracker
     from pipeline.helpers import LEN_RATIO_LOWER, LEN_RATIO_UPPER
+
     assert callable(evaluate_gate)
     assert callable(attribute_untranslated)
     assert callable(_run_retranslate_phase)
@@ -547,6 +591,7 @@ def test_pipeline_imports_smoke():
     # ProgressTracker must be instantiable with a Path
     import tempfile
     from pathlib import Path
+
     with tempfile.TemporaryDirectory() as td:
         pt = ProgressTracker(Path(td) / "progress.json")
         assert hasattr(pt, "save")
@@ -562,179 +607,10 @@ def test_pipeline_imports_smoke():
 # ============================================================
 
 
-
-def test_w_monitor4_symlink_warning_when_unflagged():
-    """Round 53 monitor #4: ``_maybe_warn_on_symlink`` emits warning when
-    --game-dir is a symlink and --allow-symlink is not set."""
-    import argparse as _ap
-    import logging
-    from unittest import mock as _mock
-    from main import _maybe_warn_on_symlink
-
-    args = _ap.Namespace(
-        game_dir="/fake/game", config="", allow_symlink=False,
-    )
-    captured: list[str] = []
-
-    class _Cap(logging.Handler):
-        def emit(self, record):
-            captured.append(record.getMessage())
-
-    handler = _Cap()
-    logger = logging.getLogger("multi_engine_translator")
-    logger.addHandler(handler)
-    prev = logger.level
-    logger.setLevel(logging.WARNING)
-    try:
-        with _mock.patch("main.Path") as MockPath:
-            mock_path_instance = _mock.MagicMock()
-            mock_path_instance.is_symlink.return_value = True
-            mock_path_instance.resolve.return_value = "/real/target"
-            MockPath.return_value = mock_path_instance
-            _maybe_warn_on_symlink(args)
-    finally:
-        logger.removeHandler(handler)
-        logger.setLevel(prev)
-
-    drift = [m for m in captured if "monitor #4" in m or "symlink" in m]
-    assert drift, f"expected symlink warning, got logs: {captured}"
-    print("[OK] w_monitor4_symlink_warning_when_unflagged")
-
-
-def test_w_monitor4_allow_symlink_suppresses_warning():
-    """``--allow-symlink`` suppresses the warning (legitimate NAS / mount path)."""
-    import argparse as _ap
-    import logging
-    from unittest import mock as _mock
-    from main import _maybe_warn_on_symlink
-
-    args = _ap.Namespace(
-        game_dir="/fake/game", config="", allow_symlink=True,
-    )
-    captured: list[str] = []
-
-    class _Cap(logging.Handler):
-        def emit(self, record):
-            captured.append(record.getMessage())
-
-    handler = _Cap()
-    logger = logging.getLogger("multi_engine_translator")
-    logger.addHandler(handler)
-    prev = logger.level
-    logger.setLevel(logging.WARNING)
-    try:
-        with _mock.patch("main.Path") as MockPath:
-            mock_path_instance = _mock.MagicMock()
-            mock_path_instance.is_symlink.return_value = True
-            MockPath.return_value = mock_path_instance
-            _maybe_warn_on_symlink(args)
-    finally:
-        logger.removeHandler(handler)
-        logger.setLevel(prev)
-
-    drift = [m for m in captured if "monitor #4" in m or "symlink" in m]
-    assert not drift, (
-        f"--allow-symlink should suppress warnings, got: {captured}"
-    )
-    print("[OK] w_monitor4_allow_symlink_suppresses_warning")
-
-
-def test_w_round57_s2_rejects_forbidden_resolved_path():
-    """Round 57 S2: resolved path inside forbidden prefix is rejected.
-
-    Mocks Path.resolve() so the test is platform-agnostic. The real
-    cross-platform behaviour: on Linux ``/etc/passwd`` resolves to
-    itself and triggers; on Windows ``/etc/passwd`` resolves to
-    ``C:/etc/passwd`` (drive-letter prepended) which is NOT in the
-    forbidden list, so we need to mock to test the matching logic
-    rather than rely on raw input form.
-    """
-    from unittest import mock as _mock
-    from pathlib import Path as _Path
-    from main import _sanitize_user_path
-
-    fake_resolved = _Path("/etc/passwd")
-    with _mock.patch("main.Path") as MockPath:
-        instance = _mock.MagicMock()
-        instance.expanduser.return_value.resolve.return_value = fake_resolved
-        MockPath.return_value = instance
-        try:
-            _sanitize_user_path("anything", "--game-dir")
-        except SystemExit as e:
-            assert e.code == 1, f"expected exit(1), got {e.code}"
-            print("[OK] w_round57_s2_rejects_forbidden_resolved_path")
-            return
-    raise AssertionError("forbidden resolved path was NOT blocked")
-
-
-def test_w_round57_s2_rejects_windows_system32():
-    """Round 57 S2: Windows-form forbidden prefix rejection."""
-    from unittest import mock as _mock
-    from pathlib import PureWindowsPath
-    from main import _sanitize_user_path
-
-    fake_resolved = PureWindowsPath("C:\\Windows\\System32\\config\\SAM")
-    with _mock.patch("main.Path") as MockPath:
-        instance = _mock.MagicMock()
-        instance.expanduser.return_value.resolve.return_value = fake_resolved
-        MockPath.return_value = instance
-        try:
-            _sanitize_user_path("anything", "--config")
-        except SystemExit:
-            print("[OK] w_round57_s2_rejects_windows_system32")
-            return
-    raise AssertionError("Windows System32 path was NOT blocked")
-
-
-def test_w_round57_s2_allows_legitimate_user_path():
-    """Round 57 S2: legitimate user paths pass through unmolested."""
-    import tempfile
-    from pathlib import Path
-    from main import _sanitize_user_path
-
-    with tempfile.TemporaryDirectory() as td:
-        # tempfile.TemporaryDirectory sits under /tmp on Linux or %TEMP%
-        # on Windows — neither is in _FORBIDDEN_PATH_PREFIXES.
-        result = _sanitize_user_path(td, "--game-dir")
-        assert isinstance(result, Path)
-        assert result.exists()
-    print("[OK] w_round57_s2_allows_legitimate_user_path")
-
-
-def test_w_monitor4_no_warning_for_regular_path():
-    """No warning when path is not a symlink (the common case)."""
-    import argparse as _ap
-    import logging
-    from unittest import mock as _mock
-    from main import _maybe_warn_on_symlink
-
-    args = _ap.Namespace(
-        game_dir="/regular/path", config="", allow_symlink=False,
-    )
-    captured: list[str] = []
-
-    class _Cap(logging.Handler):
-        def emit(self, record):
-            captured.append(record.getMessage())
-
-    handler = _Cap()
-    logger = logging.getLogger("multi_engine_translator")
-    logger.addHandler(handler)
-    prev = logger.level
-    logger.setLevel(logging.WARNING)
-    try:
-        with _mock.patch("main.Path") as MockPath:
-            mock_path_instance = _mock.MagicMock()
-            mock_path_instance.is_symlink.return_value = False
-            MockPath.return_value = mock_path_instance
-            _maybe_warn_on_symlink(args)
-    finally:
-        logger.removeHandler(handler)
-        logger.setLevel(prev)
-
-    drift = [m for m in captured if "monitor #4" in m or "symlink" in m]
-    assert not drift, f"regular path must not warn, got: {captured}"
-    print("[OK] w_monitor4_no_warning_for_regular_path")
+# Round 58 P1 / 800-line cap split: the 6 main.py CLI tests
+# (test_w_monitor4_*  + test_w_round57_s2_*) moved to
+# tests/test_main_cli.py since they exercise main._maybe_warn_on_symlink
+# and main._sanitize_user_path — neither lives under translators/.
 
 
 def run_all() -> int:
@@ -764,12 +640,6 @@ def run_all() -> int:
         test_screen_backup_no_overwrite,
         test_screen_chunks,
         test_pipeline_imports_smoke,
-        test_w_monitor4_symlink_warning_when_unflagged,
-        test_w_monitor4_allow_symlink_suppresses_warning,
-        test_w_round57_s2_rejects_forbidden_resolved_path,
-        test_w_round57_s2_rejects_windows_system32,
-        test_w_round57_s2_allows_legitimate_user_path,
-        test_w_monitor4_no_warning_for_regular_path,
     ]
     for t in tests:
         t()

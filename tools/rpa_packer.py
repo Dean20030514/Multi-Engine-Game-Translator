@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import pickle
 import random
 import sys
@@ -66,6 +65,7 @@ _HEADER_PLACEHOLDER_LEN = 51
 # Errors
 # ---------------------------------------------------------------------------
 
+
 class RPAPackError(Exception):
     """Base exception for RPA packing operations."""
 
@@ -73,6 +73,7 @@ class RPAPackError(Exception):
 # ---------------------------------------------------------------------------
 # Core packing logic
 # ---------------------------------------------------------------------------
+
 
 def pack_rpa(
     file_map: Dict[str, Path],
@@ -229,12 +230,14 @@ def verify_archive(archive_path: Path, expected_count: int) -> bool:
     Returns True if verification passes.
     """
     from tools.rpa_unpacker import list_rpa
+
     try:
         entries = list_rpa(archive_path)
         if len(entries) != expected_count:
             logger.error(
                 "RPA 验证失败: 期望 %d 个文件，实际 %d 个",
-                expected_count, len(entries),
+                expected_count,
+                len(entries),
             )
             return False
         logger.info("RPA 验证通过: %d 个文件", len(entries))
@@ -247,6 +250,7 @@ def verify_archive(archive_path: Path, expected_count: int) -> bool:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _build_file_map_from_paths(
     paths: List[str],
@@ -286,31 +290,42 @@ def main() -> None:
         description="Pack files into RPA-3.0 archives for Ren'Py translation mods",
     )
     parser.add_argument(
-        "paths", nargs="*",
+        "paths",
+        nargs="*",
         help="Files or directories to pack (use --game-dir for auto-collection)",
     )
     parser.add_argument(
-        "--game-dir", type=str, default=None,
+        "--game-dir",
+        type=str,
+        default=None,
         help="Auto-collect translation files from game directory",
     )
     parser.add_argument(
-        "--tl-lang", default="chinese",
+        "--tl-lang",
+        default="chinese",
         help="Translation language subdirectory (default: chinese)",
     )
     parser.add_argument(
-        "--output", "-o", default="CN_patch.rpa",
+        "--output",
+        "-o",
+        default="CN_patch.rpa",
         help="Output .rpa path (default: CN_patch.rpa)",
     )
     parser.add_argument(
-        "--base-dir", type=str, default=None,
+        "--base-dir",
+        type=str,
+        default=None,
         help="Base directory for computing relative paths inside archive",
     )
     parser.add_argument(
-        "--xor-key", type=str, default=None,
+        "--xor-key",
+        type=str,
+        default=None,
         help="Fixed XOR key in hex (e.g. 0xDEADBEEF); default: random",
     )
     parser.add_argument(
-        "--no-verify", action="store_true",
+        "--no-verify",
+        action="store_true",
         help="Skip post-pack verification",
     )
     args = parser.parse_args()

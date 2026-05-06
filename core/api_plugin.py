@@ -121,9 +121,7 @@ class _SubprocessPluginClient:
         if module_name.endswith(".py"):
             module_name = module_name[:-3]
         if "/" in module_name or "\\" in module_name or ".." in module_name:
-            raise RuntimeError(
-                f"自定义引擎模块名不能包含路径分隔符: '{module_name}'"
-            )
+            raise RuntimeError(f"自定义引擎模块名不能包含路径分隔符: '{module_name}'")
 
         project_root = Path(__file__).resolve().parent.parent
         engines_dir = project_root / _CUSTOM_ENGINES_DIR
@@ -163,7 +161,8 @@ class _SubprocessPluginClient:
             )
             logger.info(
                 "[API] 沙箱模式启动自定义引擎子进程: %s (pid=%s)",
-                module_path, self._proc.pid,
+                module_path,
+                self._proc.pid,
             )
             # Round 52: readiness probe.  A plugin missing the
             # ``--plugin-serve`` block exits immediately (typically
@@ -252,9 +251,7 @@ class _SubprocessPluginClient:
             try:
                 response = json.loads(response_line)
             except (json.JSONDecodeError, ValueError) as e:
-                raise RuntimeError(
-                    f"自定义引擎子进程返回非法 JSON: {response_line[:200]!r}"
-                ) from e
+                raise RuntimeError(f"自定义引擎子进程返回非法 JSON: {response_line[:200]!r}") from e
 
             if response.get("request_id") != req_id:
                 raise RuntimeError(
@@ -299,14 +296,15 @@ class _SubprocessPluginClient:
                 if line == "":
                     error.append(EOFError("plugin stdout closed before response"))
                     return
-                if (len(line) >= _MAX_PLUGIN_RESPONSE_CHARS
-                        and not line.endswith("\n")):
-                    error.append(RuntimeError(
-                        f"plugin response line exceeded "
-                        f"{_MAX_PLUGIN_RESPONSE_CHARS} chars without "
-                        f"newline — treating as malformed oversized "
-                        f"response (request_id={req_id})"
-                    ))
+                if len(line) >= _MAX_PLUGIN_RESPONSE_CHARS and not line.endswith("\n"):
+                    error.append(
+                        RuntimeError(
+                            f"plugin response line exceeded "
+                            f"{_MAX_PLUGIN_RESPONSE_CHARS} chars without "
+                            f"newline — treating as malformed oversized "
+                            f"response (request_id={req_id})"
+                        )
+                    )
                     return
                 result.append(line.rstrip("\n"))
             except BaseException as e:  # noqa: BLE001 - re-raise on main thread
@@ -327,9 +325,7 @@ class _SubprocessPluginClient:
                 self._proc.wait(timeout=2)  # type: ignore[union-attr]
             except subprocess.TimeoutExpired:
                 pass
-            raise RuntimeError(
-                f"自定义引擎子进程响应超时 (>{self._timeout}s, request_id={req_id})"
-            )
+            raise RuntimeError(f"自定义引擎子进程响应超时 (>{self._timeout}s, request_id={req_id})")
         if error:
             raise RuntimeError(f"读取自定义引擎子进程响应失败: {error[0]}") from error[0]
         return result[0] if result else ""

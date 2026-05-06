@@ -150,9 +150,7 @@ def test_check_handoff_push_status_fails_open_when_git_unavailable():
             return_value=None,
         ):
             issue = check_handoff_push_status(h, td)
-    assert issue is None, (
-        f"expected None when git unavailable (fail-open), got {issue!r}"
-    )
+    assert issue is None, f"expected None when git unavailable (fail-open), got {issue!r}"
     print("[OK] check_handoff_push_status_fails_open_when_git_unavailable")
 
 

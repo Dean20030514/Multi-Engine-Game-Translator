@@ -74,9 +74,7 @@ def main() -> int:
         actual_py = set()
 
     if actual_os != EXPECTED_OS:
-        issues.append(
-            f"matrix.os drift: expected {sorted(EXPECTED_OS)}, got {sorted(actual_os)}"
-        )
+        issues.append(f"matrix.os drift: expected {sorted(EXPECTED_OS)}, got {sorted(actual_os)}")
     if actual_py != EXPECTED_PY_VERSIONS:
         issues.append(
             f"matrix.python-version drift: expected {sorted(EXPECTED_PY_VERSIONS)}, "
@@ -103,7 +101,7 @@ def main() -> int:
     print("=" * 60)
     print("CI workflow verify --- .github/workflows/test.yml")
     print("=" * 60)
-    print(f"YAML syntax: OK")
+    print("YAML syntax: OK")
     print(f"Matrix OS: {sorted(actual_os)}")
     print(f"Matrix Python: {sorted(actual_py)}")
     print(f"Total steps: {len(steps)}")

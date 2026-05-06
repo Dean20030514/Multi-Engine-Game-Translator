@@ -1,0 +1,9 @@
+# r58 P2: GitHub Issues page settings
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞报告 / Security vulnerability disclosure
+    url: https://github.com/Dean20030514/Multi-Engine-Game-Translator/security/advisories
+    about: 安全漏洞请走 private security advisory，不要在 public issue 报告。/ Report security issues via private security advisory, NOT public issues.
+  - name: 用户问答 / User Q&A
+    url: https://github.com/Dean20030514/Multi-Engine-Game-Translator/discussions
+    about: 使用问题、配置帮助等请到 Discussions。/ Usage questions and config help go to Discussions.

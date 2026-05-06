@@ -14,6 +14,7 @@ API（``run_pipeline`` 等）不变：
 使用方只需继续 ``from translators.direct import run_pipeline`` / ``translate_file`` /
 ``_should_retry`` / ``_split_chunk`` 即可，re-export 在本文件下方统一维护。
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,7 +68,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         _interrupted.set()
         logger.info("[SIGTERM] 收到终止信号，正在保存进度...")
 
-    if hasattr(signal, 'SIGTERM'):
+    if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, _sigterm_handler)
 
     game_dir = Path(args.game_dir)
@@ -131,9 +132,11 @@ def run_pipeline(args: argparse.Namespace) -> None:
     system_terms_path = output_dir / "system_ui_terms.json"
     glossary.load_system_terms(str(system_terms_path))
 
-    logger.info(f"[GLOSS] {len(glossary.characters)} 角色, "
-          f"{len(glossary.terms)} 术语, "
-          f"{len(glossary.memory)} 翻译记忆")
+    logger.info(
+        f"[GLOSS] {len(glossary.characters)} 角色, "
+        f"{len(glossary.terms)} 术语, "
+        f"{len(glossary.memory)} 翻译记忆"
+    )
 
     # 初始化进度追踪
     # Round 52 C4 BREAKING: language= / default_language= kwargs retired.
@@ -153,7 +156,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     stage = getattr(args, "stage", "single") or "single"
 
     # 扫描 RPY 文件
-    rpy_files = sorted(game_dir.rglob('*.rpy'))
+    rpy_files = sorted(game_dir.rglob("*.rpy"))
     if not rpy_files:
         logger.error("[ERROR] 未找到 .rpy 文件")
         return
@@ -165,7 +168,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         rel = str(f.relative_to(game_dir))
         # 排除 renpy/ 和 lib/ 引擎目录
         parts = f.relative_to(game_dir).parts
-        if parts and parts[0].lower() in ('renpy', 'lib', '__pycache__'):
+        if parts and parts[0].lower() in ("renpy", "lib", "__pycache__"):
             engine_excluded += 1
             continue
         filtered.append(f)
@@ -181,7 +184,8 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if args.exclude:
         before = len(rpy_files)
         rpy_files = [
-            f for f in rpy_files
+            f
+            for f in rpy_files
             if not any(fnmatch.fnmatch(str(f.relative_to(game_dir)), pat) for pat in args.exclude)
         ]
         excluded = before - len(rpy_files)
@@ -191,27 +195,30 @@ def run_pipeline(args: argparse.Namespace) -> None:
     # tl 优先模式：若启用且检测到 tl/ 目录中的 .rpy，则仅翻译 tl 下的脚本
     if args.tl_priority:
         tl_files = [
-            f for f in rpy_files
+            f
+            for f in rpy_files
             if f.relative_to(game_dir).parts and f.relative_to(game_dir).parts[0] == "tl"
         ]
         if tl_files:
-            logger.info(f"[MODE] 启用 tl 优先模式：检测到 {game_dir / 'tl'}，仅翻译 tl 下的脚本，共 {len(tl_files)} 个文件")
+            logger.info(
+                f"[MODE] 启用 tl 优先模式：检测到 {game_dir / 'tl'}，仅翻译 tl 下的脚本，共 {len(tl_files)} 个文件"
+            )
             rpy_files = tl_files
         else:
-            logger.warning(f"[WARN] 启用了 --tl-priority 但在 {game_dir / 'tl'} 下未找到 .rpy 文件，将回退为翻译所有非引擎脚本，请检查路径是否正确")
+            logger.warning(
+                f"[WARN] 启用了 --tl-priority 但在 {game_dir / 'tl'} 下未找到 .rpy 文件，将回退为翻译所有非引擎脚本，请检查路径是否正确"
+            )
 
     # 按大小排序（小文件优先，便于快速积累翻译记忆）
     rpy_files.sort(key=lambda f: f.stat().st_size)
 
     total_files = len(rpy_files)
-    done_files = sum(1 for f in rpy_files
-                     if progress.is_file_done(str(f.relative_to(game_dir))))
+    done_files = sum(1 for f in rpy_files if progress.is_file_done(str(f.relative_to(game_dir))))
     logger.info(f"\n[SCAN] 共 {total_files} 个 .rpy 文件, 已完成 {done_files} 个")
 
     # 延迟估算 token ―― 只统计未完成文件的 token
     remaining_files = [
-        f for f in rpy_files
-        if not progress.is_file_done(str(f.relative_to(game_dir)))
+        f for f in rpy_files if not progress.is_file_done(str(f.relative_to(game_dir)))
     ]
     if remaining_files:
         remaining_tokens = sum(estimate_tokens(read_file(f)) for f in remaining_files)
@@ -222,11 +229,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
     # --dry-run: 仅展示待翻译信息，不实际调用 API
     if args.dry_run:
         from core.api_client import get_pricing, is_reasoning_model
+
         logger.info("\n" + "=" * 60)
         logger.info("[DRY-RUN] 以下文件将被翻译:")
         logger.info("=" * 60)
         file_stats = []
-        max_chunk = getattr(args, 'max_chunk_tokens', 4000) or 4000
+        max_chunk = getattr(args, "max_chunk_tokens", 4000) or 4000
         total_chunks = 0
         for f in remaining_files:
             rel = f.relative_to(game_dir)
@@ -234,15 +242,19 @@ def run_pipeline(args: argparse.Namespace) -> None:
             n_chunks = max(1, tok // max_chunk + (1 if tok % max_chunk else 0))
             total_chunks += n_chunks
             file_stats.append((rel, tok, f.stat().st_size, n_chunks))
-            logger.info(f"  {rel}  ({tok:,} tokens, {f.stat().st_size / 1024:.0f} KB"
-                  + (f", {n_chunks} chunks)" if n_chunks > 1 else ")"))
+            logger.info(
+                f"  {rel}  ({tok:,} tokens, {f.stat().st_size / 1024:.0f} KB"
+                + (f", {n_chunks} chunks)" if n_chunks > 1 else ")")
+            )
 
         # 统计分布
         if file_stats:
             small = sum(1 for _, t, _, _ in file_stats if t <= 10000)
             medium = sum(1 for _, t, _, _ in file_stats if 10000 < t <= 50000)
             large = sum(1 for _, t, _, _ in file_stats if t > 50000)
-            logger.info(f"\n文件分布: 小(≤10K tokens): {small}, 中(10-50K): {medium}, 大(>50K): {large}")
+            logger.info(
+                f"\n文件分布: 小(≤10K tokens): {small}, 中(10-50K): {medium}, 大(>50K): {large}"
+            )
             logger.info(f"预计 API 调用次数: {total_chunks}")
 
             # 显示最大的 5 个文件
@@ -275,12 +287,16 @@ def run_pipeline(args: argparse.Namespace) -> None:
         est_cost = (total_input * price_in + total_output * price_out) / 1_000_000
 
         # 如果用户通过 CLI 覆盖了价格
-        if hasattr(args, 'input_price') and args.input_price is not None:
+        if hasattr(args, "input_price") and args.input_price is not None:
             price_in = args.input_price
-        if hasattr(args, 'output_price') and args.output_price is not None:
+        if hasattr(args, "output_price") and args.output_price is not None:
             price_out = args.output_price
-        if hasattr(args, 'input_price') and args.input_price is not None or \
-           hasattr(args, 'output_price') and args.output_price is not None:
+        if (
+            hasattr(args, "input_price")
+            and args.input_price is not None
+            or hasattr(args, "output_price")
+            and args.output_price is not None
+        ):
             est_cost = (total_input * price_in + total_output * price_out) / 1_000_000
 
         logger.info(f"\n{'=' * 40}")
@@ -288,13 +304,15 @@ def run_pipeline(args: argparse.Namespace) -> None:
         logger.info(f"定价: ${price_in:.2f} / ${price_out:.2f} 每百万 tokens (input/output)")
         if not price_exact:
             logger.info(f"[!] 模型 '{config.model}' 未在定价表中精确匹配，使用提供商兜底价格")
-            logger.info(f"   建议用 --input-price / --output-price 手动指定准确价格")
+            logger.info("   建议用 --input-price / --output-price 手动指定准确价格")
         if reasoning:
-            logger.info(f"[*] 推理模型: thinking tokens 会显著增加输出费用")
+            logger.info("[*] 推理模型: thinking tokens 会显著增加输出费用")
         logger.info(f"{'=' * 40}")
         logger.info(f"剩余文件: {len(remaining_files)}")
         logger.info(f"API 调用次数: ~{total_chunks}")
-        logger.info(f"估计输入 tokens: ~{total_input:,} (内容 {remaining_tokens:,} + 提示词开销 {total_chunks * sys_prompt_overhead:,})")
+        logger.info(
+            f"估计输入 tokens: ~{total_input:,} (内容 {remaining_tokens:,} + 提示词开销 {total_chunks * sys_prompt_overhead:,})"
+        )
         logger.info(f"估计可见输出 tokens: ~{visible_output:,}")
         if reasoning:
             logger.info(f"估计推理 tokens: ~{reasoning_tokens:,} (thinking)")
@@ -305,13 +323,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
             high = est_cost * 1.5
             logger.info(f"   (推理 token 波动大，实际范围约 ${low:.2f} ~ ${high:.2f})")
         # ---- verbose 增强详情 ----
-        if getattr(args, 'verbose', False) and file_stats:
+        if getattr(args, "verbose", False) and file_stats:
             logger.info("\n" + "=" * 60)
             logger.info("[DRY-RUN] 详细分析（--verbose）")
             logger.info("=" * 60)
 
             densities = []
-            min_density = getattr(args, 'min_dialogue_density', 0.20) or 0.20
+            min_density = getattr(args, "min_dialogue_density", 0.20) or 0.20
             for rel, tok, _size, n_chunks in file_stats:
                 fpath = game_dir / rel
                 try:
@@ -321,10 +339,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
                     dlg_count, density = 0, 0.0
                 densities.append(density)
                 strategy = "定向" if density < min_density else "全文"
-                est_file_cost = ((tok + sys_prompt_overhead) * price_in +
-                                 int(tok * 0.6) * price_out) / 1_000_000
-                logger.info(f"  {rel}: {dlg_count} 对话行, 密度 {density*100:.1f}%, "
-                            f"~${est_file_cost:.4f}, 策略={strategy}")
+                est_file_cost = (
+                    (tok + sys_prompt_overhead) * price_in + int(tok * 0.6) * price_out
+                ) / 1_000_000
+                logger.info(
+                    f"  {rel}: {dlg_count} 对话行, 密度 {density * 100:.1f}%, "
+                    f"~${est_file_cost:.4f}, 策略={strategy}"
+                )
 
             _print_density_histogram(densities)
             _print_term_scan_preview(glossary)
@@ -337,11 +358,11 @@ def run_pipeline(args: argparse.Namespace) -> None:
     # 设置日志文件：开一次句柄、复用，避免每条日志都 open/close
     # （Windows 上 NTFS 元数据更新 + Defender 实时扫描让 open/close 格外贵）
     log_fp = None
-    if hasattr(args, 'log_file') and args.log_file:
+    if hasattr(args, "log_file") and args.log_file:
         _log_path = Path(args.log_file)
         _log_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            log_fp = open(_log_path, 'a', encoding='utf-8')
+            log_fp = open(_log_path, "a", encoding="utf-8")
         except OSError as e:
             logger.warning(f"[LOG] 无法打开日志文件 {_log_path}: {e}")
             log_fp = None
@@ -350,7 +371,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         """同时输出到控制台和日志文件"""
         if log_fp is not None:
             try:
-                log_fp.write(msg + '\n')
+                log_fp.write(msg + "\n")
                 log_fp.flush()
             except OSError:
                 pass
@@ -365,7 +386,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     all_chunk_stats: list[dict] = []
 
     # 进度条（仅非 quiet 模式下显示）
-    show_progress_bar = not getattr(args, 'quiet', False) and not getattr(args, 'dry_run', False)
+    show_progress_bar = not getattr(args, "quiet", False) and not getattr(args, "dry_run", False)
     progress_bar = ProgressBar(total_files) if show_progress_bar and total_files > 0 else None
 
     # -- 共用的单文件翻译函数 --
@@ -387,9 +408,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
             avg_time_per_file = elapsed_so_far / files_done_this_run
             eta_seconds = remaining_files_count * avg_time_per_file
             if eta_seconds > 3600:
-                eta_str = f" | ETA {eta_seconds/3600:.1f}h"
+                eta_str = f" | ETA {eta_seconds / 3600:.1f}h"
             elif eta_seconds > 60:
-                eta_str = f" | ETA {eta_seconds/60:.0f}min"
+                eta_str = f" | ETA {eta_seconds / 60:.0f}min"
             else:
                 eta_str = f" | ETA {eta_seconds:.0f}s"
 
@@ -473,7 +494,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 break
 
             try:
-                count, warnings, checker_dropped, file_chunk_stats = _translate_one_file(i, rpy_path)
+                count, warnings, checker_dropped, file_chunk_stats = _translate_one_file(
+                    i, rpy_path
+                )
                 _collect_result(count, warnings, checker_dropped, file_chunk_stats)
             except KeyboardInterrupt:
                 logger.info("\n[中断] 保存进度...")
@@ -509,6 +532,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     # Round 31 Tier C: opt-in runtime-hook emit (skipped unless --emit-runtime-hook)
     try:
         from core.runtime_hook_emitter import emit_if_requested
+
         emit_if_requested(args, output_dir, translation_db)
     except ImportError:
         pass
@@ -517,8 +541,8 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if args.copy_assets:
         logger.info("\n[复制] 复制非 .rpy 文件...")
         asset_count = 0
-        for src in game_dir.rglob('*'):
-            if src.is_file() and src.suffix.lower() not in ('.rpy', '.rpyc', '.rpymc', '.rpyb'):
+        for src in game_dir.rglob("*"):
+            if src.is_file() and src.suffix.lower() not in (".rpy", ".rpyc", ".rpymc", ".rpyb"):
                 rel = src.relative_to(game_dir)
                 dst = output_dir / "game" / rel
                 dst.parent.mkdir(parents=True, exist_ok=True)
@@ -556,10 +580,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
             cs_total_dropped = sum(c["dropped"] for c in all_chunk_stats)
             ret_pct = (cs_total_returned / cs_total_expected * 100) if cs_total_expected else 0
             drop_pct = (cs_total_dropped / cs_total_returned * 100) if cs_total_returned else 0
-            logger.info(f"[STATS] Chunks: {len(all_chunk_stats)} | "
-                  f"Expected: {cs_total_expected} | "
-                  f"Returned: {cs_total_returned} ({ret_pct:.1f}%) | "
-                  f"Dropped: {cs_total_dropped} ({drop_pct:.1f}%)")
+            logger.info(
+                f"[STATS] Chunks: {len(all_chunk_stats)} | "
+                f"Expected: {cs_total_expected} | "
+                f"Returned: {cs_total_returned} ({ret_pct:.1f}%) | "
+                f"Dropped: {cs_total_dropped} ({drop_pct:.1f}%)"
+            )
         except (ZeroDivisionError, KeyError, TypeError) as e:
             logger.debug(f"chunk 统计汇总计算失败: {e}")
 
@@ -570,13 +596,15 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
     if total_warnings:
         warnings_path = output_dir / "warnings.txt"
-        warnings_path.write_text('\n'.join(total_warnings), encoding='utf-8')
+        warnings_path.write_text("\n".join(total_warnings), encoding="utf-8")
         logger.info(f"警告详情: {warnings_path}")
 
     # 保存质量检查报告（按文件归档）
     if quality_report:
         quality_path = output_dir / "quality_report.json"
-        quality_path.write_text(json.dumps(quality_report, ensure_ascii=False, indent=2), encoding='utf-8')
+        quality_path.write_text(
+            json.dumps(quality_report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         logger.info(f"质量报告: {quality_path}")
 
     # 汇总 chunk_stats
@@ -610,7 +638,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         "chunk_stats": chunk_stats_summary,
     }
     report_path = output_dir / "report.json"
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info(f"翻译报告: {report_path}")
 
     # 关闭日志句柄（sys.exit 分支依赖 OS 在进程退出时自动回收；此处显式 close

@@ -28,6 +28,7 @@ latter past the same 800-line limit.
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tests import (
@@ -41,6 +42,7 @@ from tests import (
     test_pickle_safe_redteam,
     test_unity_xunity_engine,
     test_complex_fixture,
+    test_main_cli,
 )
 
 
@@ -56,6 +58,7 @@ def main() -> int:
     total += test_pickle_safe_redteam.run_all()
     total += test_unity_xunity_engine.run_all()
     total += test_complex_fixture.run_all()
+    total += test_main_cli.run_all()
     print()
     print("=" * 40)
     print(f"ALL {total} TESTS PASSED")

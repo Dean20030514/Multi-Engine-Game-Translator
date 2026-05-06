@@ -16,6 +16,7 @@ Kept together because all three mutate the game directory (copy fonts, write
 none_overlay.rpy, edit gui.rpy, inject language buttons) and are typically
 called as a unit by ``_apply_tl_game_patches``.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,13 +29,13 @@ from core.font_patch import resolve_font, default_resources_fonts_dir
 logger = logging.getLogger("multi_engine_translator")
 
 # Language switch button snippet injected into screen preferences()
-_LANG_BUTTON_SNIPPET = '''
+_LANG_BUTTON_SNIPPET = """
                 vbox:
                     style_prefix "radio"
                     label _("Language")
                     textbutton "English" action Language(None)
                     textbutton "中文" action Language("{lang}")
-'''
+"""
 
 
 def _clean_rpyc(game_dir: Path, modified_files: "set[str] | None" = None) -> None:
@@ -71,8 +72,9 @@ def _clean_rpyc(game_dir: Path, modified_files: "set[str] | None" = None) -> Non
         logger.info(f"[RPYC] 已清理 {count} 个缓存文件")
 
 
-def _apply_tl_game_patches(game_dir: Path, tl_lang: str,
-                           font_config_path: "Path | None" = None) -> None:
+def _apply_tl_game_patches(
+    game_dir: Path, tl_lang: str, font_config_path: "Path | None" = None
+) -> None:
     """Apply font patch and language switch to game directory for tl-mode.
 
     1. Copy Chinese font from resources/fonts/ into game dir.
@@ -136,10 +138,10 @@ def _apply_tl_game_patches(game_dir: Path, tl_lang: str,
             size_count = 0
             for var_name, value in overrides.items():
                 var_pat = re.compile(
-                    rf'^(\s*define\s+{re.escape(var_name)}\s*=\s*)[\d.]+(\s*)$',
+                    rf"^(\s*define\s+{re.escape(var_name)}\s*=\s*)[\d.]+(\s*)$",
                     re.MULTILINE,
                 )
-                text, n = var_pat.subn(rf'\g<1>{value}\2', text)
+                text, n = var_pat.subn(rf"\g<1>{value}\2", text)
                 size_count += n
             if size_count > 0:
                 gui_rpy.write_text(text, encoding="utf-8")
@@ -166,10 +168,7 @@ def _apply_tl_game_patches(game_dir: Path, tl_lang: str,
 
     # 3. Write chinese_language_patch.rpy (default language setting)
     patch_rpy = tl_dir / "chinese_language_patch.rpy"
-    patch_content = (
-        f'init python:\n'
-        f'    config.language = "{tl_lang}"\n'
-    )
+    patch_content = f'init python:\n    config.language = "{tl_lang}"\n'
     patch_rpy.write_text(patch_content, encoding="utf-8")
     logger.info(f"[TL-PATCH] 写入语言补丁: {patch_rpy.relative_to(game_dir.parent)}")
 
@@ -180,7 +179,7 @@ def _apply_tl_game_patches(game_dir: Path, tl_lang: str,
 def _inject_language_buttons(game_dir: Path, tl_lang: str) -> None:
     """Find all screen preferences() in .rpy files and inject Language radio buttons."""
     snippet = _LANG_BUTTON_SNIPPET.replace("{lang}", tl_lang)
-    marker = 'action Language('
+    marker = "action Language("
 
     for rpy in game_dir.rglob("*.rpy"):
         # Skip tl directory files
@@ -205,7 +204,7 @@ def _inject_language_buttons(game_dir: Path, tl_lang: str) -> None:
             stripped = line.strip()
             if 'label _("Skip")' in stripped:
                 in_skip = True
-            if in_skip and stripped.startswith('textbutton') and 'Transitions' in stripped:
+            if in_skip and stripped.startswith("textbutton") and "Transitions" in stripped:
                 insert_idx = i + 1
                 break
 
@@ -216,7 +215,10 @@ def _inject_language_buttons(game_dir: Path, tl_lang: str) -> None:
                 if 'label _("Rollback Side")' in stripped:
                     # Find the last textbutton in this vbox
                     for j in range(i + 1, min(i + 10, len(lines))):
-                        if lines[j].strip().startswith('textbutton') and 'right' in lines[j].lower():
+                        if (
+                            lines[j].strip().startswith("textbutton")
+                            and "right" in lines[j].lower()
+                        ):
                             insert_idx = j + 1
                             break
                     break

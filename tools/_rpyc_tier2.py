@@ -101,11 +101,15 @@ class _RestrictedUnpickler(pickle.Unpickler):
 
     def find_class(self, module: str, name: str):
         if module.startswith(("renpy", "store")):
-            cls = type(name, (_DummyClass,), {
-                "__module__": module,
-                "_class_name": name,
-                "_module_name": module,
-            })
+            cls = type(
+                name,
+                (_DummyClass,),
+                {
+                    "__module__": module,
+                    "_class_name": name,
+                    "_module_name": module,
+                },
+            )
             return cls
         if module in ("builtins", "__builtin__") and name in self._SAFE_BUILTINS:
             return super().find_class(module, name)
@@ -115,9 +119,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
             return super().find_class(module, name)
         if module in ("copyreg", "copy_reg") and name in self._SAFE_COPYREG:
             return super().find_class(module, name)
-        raise pickle.UnpicklingError(
-            f"Refused to load {module}.{name} (not in safe whitelist)"
-        )
+        raise pickle.UnpicklingError(f"Refused to load {module}.{name} (not in safe whitelist)")
 
 
 def _read_rpyc_data(file_obj: io.BufferedIOBase, slot: int) -> Optional[bytes]:
@@ -135,7 +137,7 @@ def _read_rpyc_data(file_obj: io.BufferedIOBase, slot: int) -> Optional[bytes]:
     header = file_obj.read(1024)
 
     # Legacy format
-    if header[:len(RPYC2_HEADER)] != RPYC2_HEADER:
+    if header[: len(RPYC2_HEADER)] != RPYC2_HEADER:
         if slot != 1:
             return None
         file_obj.seek(0)
@@ -147,7 +149,7 @@ def _read_rpyc_data(file_obj: io.BufferedIOBase, slot: int) -> Optional[bytes]:
     # RPYC2 format
     pos = len(RPYC2_HEADER)
     while pos + 12 <= len(header):
-        s, start, length = struct.unpack("III", header[pos:pos + 12])
+        s, start, length = struct.unpack("III", header[pos : pos + 12])
         if s == slot:
             file_obj.seek(start)
             try:
@@ -185,7 +187,9 @@ def _extract_text_from_node(node: Any) -> list[dict]:
             text = what.decode("utf-8", errors="replace") if isinstance(what, bytes) else what
             entry = {"type": "say", "text": text}
             if who:
-                entry["who"] = who.decode("utf-8", errors="replace") if isinstance(who, bytes) else str(who)
+                entry["who"] = (
+                    who.decode("utf-8", errors="replace") if isinstance(who, bytes) else str(who)
+                )
             results.append(entry)
 
     # TranslateString: has 'old' and 'new' and 'language'
@@ -197,9 +201,13 @@ def _extract_text_from_node(node: Any) -> list[dict]:
             text = old.decode("utf-8", errors="replace") if isinstance(old, bytes) else old
             entry = {"type": "translate_string", "old": text}
             if new and isinstance(new, (str, bytes)):
-                entry["new"] = new.decode("utf-8", errors="replace") if isinstance(new, bytes) else new
+                entry["new"] = (
+                    new.decode("utf-8", errors="replace") if isinstance(new, bytes) else new
+                )
             if lang:
-                entry["language"] = lang.decode("utf-8", errors="replace") if isinstance(lang, bytes) else str(lang)
+                entry["language"] = (
+                    lang.decode("utf-8", errors="replace") if isinstance(lang, bytes) else str(lang)
+                )
             results.append(entry)
 
     # Menu: has 'items' list of (caption, condition, block) tuples
@@ -210,7 +218,11 @@ def _extract_text_from_node(node: Any) -> list[dict]:
                 if isinstance(item, (list, tuple)) and len(item) >= 1:
                     caption = item[0]
                     if caption and isinstance(caption, (str, bytes)):
-                        text = caption.decode("utf-8", errors="replace") if isinstance(caption, bytes) else caption
+                        text = (
+                            caption.decode("utf-8", errors="replace")
+                            if isinstance(caption, bytes)
+                            else caption
+                        )
                         results.append({"type": "menu", "text": text})
 
     # Recurse into child nodes

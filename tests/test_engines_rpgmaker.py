@@ -34,11 +34,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # Helpers
 # ============================================================
 
+
 def _make_rpgm_mv_dir(d):
     """创建最小 RPG Maker MV 目录结构。"""
     data = Path(d) / "www" / "data"
     data.mkdir(parents=True)
-    (data / "System.json").write_text('{"gameTitle":"TestGame","currencyUnit":"G","terms":{"basic":["Level","HP"],"commands":["Fight","Escape"],"params":["ATK","DEF"],"messages":{"alwaysDash":"Always Dash"}}}', encoding="utf-8")
+    (data / "System.json").write_text(
+        '{"gameTitle":"TestGame","currencyUnit":"G","terms":{"basic":["Level","HP"],"commands":["Fight","Escape"],"params":["ATK","DEF"],"messages":{"alwaysDash":"Always Dash"}}}',
+        encoding="utf-8",
+    )
     return data
 
 
@@ -46,7 +50,10 @@ def _make_rpgm_mz_dir(d):
     """创建最小 RPG Maker MZ 目录结构。"""
     data = Path(d) / "data"
     data.mkdir()
-    (data / "System.json").write_text('{"gameTitle":"TestGame","currencyUnit":"G","terms":{"basic":[],"commands":[],"params":[],"messages":{}}}', encoding="utf-8")
+    (data / "System.json").write_text(
+        '{"gameTitle":"TestGame","currencyUnit":"G","terms":{"basic":[],"commands":[],"params":[],"messages":{}}}',
+        encoding="utf-8",
+    )
     return data
 
 
@@ -54,9 +61,11 @@ def _make_rpgm_mz_dir(d):
 # RPG Maker MV/MZ 测试
 # ============================================================
 
+
 def test_rpgm_detect_mv():
     """RPGMakerMVEngine.detect: MV 目录"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     with tempfile.TemporaryDirectory() as d:
         _make_rpgm_mv_dir(d)
@@ -67,6 +76,7 @@ def test_rpgm_detect_mv():
 def test_rpgm_detect_mz():
     """RPGMakerMVEngine.detect: MZ 目录"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     with tempfile.TemporaryDirectory() as d:
         _make_rpgm_mz_dir(d)
@@ -77,6 +87,7 @@ def test_rpgm_detect_mz():
 def test_rpgm_detect_false():
     """RPGMakerMVEngine.detect: 非 RPG Maker 目录"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     with tempfile.TemporaryDirectory() as d:
         assert engine.detect(Path(d)) is False
@@ -86,6 +97,7 @@ def test_rpgm_detect_false():
 def test_rpgm_find_data_dir():
     """_find_data_dir: MV 和 MZ"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     with tempfile.TemporaryDirectory() as d:
         data = _make_rpgm_mv_dir(d)
         assert RPGMakerMVEngine._find_data_dir(Path(d)) == data
@@ -98,6 +110,7 @@ def test_rpgm_find_data_dir():
 def test_rpgm_extract_401_merge():
     """事件指令: 连续 401 合并为一个对话 unit"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     cmds = [
         {"code": 101, "indent": 0, "parameters": ["Actor1", 0, 0, 2]},
@@ -117,6 +130,7 @@ def test_rpgm_extract_401_merge():
 def test_rpgm_extract_102_choices():
     """事件指令: 102 选项提取"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     cmds = [
         {"code": 102, "indent": 0, "parameters": [["Yes", "No", "Maybe"], 0]},
@@ -133,6 +147,7 @@ def test_rpgm_extract_102_choices():
 def test_rpgm_extract_405_scroll():
     """事件指令: 连续 405 滚动文本合并"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     cmds = [
         {"code": 105, "indent": 0, "parameters": [2, False]},
@@ -150,6 +165,7 @@ def test_rpgm_extract_405_scroll():
 def test_rpgm_extract_320_name():
     """事件指令: 320 改名"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     cmds = [
         {"code": 320, "indent": 0, "parameters": [1, "Harold"]},
@@ -165,6 +181,7 @@ def test_rpgm_extract_320_name():
 def test_rpgm_extract_database():
     """数据库: Actors.json 提取 name/nickname/profile"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     data = [None, {"id": 1, "name": "Harold", "nickname": "Hero", "profile": "A brave warrior."}]
     units = engine._extract_database(data, "Actors.json", ["name", "nickname", "profile"])
@@ -179,13 +196,17 @@ def test_rpgm_extract_database():
 def test_rpgm_extract_system():
     """System.json 提取"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     engine = RPGMakerMVEngine()
     data = {
-        "gameTitle": "My Game", "currencyUnit": "Gold",
+        "gameTitle": "My Game",
+        "currencyUnit": "Gold",
         "armorTypes": ["", "Shield", "Helmet"],
         "terms": {
-            "basic": ["Level", "HP"], "commands": ["Fight", "Escape"],
-            "params": ["ATK"], "messages": {"alwaysDash": "Always Dash"},
+            "basic": ["Level", "HP"],
+            "commands": ["Fight", "Escape"],
+            "params": ["ATK"],
+            "messages": {"alwaysDash": "Always Dash"},
         },
     }
     units = engine._extract_system(data, "System.json")
@@ -202,20 +223,38 @@ def test_rpgm_writeback_dialogue():
     """回写: 对话块（行数匹配）"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
     from engines.engine_base import TranslatableUnit
+
     engine = RPGMakerMVEngine()
     data = {
-        "events": [None, {"pages": [{"list": [
-            {"code": 101, "parameters": ["Actor1", 0, 0, 2]},
-            {"code": 401, "parameters": ["Hello!"]},
-            {"code": 401, "parameters": ["World!"]},
-            {"code": 0, "parameters": []},
-        ]}]}],
+        "events": [
+            None,
+            {
+                "pages": [
+                    {
+                        "list": [
+                            {"code": 101, "parameters": ["Actor1", 0, 0, 2]},
+                            {"code": 401, "parameters": ["Hello!"]},
+                            {"code": 401, "parameters": ["World!"]},
+                            {"code": 0, "parameters": []},
+                        ]
+                    }
+                ]
+            },
+        ],
     }
     unit = TranslatableUnit(
-        id="test", original="Hello!\nWorld!", file_path="Map001.json",
-        translation="你好！\n世界！", status="translated",
-        metadata={"type": "dialogue", "code": 401, "start_idx": 1,
-                  "line_count": 2, "json_prefix": "events[1].pages[0].list"},
+        id="test",
+        original="Hello!\nWorld!",
+        file_path="Map001.json",
+        translation="你好！\n世界！",
+        status="translated",
+        metadata={
+            "type": "dialogue",
+            "code": 401,
+            "start_idx": 1,
+            "line_count": 2,
+            "json_prefix": "events[1].pages[0].list",
+        },
     )
     assert engine._patch_unit(data, unit)
     assert data["events"][1]["pages"][0]["list"][1]["parameters"][0] == "你好！"
@@ -227,17 +266,37 @@ def test_rpgm_writeback_dialogue_fewer_lines():
     """回写: 翻译行数 < 原行数（补空串）"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
     from engines.engine_base import TranslatableUnit
+
     engine = RPGMakerMVEngine()
-    data = {"events": [None, {"pages": [{"list": [
-        {"code": 401, "parameters": ["Line 1"]},
-        {"code": 401, "parameters": ["Line 2"]},
-        {"code": 401, "parameters": ["Line 3"]},
-    ]}]}]}
+    data = {
+        "events": [
+            None,
+            {
+                "pages": [
+                    {
+                        "list": [
+                            {"code": 401, "parameters": ["Line 1"]},
+                            {"code": 401, "parameters": ["Line 2"]},
+                            {"code": 401, "parameters": ["Line 3"]},
+                        ]
+                    }
+                ]
+            },
+        ]
+    }
     unit = TranslatableUnit(
-        id="test", original="Line 1\nLine 2\nLine 3", file_path="Map.json",
-        translation="第一行", status="translated",
-        metadata={"type": "dialogue", "code": 401, "start_idx": 0,
-                  "line_count": 3, "json_prefix": "events[1].pages[0].list"},
+        id="test",
+        original="Line 1\nLine 2\nLine 3",
+        file_path="Map.json",
+        translation="第一行",
+        status="translated",
+        metadata={
+            "type": "dialogue",
+            "code": 401,
+            "start_idx": 0,
+            "line_count": 3,
+            "json_prefix": "events[1].pages[0].list",
+        },
     )
     assert engine._patch_unit(data, unit)
     cmds = data["events"][1]["pages"][0]["list"]
@@ -250,6 +309,7 @@ def test_rpgm_writeback_dialogue_fewer_lines():
 def test_rpgm_patch_by_json_path():
     """_patch_by_json_path: 嵌套路径赋值"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     data = {"terms": {"basic": ["Level", "HP", "MP"]}}
     assert RPGMakerMVEngine._patch_by_json_path(data, "terms.basic[1]", "生命值")
     assert data["terms"]["basic"][1] == "生命值"
@@ -263,6 +323,7 @@ def test_rpgm_patch_by_json_path():
 def test_rpgm_navigate_to_node():
     """_navigate_to_node: 复杂路径导航"""
     from engines.rpgmaker_engine import RPGMakerMVEngine
+
     data = {"events": [None, {"pages": [{"list": [{"code": 401}]}]}]}
     result = RPGMakerMVEngine._navigate_to_node(data, "events[1].pages[0].list")
     assert isinstance(result, list)
@@ -273,6 +334,7 @@ def test_rpgm_navigate_to_node():
 def test_glossary_scan_rpgmaker():
     """glossary.scan_rpgmaker_database: 从 Actors.json 提取角色名"""
     from core.glossary import Glossary
+
     g = Glossary()
     with tempfile.TemporaryDirectory() as d:
         data = _make_rpgm_mv_dir(d)
@@ -302,9 +364,7 @@ def test_rpgm_extract_rejects_oversized_json():
         data = Path(td) / "www" / "data"
         data.mkdir(parents=True)
         # Legitimate small System.json so ``_find_data_dir`` succeeds.
-        (data / "System.json").write_text(
-            '{"gameTitle":"X"}', encoding="utf-8"
-        )
+        (data / "System.json").write_text('{"gameTitle":"X"}', encoding="utf-8")
         # 51 MB sparse Map001.json — oversized, must be skipped.
         big_map = data / "Map001.json"
         with open(big_map, "wb") as f:
@@ -318,8 +378,7 @@ def test_rpgm_extract_rejects_oversized_json():
         # before parse).
         for u in units:
             assert "Map001" not in u.file_path, (
-                f"M2 phase-3: oversized Map001.json must be skipped, "
-                f"found unit from it: {u}"
+                f"M2 phase-3: oversized Map001.json must be skipped, found unit from it: {u}"
             )
     print("[OK] test_rpgm_extract_rejects_oversized_json")
 

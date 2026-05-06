@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """Tests for Batch 1 features: RPA packer, default language, lint integration, JSON retry."""
 
-import io
-import os
-import pickle
 import sys
 import tempfile
-import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -24,6 +20,7 @@ from pipeline.stages import _generate_default_language
 # ============================================================
 # RPA Packer tests
 # ============================================================
+
 
 def test_pack_basic():
     """Basic packing: single file, roundtrip verify."""
@@ -51,7 +48,7 @@ def test_pack_roundtrip():
         td = Path(td)
         # Create multiple files
         content_a = b"Hello World\n"
-        content_b = "label start:\n    mc \"你好\"\n".encode("utf-8")
+        content_b = 'label start:\n    mc "你好"\n'.encode("utf-8")
 
         (td / "src").mkdir()
         (td / "src" / "a.rpy").write_bytes(content_a)
@@ -141,10 +138,14 @@ def test_pack_missing_file_skipped():
         src.write_text("content", encoding="utf-8")
 
         archive = td / "test.rpa"
-        count = pack_rpa({
-            "real.rpy": src,
-            "ghost.rpy": td / "nonexistent.rpy",
-        }, archive, xor_key=0)
+        count = pack_rpa(
+            {
+                "real.rpy": src,
+                "ghost.rpy": td / "nonexistent.rpy",
+            },
+            archive,
+            xor_key=0,
+        )
         assert count == 1
         entries = list_rpa(archive)
         assert "real.rpy" in entries
@@ -224,6 +225,7 @@ def test_collect_files():
 # Default language tests
 # ============================================================
 
+
 def test_default_language_basic():
     """Generates correct default_language.rpy for zh."""
     with tempfile.TemporaryDirectory() as td:
@@ -299,6 +301,7 @@ def test_pack_header_format():
 # JSON parse failure retry test
 # ============================================================
 
+
 def test_should_retry_json_parse_failure():
     """returned=0 with expected>0 and no error triggers split retry."""
     from core.translation_utils import ChunkResult
@@ -322,9 +325,11 @@ def test_should_retry_json_parse_failure():
 # Lint integration test
 # ============================================================
 
+
 def test_lint_repair_unavailable():
     """_run_lint_repair_phase handles unavailable lint gracefully."""
     from pipeline.stages import _run_lint_repair_phase
+
     with tempfile.TemporaryDirectory() as td:
         report = {"stages": {}}
         _run_lint_repair_phase(Path(td), report)
@@ -373,6 +378,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[FAIL] {t.__name__}: {e}")
             import traceback
+
             traceback.print_exc()
             failed += 1
 

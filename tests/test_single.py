@@ -4,15 +4,21 @@
 import os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.api_client import APIClient, APIConfig
-from file_processor import split_file, apply_translations, validate_translation, read_file, estimate_tokens
+from file_processor import apply_translations, validate_translation, read_file, estimate_tokens
 from core.glossary import Glossary
 from core.prompts import build_system_prompt, build_user_prompt
 
-GAME_DIR = Path(os.environ.get("TEST_GAME_DIR", r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game"))
+GAME_DIR = Path(
+    os.environ.get(
+        "TEST_GAME_DIR", r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game"
+    )
+)
 TEST_FILE = GAME_DIR / "tutorial.rpy"
+
 
 def main():
     # 从环境变量或命令行获取 API key
@@ -59,8 +65,8 @@ def main():
     print(f"获得 {len(translations)} 条翻译:")
     print()
     for t in translations:
-        print(f"  行 {t.get('line', '?'):3d}: \"{t.get('original', '')}\"")
-        print(f"      → \"{t.get('zh', '')}\"")
+        print(f'  行 {t.get("line", "?"):3d}: "{t.get("original", "")}"')
+        print(f'      → "{t.get("zh", "")}"')
     print()
 
     # 5. 应用翻译
@@ -90,6 +96,7 @@ def main():
     out.parent.mkdir(exist_ok=True)
     out.write_text(patched, encoding="utf-8")
     print(f"\n已保存到: {out}")
+
 
 if __name__ == "__main__":
     main()

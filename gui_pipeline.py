@@ -43,7 +43,7 @@ from tkinter import messagebox
 
 
 # 进度日志匹配模式，例如 [3/50] (6%) 或 [3/50]
-_RE_PROGRESS = re.compile(r'\[(\d+)/(\d+)\](?:\s*\((\d+)%\))?')
+_RE_PROGRESS = re.compile(r"\[(\d+)/(\d+)\](?:\s*\((\d+)%\))?")
 
 # 日志裁剪阈值
 MAX_LOG_LINES = 5000
@@ -82,8 +82,13 @@ class AppPipelineMixin:
         def worker():
             try:
                 proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    text=True, bufsize=1, cwd=str(self._project_root), env=child_env,
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    cwd=str(self._project_root),
+                    env=child_env,
                 )
                 self.process = proc
                 for line in proc.stdout:
@@ -105,14 +110,14 @@ class AppPipelineMixin:
                 pct = int(m.group(3))
             else:
                 pct = int(current / total * 100) if total > 0 else 0
-            self.progress_bar['value'] = pct
+            self.progress_bar["value"] = pct
             self.lbl_progress.config(text=f"{current}/{total} ({pct}%)")
 
     def _append_log(self, text: str) -> None:
         self.log_text.config(state="normal")
         self.log_text.insert(tk.END, text)
         # 日志裁剪：超过阈值时删除早期行
-        line_count = int(self.log_text.index('end-1c').split('.')[0])
+        line_count = int(self.log_text.index("end-1c").split(".")[0])
         if line_count > MAX_LOG_LINES:
             trim_end = line_count - TRIM_TO
             self.log_text.delete("1.0", f"{trim_end}.0")
@@ -127,7 +132,7 @@ class AppPipelineMixin:
         if returncode == 0:
             self.lbl_status.config(text=f"状态: 完成 ({elapsed:.1f}s)", foreground="green")
             self._append_log(f"\n[完成] 耗时 {elapsed:.1f} 秒\n")
-            self.progress_bar['value'] = 100
+            self.progress_bar["value"] = 100
             self.lbl_progress.config(text="完成")
         else:
             self.lbl_status.config(text=f"状态: 错误 (code={returncode})", foreground="red")
@@ -138,7 +143,8 @@ class AppPipelineMixin:
             try:
                 # Windows: 发送 CTRL_C_EVENT 让子进程的 KeyboardInterrupt 触发进度保存
                 import signal
-                if hasattr(signal, 'CTRL_C_EVENT'):
+
+                if hasattr(signal, "CTRL_C_EVENT"):
                     self.process.send_signal(signal.CTRL_C_EVENT)
                 else:
                     self.process.terminate()
@@ -184,8 +190,13 @@ class AppPipelineMixin:
         def worker():
             try:
                 proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    text=True, bufsize=1, cwd=str(self._project_root), env=child_env,
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    cwd=str(self._project_root),
+                    env=child_env,
                 )
                 self.process = proc
                 lines = []
@@ -216,7 +227,10 @@ class AppPipelineMixin:
                         if rc == 0:
                             summary = []
                             for line in lines:
-                                if any(k in line for k in ("剩余文件", "估计费用", "API 调用", "估计输入")):
+                                if any(
+                                    k in line
+                                    for k in ("剩余文件", "估计费用", "API 调用", "估计输入")
+                                ):
                                     summary.append(line.strip())
                             if summary:
                                 messagebox.showinfo("Dry-run 摘要", "\n".join(summary))

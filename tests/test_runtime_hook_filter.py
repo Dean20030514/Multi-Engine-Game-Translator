@@ -22,9 +22,8 @@ at 794 lines and cannot absorb new tests without overflow.
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-
 
 
 def test_sanitise_overrides_rejects_non_finite_floats():
@@ -43,17 +42,18 @@ def test_sanitise_overrides_rejects_non_finite_floats():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{"file": "a.rpy", "line": 1, "original": "Hi",
-                "translation": "你好", "status": "ok"}]
+    entries = [
+        {"file": "a.rpy", "line": 1, "original": "Hi", "translation": "你好", "status": "ok"}
+    ]
     cfg = {
         "gui_overrides": {
-            "gui.text_size": 22,                       # safe — kept
-            "gui.bad_inf": float("inf"),               # H2 — rejected
-            "gui.bad_nan": float("nan"),               # H2 — rejected
+            "gui.text_size": 22,  # safe — kept
+            "gui.bad_inf": float("inf"),  # H2 — rejected
+            "gui.bad_nan": float("nan"),  # H2 — rejected
         },
         "config_overrides": {
-            "config.thoughtbubble_width": 400,         # safe — kept
-            "config.bad_ninf": float("-inf"),          # H2 — rejected
+            "config.thoughtbubble_width": 400,  # safe — kept
+            "config.bad_ninf": float("-inf"),  # H2 — rejected
         },
     }
     with tempfile.TemporaryDirectory() as td:
@@ -66,8 +66,7 @@ def test_sanitise_overrides_rejects_non_finite_floats():
             assert bad not in content, f"H2 leak: {bad!r} in emitted rpy"
 
         # All-non-finite font_config → no aux rpy (combined map empty).
-        cfg_all_bad = {"gui_overrides": {"gui.x": float("inf"),
-                                          "gui.y": float("nan")}}
+        cfg_all_bad = {"gui_overrides": {"gui.x": float("inf"), "gui.y": float("nan")}}
         out2 = Path(td) / "game2"
         emit_runtime_hook(out2, entries, font_config=cfg_all_bad)
         assert not (out2 / "zz_tl_inject_gui.rpy").exists(), (
@@ -94,11 +93,8 @@ def test_load_font_config_rejects_oversized_file():
         with open(p, "wb") as f:
             f.seek(51 * 1024 * 1024 - 1)
             f.write(b"\0")
-        assert load_font_config(p) == {}, (
-            "M2: oversized font_config must return empty dict"
-        )
+        assert load_font_config(p) == {}, "M2: oversized font_config must return empty dict"
     print("[OK] test_load_font_config_rejects_oversized_file")
-
 
 
 def test_review_generator_rejects_oversized_db():
@@ -119,9 +115,7 @@ def test_review_generator_rejects_oversized_db():
             f.write(b"\0")
         out = td_path / "review.html"
         count = generate_review_html(big, out)
-        assert count == 0, (
-            "M2 phase-2: oversized DB must return 0 entries"
-        )
+        assert count == 0, "M2 phase-2: oversized DB must return 0 entries"
     print("[OK] test_review_generator_rejects_oversized_db")
 
 

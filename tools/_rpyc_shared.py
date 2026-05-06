@@ -33,9 +33,19 @@ _AST_SLOT = 1
 
 _SHARED_WHITELIST: Dict[str, List[str]] = {
     "builtins": [
-        "list", "tuple", "dict", "str", "bytes", "bytearray",
-        "int", "float", "bool", "NoneType",
-        "set", "frozenset", "complex",
+        "list",
+        "tuple",
+        "dict",
+        "str",
+        "bytes",
+        "bytearray",
+        "int",
+        "float",
+        "bool",
+        "NoneType",
+        "set",
+        "frozenset",
+        "complex",
     ],
     "collections": ["OrderedDict", "defaultdict"],
     "_codecs": ["encode", "decode"],

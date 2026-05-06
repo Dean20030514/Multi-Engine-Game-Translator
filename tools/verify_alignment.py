@@ -21,6 +21,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from file_processor import apply_translations, read_file
@@ -31,9 +32,23 @@ from core.translation_db import TranslationDB
 
 def _default_paths(script_dir: Path) -> dict:
     return {
-        "game_dir": Path(os.environ.get("TEST_GAME_DIR", r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game")),
-        "db_path": script_dir / "output" / "projects" / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed" / "translation_db.json",
-        "old_translated": script_dir / "output" / "projects" / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed" / "stage2_translated" / "game",
+        "game_dir": Path(
+            os.environ.get(
+                "TEST_GAME_DIR",
+                r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game",
+            )
+        ),
+        "db_path": script_dir
+        / "output"
+        / "projects"
+        / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed"
+        / "translation_db.json",
+        "old_translated": script_dir
+        / "output"
+        / "projects"
+        / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed"
+        / "stage2_translated"
+        / "game",
     }
 
 
@@ -57,10 +72,27 @@ def main() -> None:
     defaults = _default_paths(script_dir)
 
     parser = argparse.ArgumentParser(description="验证方案 a/b 回写与对齐效果（零 API 调用）")
-    parser.add_argument("--game-dir", type=Path, default=defaults["game_dir"], help="原游戏目录（含 .rpy 的 game 目录）")
-    parser.add_argument("--db", type=Path, default=defaults["db_path"], help="translation_db.json 路径")
-    parser.add_argument("--old-output", type=Path, default=defaults["old_translated"], help="上次翻译输出目录（stage2_translated/game）")
-    parser.add_argument("--temp-dir", type=Path, default=None, help="临时回写目录（默认：项目 output 下 verify_temp）")
+    parser.add_argument(
+        "--game-dir",
+        type=Path,
+        default=defaults["game_dir"],
+        help="原游戏目录（含 .rpy 的 game 目录）",
+    )
+    parser.add_argument(
+        "--db", type=Path, default=defaults["db_path"], help="translation_db.json 路径"
+    )
+    parser.add_argument(
+        "--old-output",
+        type=Path,
+        default=defaults["old_translated"],
+        help="上次翻译输出目录（stage2_translated/game）",
+    )
+    parser.add_argument(
+        "--temp-dir",
+        type=Path,
+        default=None,
+        help="临时回写目录（默认：项目 output 下 verify_temp）",
+    )
     args = parser.parse_args()
 
     game_dir = args.game_dir.resolve()
@@ -69,7 +101,13 @@ def main() -> None:
     if args.temp_dir is not None:
         temp_dir = args.temp_dir.resolve()
     else:
-        temp_dir = script_dir / "output" / "projects" / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed" / "verify_temp"
+        temp_dir = (
+            script_dir
+            / "output"
+            / "projects"
+            / "TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed"
+            / "verify_temp"
+        )
     temp_dir = temp_dir.resolve()
 
     if not game_dir.is_dir():

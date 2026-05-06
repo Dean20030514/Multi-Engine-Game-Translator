@@ -2,7 +2,6 @@
 """Tests for tools.rpa_unpacker — RPA-3.0 and RPA-2.0 archive handling."""
 
 import io
-import os
 import pickle
 import sys
 import tempfile
@@ -13,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.rpa_unpacker import (
     CorruptedArchive,
-    RPAError,
     UnsupportedVersion,
     list_rpa,
     unpack_rpa,
@@ -24,6 +22,7 @@ from tools.rpa_unpacker import (
 # ---------------------------------------------------------------------------
 # Helpers: build synthetic RPA archives
 # ---------------------------------------------------------------------------
+
 
 def _build_rpa3(files: dict[str, bytes], key: int = 0xDEADBEEF) -> bytes:
     """Build a minimal RPA-3.0 archive in memory.
@@ -95,13 +94,16 @@ def _build_rpa2(files: dict[str, bytes]) -> bytes:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 def test_rpa3_list():
     """RPA-3.0: list files."""
-    archive_data = _build_rpa3({
-        "script.rpy": b'label start:\n    "Hello"\n',
-        "screens.rpy": b'screen main_menu():\n    pass\n',
-        "images/bg.png": b"\x89PNG\r\n\x1a\n" + b"\x00" * 16,
-    })
+    archive_data = _build_rpa3(
+        {
+            "script.rpy": b'label start:\n    "Hello"\n',
+            "screens.rpy": b"screen main_menu():\n    pass\n",
+            "images/bg.png": b"\x89PNG\r\n\x1a\n" + b"\x00" * 16,
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".rpa", delete=False) as f:
         f.write(archive_data)
@@ -123,10 +125,12 @@ def test_rpa3_extract():
     content_rpy = b'label start:\n    mc "Hello world"\n'
     content_rpyc = b"\x00RPYC_FAKE_COMPILED_DATA\x00"
 
-    archive_data = _build_rpa3({
-        "script.rpy": content_rpy,
-        "compiled.rpyc": content_rpyc,
-    })
+    archive_data = _build_rpa3(
+        {
+            "script.rpy": content_rpy,
+            "compiled.rpyc": content_rpyc,
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".rpa", delete=False) as f:
         f.write(archive_data)
@@ -148,12 +152,14 @@ def test_rpa3_extract():
 
 def test_rpa3_extract_scripts_only():
     """RPA-3.0: filter by extension."""
-    archive_data = _build_rpa3({
-        "script.rpy": b"label start:\n",
-        "compiled.rpyc": b"\x00RPYC\x00",
-        "images/bg.png": b"\x89PNG",
-        "audio/bgm.ogg": b"OggS",
-    })
+    archive_data = _build_rpa3(
+        {
+            "script.rpy": b"label start:\n",
+            "compiled.rpyc": b"\x00RPYC\x00",
+            "images/bg.png": b"\x89PNG",
+            "audio/bgm.ogg": b"OggS",
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".rpa", delete=False) as f:
         f.write(archive_data)
@@ -163,7 +169,9 @@ def test_rpa3_extract_scripts_only():
         outdir = Path(outdir)
         try:
             extracted = unpack_rpa(
-                tmp, outdir, filter_ext=(".rpy", ".rpyc"),
+                tmp,
+                outdir,
+                filter_ext=(".rpy", ".rpyc"),
             )
             assert len(extracted) == 2
             extracted_names = {p.name for p in extracted}
@@ -256,7 +264,7 @@ def test_rpa3_different_keys():
 
 def test_rpa3_prefix_bytes():
     """RPA-3.0: handle prefix bytes in index entries."""
-    prefix = b"\xAB\xCD"
+    prefix = b"\xab\xcd"
     real_data = b"the actual file data"
 
     # Build archive manually with prefix
@@ -373,11 +381,13 @@ def test_unpack_all_rpa_in_dir():
 
 def test_nested_directory_structure():
     """RPA-3.0: preserve nested directory structure."""
-    archive_data = _build_rpa3({
-        "tl/english/script.rpy": b"# English\n",
-        "tl/chinese/script.rpy": b"# Chinese\n",
-        "game/screens.rpy": b"screen main:\n",
-    })
+    archive_data = _build_rpa3(
+        {
+            "tl/english/script.rpy": b"# English\n",
+            "tl/chinese/script.rpy": b"# Chinese\n",
+            "game/screens.rpy": b"screen main:\n",
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".rpa", delete=False) as f:
         f.write(archive_data)
@@ -423,11 +433,13 @@ def test_rpa3_refuses_zip_slip():
     ``dest.resolve().relative_to(outdir.resolve())`` 校验；本测试
     构造合法 + 恶意混合归档验证合法条目解出、恶意条目被跳过。
     """
-    archive_data = _build_rpa3({
-        "normal.rpy": b"# legit content",
-        "../../evil.py": b"# malicious content",
-        "sub/nested.rpy": b"# nested legit",
-    })
+    archive_data = _build_rpa3(
+        {
+            "normal.rpy": b"# legit content",
+            "../../evil.py": b"# malicious content",
+            "sub/nested.rpy": b"# nested legit",
+        }
+    )
 
     with tempfile.NamedTemporaryFile(suffix=".rpa", delete=False) as f:
         f.write(archive_data)
@@ -441,15 +453,19 @@ def test_rpa3_refuses_zip_slip():
             # 解包应成功（坏条目被跳过而非整个归档报错）
             extracted = unpack_rpa(tmp, outdir)
             # 合法条目应被解出
-            assert (outdir / "normal.rpy").exists(), \
+            assert (outdir / "normal.rpy").exists(), (
                 "legitimate entry 'normal.rpy' was not extracted"
-            assert (outdir / "sub" / "nested.rpy").exists(), \
+            )
+            assert (outdir / "sub" / "nested.rpy").exists(), (
                 "legitimate nested entry was not extracted"
+            )
             # 恶意条目应被拒绝 — 检查几个可能的落点
-            assert not (td_path / "evil.py").exists(), \
+            assert not (td_path / "evil.py").exists(), (
                 "ZIP Slip defeated: evil.py written to tempdir root"
-            assert not (td_path.parent / "evil.py").exists(), \
+            )
+            assert not (td_path.parent / "evil.py").exists(), (
                 "ZIP Slip defeated: evil.py written above tempdir"
+            )
             # 返回的 extracted 列表也不应包含 outdir 外的路径
             for path in extracted:
                 resolved = path.resolve()
@@ -458,17 +474,17 @@ def test_rpa3_refuses_zip_slip():
                 try:
                     resolved.relative_to(outdir_resolved)
                 except ValueError:
-                    raise AssertionError(
-                        f"extracted path escaped outdir: {resolved}"
-                    )
+                    raise AssertionError(f"extracted path escaped outdir: {resolved}")
             print("[OK] test_rpa3_refuses_zip_slip")
         finally:
             tmp.unlink()
 
 
-def _build_rpa3_custom(index_overrides: dict[str, tuple[int, int, bytes]],
-                       real_files: dict[str, bytes],
-                       key: int = 0xDEADBEEF) -> bytes:
+def _build_rpa3_custom(
+    index_overrides: dict[str, tuple[int, int, bytes]],
+    real_files: dict[str, bytes],
+    key: int = 0xDEADBEEF,
+) -> bytes:
     """Build an RPA-3.0 archive with a hand-crafted index.
 
     ``real_files`` are written to the body verbatim; ``index_overrides`` lets
@@ -490,13 +506,9 @@ def _build_rpa3_custom(index_overrides: dict[str, tuple[int, int, bytes]],
     # Build index: start from real entries, then overlay custom overrides.
     index: dict[bytes, list[tuple[int, int, bytes]]] = {}
     for name, data in real_files.items():
-        index[name.encode("utf-8")] = [
-            (real_offsets[name] ^ key, len(data) ^ key, b"")
-        ]
+        index[name.encode("utf-8")] = [(real_offsets[name] ^ key, len(data) ^ key, b"")]
     for name, (offset, length, prefix) in index_overrides.items():
-        index[name.encode("utf-8")] = [
-            (offset ^ key, length ^ key, prefix)
-        ]
+        index[name.encode("utf-8")] = [(offset ^ key, length ^ key, prefix)]
 
     index_offset = buf.tell()
     pickled = pickle.dumps(index, protocol=2)
@@ -535,14 +547,15 @@ def test_rpa_refuses_oversized_entry():
         try:
             extracted = unpack_rpa(tmp, Path(outdir))
             # Legitimate entry was extracted.
-            assert (Path(outdir) / "normal.rpy").exists(), \
+            assert (Path(outdir) / "normal.rpy").exists(), (
                 "legitimate entry should have been extracted"
+            )
             # Oversized entry was refused (no file written, not in extracted list).
-            assert not (Path(outdir) / "bomb.rpy").exists(), \
+            assert not (Path(outdir) / "bomb.rpy").exists(), (
                 "oversized entry must not be written to disk"
+            )
             for p in extracted:
-                assert p.name != "bomb.rpy", \
-                    f"oversized entry leaked into extracted list: {p}"
+                assert p.name != "bomb.rpy", f"oversized entry leaked into extracted list: {p}"
             print("[OK] test_rpa_refuses_oversized_entry")
         finally:
             tmp.unlink()

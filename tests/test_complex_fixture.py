@@ -28,6 +28,7 @@ preserves all entries and writes them back into the correct slots.
 Round-trip byte-identity for the unmodified parts (comments, blank
 lines, source-file annotation comments) is the strict invariant.
 """
+
 from __future__ import annotations
 
 import sys
@@ -42,7 +43,7 @@ from translators.tl_parser import scan_tl_directory, fill_translation
 
 
 # Complex fixture covering every parsing path the r52 workload hit.
-_TL_COMPLEX_FIXTURE = '''# TODO: Translation updated at 2024-06-01
+_TL_COMPLEX_FIXTURE = """# TODO: Translation updated at 2024-06-01
 
 # game/script.rpy:42
 translate chinese intro_d8a3f1:
@@ -93,7 +94,7 @@ translate chinese strings:
     # game/screens.rpy:300
     old "{color=#fff}{size=24}New Game{/size}{/color}"
     new ""
-'''
+"""
 
 
 # Expected translations to be assigned during the round-trip

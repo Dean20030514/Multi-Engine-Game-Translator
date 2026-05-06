@@ -11,30 +11,30 @@ or collectively via ``python tests/test_all.py`` (which delegates to
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import api_client
 import file_processor
-from core import glossary
-from core import prompts
+
 
 def test_estimate_tokens():
-    tok = file_processor.estimate_tokens('Hello world, this is a test.')
+    tok = file_processor.estimate_tokens("Hello world, this is a test.")
     assert tok > 0
-    tok_zh = file_processor.estimate_tokens('你好世界')
+    tok_zh = file_processor.estimate_tokens("你好世界")
     assert tok_zh > 0
     print(f"[OK] estimate_tokens: en={tok}, zh={tok_zh}")
 
+
 def test_find_block_boundaries():
     lines = [
-        'label start:',
+        "label start:",
         '    mc "Hello"',
-        '',
-        'screen say(who, what):',
-        '    text what',
-        '',
-        'init python:',
-        '    x = 1',
+        "",
+        "screen say(who, what):",
+        "    text what",
+        "",
+        "init python:",
+        "    x = 1",
     ]
     b = file_processor._find_block_boundaries(lines)
     assert 0 in b
@@ -42,115 +42,122 @@ def test_find_block_boundaries():
     assert 6 in b  # init
     print(f"[OK] _find_block_boundaries: {b}")
 
+
 def test_safety_check():
     # 变量丢失
-    r = file_processor._check_translation_safety('Hello [name]', '你好')
-    assert r is not None and 'name' in str(r)
+    r = file_processor._check_translation_safety("Hello [name]", "你好")
+    assert r is not None and "name" in str(r)
     # 变量保留 — 安全
-    r2 = file_processor._check_translation_safety('Hello [name]', '你好 [name]')
+    r2 = file_processor._check_translation_safety("Hello [name]", "你好 [name]")
     assert r2 is None
     # 变量多出
-    r2b = file_processor._check_translation_safety('Hello', '你好 [name]')
-    assert r2b is not None and '多出' in str(r2b)
+    r2b = file_processor._check_translation_safety("Hello", "你好 [name]")
+    assert r2b is not None and "多出" in str(r2b)
     # 标签不匹配
-    r3 = file_processor._check_translation_safety('{color=#f00}Hi{/color}', '你好')
+    r3 = file_processor._check_translation_safety("{color=#f00}Hi{/color}", "你好")
     assert r3 is not None
     # 标签匹配 — 安全
-    r4 = file_processor._check_translation_safety('{color=#f00}Hi{/color}', '{color=#f00}你好{/color}')
+    r4 = file_processor._check_translation_safety(
+        "{color=#f00}Hi{/color}", "{color=#f00}你好{/color}"
+    )
     assert r4 is None
     # 换行符
-    r5 = file_processor._check_translation_safety('Line1\\nLine2', '行1')
+    r5 = file_processor._check_translation_safety("Line1\\nLine2", "行1")
     assert r5 is not None
-    r6 = file_processor._check_translation_safety('Line1\\nLine2', '行1\\n行2')
+    r6 = file_processor._check_translation_safety("Line1\\nLine2", "行1\\n行2")
     assert r6 is None
     # {#identifier} 保留
-    r7 = file_processor._check_translation_safety('Go home{#home_choice}', '回家')
-    assert r7 is not None and '标识符' in str(r7)
-    r8 = file_processor._check_translation_safety('Go home{#home_choice}', '回家{#home_choice}')
+    r7 = file_processor._check_translation_safety("Go home{#home_choice}", "回家")
+    assert r7 is not None and "标识符" in str(r7)
+    r8 = file_processor._check_translation_safety("Go home{#home_choice}", "回家{#home_choice}")
     assert r8 is None
     # %(name)s 格式化占位符
-    r9 = file_processor._check_translation_safety('Hello %(name)s', '你好')
-    assert r9 is not None and '格式化' in str(r9)
-    r10 = file_processor._check_translation_safety('Hello %(name)s', '你好 %(name)s')
+    r9 = file_processor._check_translation_safety("Hello %(name)s", "你好")
+    assert r9 is not None and "格式化" in str(r9)
+    r10 = file_processor._check_translation_safety("Hello %(name)s", "你好 %(name)s")
     assert r10 is None
     # 翻译长度比例
-    long_text = 'A' * 50
+    long_text = "A" * 50
     r11 = file_processor._check_translation_safety(long_text, long_text * 5)
-    assert r11 is not None and '过长' in str(r11)
-    r12 = file_processor._check_translation_safety(long_text, 'x')
-    assert r12 is not None and '过短' in str(r12)
+    assert r11 is not None and "过长" in str(r11)
+    r12 = file_processor._check_translation_safety(long_text, "x")
+    assert r12 is not None and "过短" in str(r12)
     print("[OK] _check_translation_safety")
+
 
 def test_apply_translations():
     content = '    mc "Hello world"\n    "You see a door."'
     trans = [
-        {'line': 1, 'original': 'Hello world', 'zh': '你好世界'},
-        {'line': 2, 'original': 'You see a door.', 'zh': '你看到一扇门。'},
+        {"line": 1, "original": "Hello world", "zh": "你好世界"},
+        {"line": 2, "original": "You see a door.", "zh": "你看到一扇门。"},
     ]
     patched, warnings, _ = file_processor.apply_translations(content, trans)
-    assert '你好世界' in patched
-    assert '你看到一扇门' in patched
+    assert "你好世界" in patched
+    assert "你看到一扇门" in patched
     print(f"[OK] apply_translations: {len(warnings)} warnings")
+
 
 def test_apply_cascade():
     """测试两遍匹配避免级联覆盖"""
     content = (
-        '    if x == 0:\n'         # line 1
-        '        pov "Text A"\n'    # line 2  
-        '    else:\n'               # line 3
-        '        pov "Text B"\n'    # line 4
+        "    if x == 0:\n"  # line 1
+        '        pov "Text A"\n'  # line 2
+        "    else:\n"  # line 3
+        '        pov "Text B"\n'  # line 4
     )
     # AI returns line 1 for text that's actually on line 2,
     # and line 2 for text that's actually on line 2 (same line)
     trans = [
-        {'line': 1, 'original': 'Text A', 'zh': '文本A'},  # will need offset +1
-        {'line': 2, 'original': 'Text A', 'zh': '文本A'},  # exact match on line 2
+        {"line": 1, "original": "Text A", "zh": "文本A"},  # will need offset +1
+        {"line": 2, "original": "Text A", "zh": "文本A"},  # exact match on line 2
     ]
     patched, warnings, _ = file_processor.apply_translations(content, trans)
-    assert patched.count('文本A') == 1  # 只应用一次，不会重复
+    assert patched.count("文本A") == 1  # 只应用一次，不会重复
     # The exact match should win in pass 1
-    assert '文本A' in patched
+    assert "文本A" in patched
     print("[OK] apply_cascade: no duplicate replacement")
+
 
 def test_validate_translation():
     orig = 'label start:\n    mc "Hello [name]"\n    jump end'
     trans = 'label start:\n    mc "你好 [name]"\n    jump end'
-    issues = file_processor.validate_translation(orig, trans, 'test.rpy')
+    issues = file_processor.validate_translation(orig, trans, "test.rpy")
     assert len(issues) == 0
     print("[OK] validate_translation (clean)")
 
     # 变量丢失
     trans_bad = 'label start:\n    mc "你好"\n    jump end'
-    issues2 = file_processor.validate_translation(orig, trans_bad, 'test.rpy')
-    assert any(i['level'] == 'error' for i in issues2)
+    issues2 = file_processor.validate_translation(orig, trans_bad, "test.rpy")
+    assert any(i["level"] == "error" for i in issues2)
     print(f"[OK] validate_translation (error detected): {len(issues2)} issues")
+
 
 def test_force_split():
     # Create lines that exceed max_tokens
     lines = [f'    mc "This is line {i} with some text content."' for i in range(200)]
-    text = '\n'.join(lines)
+    text = "\n".join(lines)
     tok = file_processor.estimate_tokens(text)
     chunks = file_processor._force_split_lines(lines, 0, len(lines), tok // 3)
     assert len(chunks) >= 2
     # Verify all content is covered
-    total_lines = sum(len(c['content'].split('\n')) for c in chunks)
+    total_lines = sum(len(c["content"].split("\n")) for c in chunks)
     assert total_lines == len(lines)
     print(f"[OK] _force_split_lines: {len(chunks)} chunks from {len(lines)} lines")
 
 
 def test_triple_quote_replacement():
     """测试三引号字符串替换"""
-    line = '    mc \"\"\"Hello world\"\"\"'
-    result = file_processor._replace_string_in_line(line, 'Hello world', '你好世界')
+    line = '    mc """Hello world"""'
+    result = file_processor._replace_string_in_line(line, "Hello world", "你好世界")
     assert result is not None
-    assert '\"\"\"你好世界\"\"\"' in result
+    assert '"""你好世界"""' in result
     print("[OK] triple-quote replacement")
 
 
 def test_underscore_func_replacement():
     """测试 _() 包裹的字符串替换"""
     line = '    text _("Save Game")'
-    result = file_processor._replace_string_in_line(line, 'Save Game', '保存游戏')
+    result = file_processor._replace_string_in_line(line, "Save Game", "保存游戏")
     assert result is not None
     assert '_("保存游戏")' in result
     print("[OK] _() function replacement")
@@ -161,11 +168,11 @@ def test_validate_menu_identifier():
     orig = 'label start:\n    "Go home{#home}" \n    jump end'
     trans_ok = 'label start:\n    "回家{#home}" \n    jump end'
     trans_bad = 'label start:\n    "回家" \n    jump end'
-    issues = file_processor.validate_translation(orig, trans_ok, 'test.rpy')
-    id_issues = [i for i in issues if '标识符' in i.get('message', '')]
+    issues = file_processor.validate_translation(orig, trans_ok, "test.rpy")
+    id_issues = [i for i in issues if "标识符" in i.get("message", "")]
     assert len(id_issues) == 0
-    issues2 = file_processor.validate_translation(orig, trans_bad, 'test.rpy')
-    id_issues2 = [i for i in issues2 if '标识符' in i.get('message', '')]
+    issues2 = file_processor.validate_translation(orig, trans_bad, "test.rpy")
+    id_issues2 = [i for i in issues2 if "标识符" in i.get("message", "")]
     assert len(id_issues2) > 0
     print("[OK] validate_menu_identifier")
 
@@ -173,12 +180,12 @@ def test_validate_menu_identifier():
 def test_image_block_boundary():
     """测试 image 声明作为块边界"""
     lines = [
-        'label start:',
+        "label start:",
         '    mc "Hello"',
-        '',
+        "",
         'image bg = "bg.png"',
-        '',
-        'screen test:',
+        "",
+        "screen test:",
         '    text "hi"',
     ]
     b = file_processor._find_block_boundaries(lines)
@@ -252,6 +259,7 @@ def test_protect_menu_id():
 # B1: 核心函数单元测试 — check_response_item
 # ============================================================
 
+
 def test_check_response_item_normal():
     """正常条目通过校验"""
     warnings = file_processor.check_response_item(
@@ -263,18 +271,14 @@ def test_check_response_item_normal():
 
 def test_check_response_item_empty_zh():
     """译文为空时被拦截"""
-    warnings = file_processor.check_response_item(
-        {"line": 1, "original": "Hello", "zh": ""}
-    )
+    warnings = file_processor.check_response_item({"line": 1, "original": "Hello", "zh": ""})
     assert len(warnings) > 0 and "译文为空" in warnings[0]
     print("[OK] check_response_item_empty_zh")
 
 
 def test_check_response_item_empty_original():
     """原文为空时被拦截"""
-    warnings = file_processor.check_response_item(
-        {"line": 1, "original": "", "zh": "你好"}
-    )
+    warnings = file_processor.check_response_item({"line": 1, "original": "", "zh": "你好"})
     assert len(warnings) > 0 and "original 为空" in warnings[0]
     print("[OK] check_response_item_empty_original")
 
@@ -311,14 +315,18 @@ def test_check_response_item_line_offset():
 # B1: 核心函数单元测试 — check_response_chunk
 # ============================================================
 
+
 def test_check_response_chunk_match():
     """返回条数与可翻译行数一致时无警告"""
     chunk = 'e "Line A"\ne "Line B"\ne "Line C"'
-    warnings = file_processor.check_response_chunk(chunk, [
-        {"line": 1, "original": "Line A", "zh": "行A"},
-        {"line": 2, "original": "Line B", "zh": "行B"},
-        {"line": 3, "original": "Line C", "zh": "行C"},
-    ])
+    warnings = file_processor.check_response_chunk(
+        chunk,
+        [
+            {"line": 1, "original": "Line A", "zh": "行A"},
+            {"line": 2, "original": "Line B", "zh": "行B"},
+            {"line": 3, "original": "Line C", "zh": "行C"},
+        ],
+    )
     assert len(warnings) == 0
     print("[OK] check_response_chunk_match")
 
@@ -326,16 +334,19 @@ def test_check_response_chunk_match():
 def test_check_response_chunk_mismatch():
     """返回条数不一致时有警告"""
     chunk = 'e "Line A"\ne "Line B"\ne "Line C"'
-    warnings = file_processor.check_response_chunk(chunk, [
-        {"line": 1, "original": "Line A", "zh": "行A"},
-    ])
+    warnings = file_processor.check_response_chunk(
+        chunk,
+        [
+            {"line": 1, "original": "Line A", "zh": "行A"},
+        ],
+    )
     assert len(warnings) > 0 and "不一致" in warnings[0]
     print("[OK] check_response_chunk_mismatch")
 
 
 def test_check_response_chunk_empty():
     """无可翻译行的 chunk + 空返回 → 无警告"""
-    chunk = '# This is a comment\nlabel start:\n    pass'
+    chunk = "# This is a comment\nlabel start:\n    pass"
     warnings = file_processor.check_response_chunk(chunk, [])
     assert len(warnings) == 0
     print("[OK] check_response_chunk_empty")
@@ -344,9 +355,12 @@ def test_check_response_chunk_empty():
 def test_check_response_chunk_skip_chinese():
     """已含中文的行不计入 expected（视为已翻译）"""
     chunk = 'e "你好世界"\ne "Hello"'
-    warnings = file_processor.check_response_chunk(chunk, [
-        {"line": 2, "original": "Hello", "zh": "你好"},
-    ])
+    warnings = file_processor.check_response_chunk(
+        chunk,
+        [
+            {"line": 2, "original": "Hello", "zh": "你好"},
+        ],
+    )
     assert len(warnings) == 0
     print("[OK] check_response_chunk_skip_chinese")
 
@@ -355,9 +369,11 @@ def test_check_response_chunk_skip_chinese():
 # C: 集成级测试 — 密度自适应 / 跳过名单 / 漏翻检测 / TranslationDB
 # ============================================================
 
+
 def test_skip_files():
     """T7: SKIP_FILES_FOR_TRANSLATION 跳过逻辑"""
     from file_processor import SKIP_FILES_FOR_TRANSLATION
+
     for name in ("define.rpy", "variables.rpy", "screens.rpy", "options.rpy", "earlyoptions.rpy"):
         assert name in SKIP_FILES_FOR_TRANSLATION, f"{name} not in SKIP_FILES"
     assert "script.rpy" not in SKIP_FILES_FOR_TRANSLATION
@@ -367,10 +383,14 @@ def test_skip_files():
 def test_restore_placeholders_in_translations():
     """测试 _restore_placeholders_in_translations 辅助函数（round 27 A-H-2: now in file_processor）"""
     from file_processor import _restore_placeholders_in_translations, protect_placeholders
+
     text = "Hello [name], welcome to {color=#f00}town{/color}!"
     protected, mapping = protect_placeholders(text)
     translations = [
-        {"original": protected, "zh": f"你好 {protected.split('__RENPY_PH_0__')[0]}__RENPY_PH_0__！"}
+        {
+            "original": protected,
+            "zh": f"你好 {protected.split('__RENPY_PH_0__')[0]}__RENPY_PH_0__！",
+        }
     ]
     # 不应崩溃
     _restore_placeholders_in_translations(translations, mapping)
@@ -383,12 +403,14 @@ def test_restore_placeholders_in_translations():
 # D: 第九轮新增测试
 # ============================================================
 
+
 def test_filter_checked_translations():
     """T47: _filter_checked_translations 正常/空译文/占位符缺失（round 27 A-H-2: now in file_processor）"""
     from file_processor import _filter_checked_translations
+
     items = [
         {"line": 1, "original": "Hello", "zh": "你好"},
-        {"line": 2, "original": "World", "zh": ""},          # 空译文 → dropped
+        {"line": 2, "original": "World", "zh": ""},  # 空译文 → dropped
         {"line": 3, "original": "[name] hi", "zh": "你好"},  # 占位符缺失 → dropped
     ]
     kept, dropped_count, dropped_items, warnings = _filter_checked_translations(items)
@@ -401,10 +423,10 @@ def test_filter_checked_translations():
 
 def test_protect_control_tags():
     """Ren'Py 控制标签 {w}/{p}/{nw}/{fast}/{cps=N} 被占位符保护覆盖"""
-    text = 'Wait{w=0.5} pause{p} nowait{nw} fast{fast} speed{cps=20} done{done}'
+    text = "Wait{w=0.5} pause{p} nowait{nw} fast{fast} speed{cps=20} done{done}"
     protected, mapping = file_processor.protect_placeholders(text)
     # 所有控制标签应被替换
-    for tag in ['{w=0.5}', '{p}', '{nw}', '{fast}', '{cps=20}', '{done}']:
+    for tag in ["{w=0.5}", "{p}", "{nw}", "{fast}", "{cps=20}", "{done}"]:
         assert tag not in protected, f"{tag} not protected"
     # 还原后完全一致
     restored = file_processor.restore_placeholders(protected, mapping)
@@ -415,10 +437,11 @@ def test_protect_control_tags():
 def test_replace_string_prefix_strip():
     """WF-08 修复：AI 返回含行前缀的 original 时能正确剥离并替换"""
     from file_processor.patcher import _replace_string_in_line
+
     # AI 返回 text _("原文") 但行中实际是 _("原文") 结构
     line = '            text _("Made with Ren\'Py")'
     # AI 的 original 包含了 text _(" 前缀
-    result = _replace_string_in_line(line, 'text _("Made with Ren\'Py")', '由 Ren\'Py 制作')
+    result = _replace_string_in_line(line, 'text _("Made with Ren\'Py")', "由 Ren'Py 制作")
     assert result is not None, "prefix strip should match"
     assert "由 Ren'Py 制作" in result
     print("[OK] replace_string_prefix_strip")
@@ -427,8 +450,9 @@ def test_replace_string_prefix_strip():
 def test_replace_string_escaped_quotes():
     """WF-04 修复：含转义引号的字符串匹配"""
     from file_processor.patcher import _replace_string_in_line
+
     line = r'    textbutton "She said \"hello\""'
-    result = _replace_string_in_line(line, r'She said \"hello\"', '她说了"你好"')
+    result = _replace_string_in_line(line, r"She said \"hello\"", '她说了"你好"')
     # 即使匹配不上（转义引号情况复杂），至少不应崩溃
     # 如果匹配成功更好
     print(f"[OK] replace_string_escaped_quotes (result={'matched' if result else 'no_match'})")
@@ -446,18 +470,18 @@ def test_w_round57_s4_fuzz_escape_for_renpy_string():
     # Adversarial inputs: things an LLM might emit that would break .rpy
     # if pasted verbatim.
     payloads = [
-        '"',                                        # bare unescaped quote
-        '\\',                                       # bare backslash
-        '\\"',                                      # already-escaped quote
-        '\\\\',                                     # escaped backslash
-        '"""',                                      # triple-quote (Python string ambiguity)
+        '"',  # bare unescaped quote
+        "\\",  # bare backslash
+        '\\"',  # already-escaped quote
+        "\\\\",  # escaped backslash
+        '"""',  # triple-quote (Python string ambiguity)
         'normal text with " in middle and \\ too',  # mixed
-        'line1\nline2\rline3\r\nline4',             # all line-ending forms
-        'a' * 1000 + '"',                           # long input + trailing quote
-        '\x00 NUL',                                 # control char
-        'tab\there',                                # tab — should pass through
-        '不 escape "你好"',                         # non-ASCII + quotes
-        '',                                         # empty string
+        "line1\nline2\rline3\r\nline4",  # all line-ending forms
+        "a" * 1000 + '"',  # long input + trailing quote
+        "\x00 NUL",  # control char
+        "tab\there",  # tab — should pass through
+        '不 escape "你好"',  # non-ASCII + quotes
+        "",  # empty string
     ]
     for raw in payloads:
         escaped = _escape_for_renpy_string(raw, '"')
@@ -468,17 +492,16 @@ def test_w_round57_s4_fuzz_escape_for_renpy_string():
             if escaped[i] == '"':
                 preceding_bs = 0
                 j = i - 1
-                while j >= 0 and escaped[j] == '\\':
+                while j >= 0 and escaped[j] == "\\":
                     preceding_bs += 1
                     j -= 1
                 assert preceding_bs % 2 == 1, (
-                    f"unescaped quote at position {i} in {escaped!r} "
-                    f"(from raw={raw!r})"
+                    f"unescaped quote at position {i} in {escaped!r} (from raw={raw!r})"
                 )
             i += 1
         # Property 2: no stray bare CR (Windows CRLF must be normalised
         # to \\n; raw \\r must be stripped per docstring contract)
-        assert '\r' not in escaped, f"raw \\r leaked into {escaped!r}"
+        assert "\r" not in escaped, f"raw \\r leaked into {escaped!r}"
         # Property 3: function never crashes — already covered by reaching here
 
     print(f"[OK] w_round57_s4_fuzz_escape_for_renpy_string ({len(payloads)} payloads)")
@@ -504,8 +527,8 @@ def test_w_round57_s4_escape_round_trip_invariant():
             assert '\\"' not in result, f"spurious escape: {s!r} → {result!r}"
         # Backslash count: input \\ count == output \\\\ count (each \\ doubled)
         # but on inputs without backslash, no spurious one
-        if '\\' not in s:
-            assert '\\\\' not in result, f"spurious double-backslash: {s!r} → {result!r}"
+        if "\\" not in s:
+            assert "\\\\" not in result, f"spurious double-backslash: {s!r} → {result!r}"
     print("[OK] w_round57_s4_escape_round_trip_invariant")
 
 
@@ -528,9 +551,7 @@ def test_fix_chinese_placeholder_drift():
     assert fix_chinese_placeholder_drift("Hello {{姓名}}") == "Hello {{name}}"
 
     # Multiple drifts in one string.
-    assert fix_chinese_placeholder_drift(
-        "[姓名]说：我是[名字]"
-    ) == "[name]说：我是[name]"
+    assert fix_chinese_placeholder_drift("[姓名]说：我是[名字]") == "[name]说：我是[name]"
 
     # Idempotent — already-correct strings pass through.
     assert fix_chinese_placeholder_drift("Hello [name]") == "Hello [name]"
@@ -553,7 +574,7 @@ def test_filter_checked_translations_fixes_placeholder_drift():
     # zh first so the entry is kept and the zh is canonical.
     translations = [
         {"line": 1, "original": "Hello [name]!", "zh": "你好 [姓名]！"},
-        {"line": 2, "original": "Bye [friend]",  "zh": "再见 [friend]"},  # already correct
+        {"line": 2, "original": "Bye [friend]", "zh": "再见 [friend]"},  # already correct
     ]
 
     kept, dropped_count, dropped_items, warnings = _filter_checked_translations(translations)

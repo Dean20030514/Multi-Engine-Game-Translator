@@ -8,20 +8,25 @@ Run from project root. After running, copy stage2_translated/game contents into 
 import os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.font_patch import resolve_font, apply_font_patch, default_resources_fonts_dir
 
 # Already-translated output (stage2_translated/game)
-OUTPUT_GAME = Path(os.environ.get(
-    "PATCH_OUTPUT_GAME",
-    r"output\projects\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\stage2_translated\game",
-))
+OUTPUT_GAME = Path(
+    os.environ.get(
+        "PATCH_OUTPUT_GAME",
+        r"output\projects\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\stage2_translated\game",
+    )
+)
 # Original game directory (game subdir)
-SOURCE_GAME = Path(os.environ.get(
-    "TEST_GAME_DIR",
-    r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game",
-))
+SOURCE_GAME = Path(
+    os.environ.get(
+        "TEST_GAME_DIR",
+        r"E:\浏览器下载\TheTyrant-0.9.4b.with.Official.SAZmod-pc-compressed\game",
+    )
+)
 
 if __name__ == "__main__":
     # Round 29 fixed a ``Path(__file__).parent`` bug here; round 32 extracts

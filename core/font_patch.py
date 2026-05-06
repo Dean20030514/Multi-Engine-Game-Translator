@@ -90,6 +90,7 @@ def load_font_config(config_path: "Path | None") -> dict:
         }
     """
     import json as _json
+
     if not config_path:
         return {}
     config_path = Path(config_path)
@@ -185,10 +186,10 @@ def apply_font_patch(
         for var_name, value in overrides.items():
             # 匹配 define gui.xxx = N 或 define gui.xxx = N.N
             var_pattern = re.compile(
-                rf'^(\s*define\s+{re.escape(var_name)}\s*=\s*)[\d.]+(\s*)$',
+                rf"^(\s*define\s+{re.escape(var_name)}\s*=\s*)[\d.]+(\s*)$",
                 re.MULTILINE,
             )
-            new_text, n = var_pattern.subn(rf'\g<1>{value}\2', new_text)
+            new_text, n = var_pattern.subn(rf"\g<1>{value}\2", new_text)
             size_count += n
         if size_count:
             logger.info(f"已更新 gui.rpy 中 {size_count} 处 gui 参数（font_config）")

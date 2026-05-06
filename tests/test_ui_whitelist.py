@@ -54,7 +54,7 @@ def test_is_common_ui_button():
     assert not is_common_ui_button("")
     assert not is_common_ui_button("   ")
     assert not is_common_ui_button(None)  # type: ignore[arg-type]
-    assert not is_common_ui_button(42)    # type: ignore[arg-type]
+    assert not is_common_ui_button(42)  # type: ignore[arg-type]
 
     # Whitelist export has the expected shape.
     assert isinstance(COMMON_UI_BUTTONS, frozenset)
@@ -79,7 +79,9 @@ def test_load_ui_button_whitelist_txt():
 
     # Content includes a BOM, a comment, a blank line, mixed case, and
     # whitespace variants we expect to normalise to the same token.
-    content = "\ufeff# customised UI buttons\n存档\n读档\n\n  Main Hub  \n# trailing comment\nProceed\n"
+    content = (
+        "\ufeff# customised UI buttons\n存档\n读档\n\n  Main Hub  \n# trailing comment\nProceed\n"
+    )
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as f:
         f.write(content)
         tmp_path = f.name
@@ -185,6 +187,7 @@ def test_ui_button_whitelist_builtin_untouched():
     # Re-import to simulate a fresh reader — the module-level constant
     # must still be the exact same frozenset object.
     from file_processor import COMMON_UI_BUTTONS as COMMON_UI_BUTTONS_RELOADED
+
     assert id(COMMON_UI_BUTTONS_RELOADED) == baseline_id
     assert len(COMMON_UI_BUTTONS_RELOADED) == baseline_len
     assert "扩展按钮 A".lower() not in COMMON_UI_BUTTONS_RELOADED
@@ -280,8 +283,7 @@ def test_load_ui_button_whitelist_rejects_oversized_file():
 
         added = load_ui_button_whitelist([str(big_path)])
         assert added == 0, (
-            f"oversized whitelist file must be skipped (no entries added), "
-            f"got added={added}"
+            f"oversized whitelist file must be skipped (no entries added), got added={added}"
         )
         # Extensions snapshot should remain empty (no new entries).
         assert get_ui_button_whitelist_extensions() == frozenset(), (
@@ -346,12 +348,14 @@ def test_load_ui_button_whitelist_mixed_directory():
 
         # Mix the order to prove ordering does not influence per-file
         # gating (small entries before / between / after oversized files).
-        added = load_ui_button_whitelist([
-            str(small_txt),
-            str(big_json),
-            str(small_json),
-            str(big_txt),
-        ])
+        added = load_ui_button_whitelist(
+            [
+                str(small_txt),
+                str(big_json),
+                str(small_json),
+                str(big_txt),
+            ]
+        )
 
         # 3 valid tokens added: round46_a + round46_b (small.txt) +
         # round46_c (small.json).  Oversized files contributed 0.
@@ -402,8 +406,7 @@ def test_load_ui_button_whitelist_order_invariant():
             f.seek(51 * 1024 * 1024 - 1)
             f.write(b"\0")
         small_json = td_path / "small.json"
-        small_json.write_text(_json.dumps(["gamma"], ensure_ascii=False),
-                              encoding="utf-8")
+        small_json.write_text(_json.dumps(["gamma"], ensure_ascii=False), encoding="utf-8")
 
         files = [str(small_txt), str(big_json), str(small_json)]
         # 3 representative permutations: forward / backward / big-first
@@ -423,8 +426,7 @@ def test_load_ui_button_whitelist_order_invariant():
                 expected_ext = ext
                 expected_added = added
             assert ext == expected_ext, (
-                f"order {perm}: extension set differs;\n"
-                f"  got      {ext}\n  expected {expected_ext}"
+                f"order {perm}: extension set differs;\n  got      {ext}\n  expected {expected_ext}"
             )
             assert added == expected_added, (
                 f"order {perm}: added count {added} != expected {expected_added}"
@@ -467,9 +469,7 @@ def test_load_ui_button_whitelist_dedupes_cross_files():
         assert "unique_a" in ext
         assert "unique_b" in ext
         # Exactly 3 unique tokens — shared_token deduped across files.
-        assert len(ext) == 3, (
-            f"expected 3 unique tokens (shared deduped), got {len(ext)}: {ext}"
-        )
+        assert len(ext) == 3, f"expected 3 unique tokens (shared deduped), got {len(ext)}: {ext}"
         # added = net new across batch = 3 (shared_token + unique_a +
         # unique_b); the 2nd file's "shared_token" contributes 0.
         assert added == 3, (
@@ -525,20 +525,25 @@ def test_load_ui_button_whitelist_normalization_dedupes_cross_files():
             f"must be in extensions: {ext}"
         )
         assert len(ext) == 2, (
-            f"expected 2 unique normalised tokens (save + save game), "
-            f"got {len(ext)}: {ext}"
+            f"expected 2 unique normalised tokens (save + save game), got {len(ext)}: {ext}"
         )
         # added counter = 2 net new (case/whitespace variations all dedup
         # to 2 normalised tokens; subsequent additions return 0)
-        assert added == 2, (
-            f"expected added=2 (case/whitespace all dedup), got {added}"
-        )
+        assert added == 2, f"expected added=2 (case/whitespace all dedup), got {added}"
 
         # All 6 raw variations resolve via is_common_ui_button (the
         # lookup also normalises before checking, so case/whitespace
         # variations of either stored token still match).
-        for variation in ("Save", "save", "  Save  ", "SAVE",
-                          "Save Game", "save  game", " Save Game ", "SAVE GAME"):
+        for variation in (
+            "Save",
+            "save",
+            "  Save  ",
+            "SAVE",
+            "Save Game",
+            "save  game",
+            " Save Game ",
+            "SAVE GAME",
+        ):
             assert is_common_ui_button(variation), (
                 f"variation {variation!r} should match the normalised "
                 f"stored form via is_common_ui_button"
@@ -579,9 +584,7 @@ def test_normalise_ui_button_does_not_apply_unicode_nfc_nfd_normalisation():
     nfd_form = "café"
 
     # Test fixture sanity: visually identical but codepoint-distinct.
-    assert nfc_form != nfd_form, (
-        "test fixture: NFC and NFD strings must differ at codepoint level"
-    )
+    assert nfc_form != nfd_form, "test fixture: NFC and NFD strings must differ at codepoint level"
     assert len(nfc_form) == 4 and len(nfd_form) == 5, (
         f"test fixture: NFC len should be 4 and NFD len should be 5, "
         f"got {len(nfc_form)} / {len(nfd_form)}"
@@ -601,9 +604,7 @@ def test_normalise_ui_button_does_not_apply_unicode_nfc_nfd_normalisation():
     clear_ui_button_whitelist()
     try:
         added = add_ui_button_whitelist([nfc_form])
-        assert added == 1, (
-            f"NFC token should be added as 1 new entry, got added={added}"
-        )
+        assert added == 1, f"NFC token should be added as 1 new entry, got added={added}"
 
         # NFC lookup hits the stored NFC token.
         assert is_common_ui_button(nfc_form), (

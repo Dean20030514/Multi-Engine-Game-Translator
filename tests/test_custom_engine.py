@@ -26,7 +26,6 @@ New tests for r52 BREAKING:
 
 import json
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -41,6 +40,7 @@ from core.api_client import (
 # ============================================================
 # APIConfig tests
 # ============================================================
+
 
 def test_config_custom_provider():
     """APIConfig accepts 'custom' provider."""
@@ -61,6 +61,7 @@ def test_config_custom_module_default():
 # ============================================================
 # APIClient custom engine call tests (sandbox-only as of round 52)
 # ============================================================
+
 
 def test_client_custom_batch():
     """APIClient with custom provider calls translate_batch via sandbox."""
@@ -159,7 +160,9 @@ def test_sandbox_roundtrip_batch():
     """Full happy path: launch example_echo in sandbox, send a batch
     request, verify the response reaches the host unchanged."""
     config = APIConfig(
-        provider="custom", api_key="", custom_module="example_echo",
+        provider="custom",
+        api_key="",
+        custom_module="example_echo",
     )
     client = APIClient(config)
     try:
@@ -177,7 +180,9 @@ def test_sandbox_request_id_tracking():
     """Multiple chunks share one subprocess; every response's request_id
     must match the dispatched request (no off-by-one / no lost messages)."""
     config = APIConfig(
-        provider="custom", api_key="", custom_module="example_echo",
+        provider="custom",
+        api_key="",
+        custom_module="example_echo",
     )
     client = APIClient(config)
     try:
@@ -225,7 +230,9 @@ def test_sandbox_plugin_exception_wrapped():
     path = _write_plugin("_test_sandbox_raises", body)
     try:
         config = APIConfig(
-            provider="custom", api_key="", custom_module="_test_sandbox_raises",
+            provider="custom",
+            api_key="",
+            custom_module="_test_sandbox_raises",
         )
         client = APIClient(config)
         try:
@@ -332,8 +339,10 @@ def test_sandbox_timeout_kills_hung_plugin():
     try:
         # Use a very small timeout so the test finishes quickly.
         config = APIConfig(
-            provider="custom", api_key="",
-            custom_module="_test_sandbox_hang", timeout=1.0,
+            provider="custom",
+            api_key="",
+            custom_module="_test_sandbox_hang",
+            timeout=1.0,
         )
         client = APIClient(config)
         try:
@@ -393,9 +402,7 @@ def test_sandbox_stderr_read_bounded():
         # the stderr payload was 3 KB but the error embeds only the last
         # 600 chars of a 10 KB-bounded read — so the message stays short
         # regardless of how much the plugin wrote.
-        assert len(err) < 2_000, (
-            f"stderr tail leaked too much into error ({len(err)} chars)"
-        )
+        assert len(err) < 2_000, f"stderr tail leaked too much into error ({len(err)} chars)"
     finally:
         path.unlink(missing_ok=True)
     print("[OK] test_sandbox_stderr_read_bounded")
@@ -404,7 +411,9 @@ def test_sandbox_stderr_read_bounded():
 def test_sandbox_close_idempotent():
     """Calling close() twice on a subprocess client is a no-op the second time."""
     config = APIConfig(
-        provider="custom", api_key="", custom_module="example_echo",
+        provider="custom",
+        api_key="",
+        custom_module="example_echo",
     )
     client = APIClient(config)
     sandbox = client._custom_module
@@ -457,6 +466,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[FAIL] {t.__name__}: {e}")
             import traceback
+
             traceback.print_exc()
             failed += 1
 

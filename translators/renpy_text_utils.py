@@ -17,7 +17,7 @@ from file_processor import read_file, SKIP_FILES_FOR_TRANSLATION
 # 可配置阈值常量
 # ============================================================
 
-MIN_UNTRANSLATED_TEXT_LENGTH = 20      # 疑似漏翻最小文本长度
+MIN_UNTRANSLATED_TEXT_LENGTH = 20  # 疑似漏翻最小文本长度
 # Round 53 W4: ``MIN_ENGLISH_CHARS_FOR_UNTRANSLATED`` hard-codes the
 # leakage-detection rule to ASCII letters, which makes direct-mode
 # implicitly English-source-only. Non-English source games (ja/ko/etc)
@@ -30,6 +30,7 @@ MIN_ENGLISH_CHARS_FOR_UNTRANSLATED = 12  # 疑似漏翻最小英文字符数 (En
 # 行级文本判定
 # ============================================================
 
+
 def _is_user_visible_string_line(line: str) -> bool:
     """判断该行是否大概率是用户可见文本，而不是代码标识符。"""
     stripped = line.strip()
@@ -39,11 +40,28 @@ def _is_user_visible_string_line(line: str) -> bool:
     lower = stripped.lower()
 
     # 明确排除：典型代码/配置字符串行
-    if any(k in lower for k in (
-        "style_prefix", "id ", " action ", "action ", "jump(", "call(",
-        "setvariable(", "setfield(", "showmenu(", "use ", "add ", "image ",
-        "build.classify", "build.archive", "label ", "screen ", "transform ",
-    )):
+    if any(
+        k in lower
+        for k in (
+            "style_prefix",
+            "id ",
+            " action ",
+            "action ",
+            "jump(",
+            "call(",
+            "setvariable(",
+            "setfield(",
+            "showmenu(",
+            "use ",
+            "add ",
+            "image ",
+            "build.classify",
+            "build.archive",
+            "label ",
+            "screen ",
+            "transform ",
+        )
+    ):
         return False
 
     # 明确包含：角色对话/旁白
@@ -53,7 +71,7 @@ def _is_user_visible_string_line(line: str) -> bool:
     # 界面可见文本
     if re.search(r'\b(text|textbutton)\s+"', line):
         return True
-    if "renpy.notify(\"" in line:
+    if 'renpy.notify("' in line:
         return True
     if re.search(r'_\("', line):
         return True
@@ -65,7 +83,11 @@ def _is_untranslated_dialogue(text: str) -> bool:
     """判断一段对话文本是否为疑似未翻译的英文。"""
     cn = sum(1 for c in text if "\u4e00" <= c <= "\u9fff")
     en = sum(1 for c in text if "a" <= c.lower() <= "z")
-    return cn == 0 and en >= MIN_ENGLISH_CHARS_FOR_UNTRANSLATED and len(text) >= MIN_UNTRANSLATED_TEXT_LENGTH
+    return (
+        cn == 0
+        and en >= MIN_ENGLISH_CHARS_FOR_UNTRANSLATED
+        and len(text) >= MIN_UNTRANSLATED_TEXT_LENGTH
+    )
 
 
 def _extract_dialogue_text(line: str) -> str | None:
@@ -86,6 +108,7 @@ def _extract_dialogue_text(line: str) -> str | None:
 # ============================================================
 # 文件级统计
 # ============================================================
+
 
 def count_untranslated_dialogues_in_file(path: Path) -> tuple[int, int]:
     """返回 (对话行总数, 疑似未翻译英文对话行数)。"""

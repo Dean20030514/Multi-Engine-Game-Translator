@@ -71,10 +71,13 @@ class AppDialogsMixin:
                 import io
                 import contextlib
                 from tools.renpy_upgrade_tool import run_scan
+
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf):
                     results, file_count = run_scan(
-                        scan_dir, fix=do_fix, backup=True,
+                        scan_dir,
+                        fix=do_fix,
+                        backup=True,
                     )
                 output = buf.getvalue()
                 for line in output.splitlines(keepends=True):
@@ -90,7 +93,8 @@ class AppDialogsMixin:
         path = self.var_config_path.get().strip()
         if not path:
             path = filedialog.askopenfilename(
-                title="选择配置文件", filetypes=[("JSON", "*.json"), ("所有文件", "*.*")])
+                title="选择配置文件", filetypes=[("JSON", "*.json"), ("所有文件", "*.*")]
+            )
             if not path:
                 return
             self.var_config_path.set(path)
@@ -120,13 +124,20 @@ class AppDialogsMixin:
                     return
                 data = json.loads(f.read())
             mapping = {
-                "provider": self.var_provider, "model": self.var_model,
-                "genre": self.var_genre, "rpm": self.var_rpm, "rps": self.var_rps,
-                "workers": self.var_workers, "file_workers": self.var_file_workers,
+                "provider": self.var_provider,
+                "model": self.var_model,
+                "genre": self.var_genre,
+                "rpm": self.var_rpm,
+                "rps": self.var_rps,
+                "workers": self.var_workers,
+                "file_workers": self.var_file_workers,
                 "timeout": self.var_timeout,
-                "temperature": self.var_temperature, "max_chunk_tokens": self.var_max_chunk,
-                "max_response_tokens": self.var_max_response, "target_lang": None,
-                "tl_lang": self.var_tl_lang, "min_dialogue_density": self.var_min_density,
+                "temperature": self.var_temperature,
+                "max_chunk_tokens": self.var_max_chunk,
+                "max_response_tokens": self.var_max_response,
+                "target_lang": None,
+                "tl_lang": self.var_tl_lang,
+                "min_dialogue_density": self.var_min_density,
                 "output_dir": self.var_output_dir,
             }
             for key, var in mapping.items():
@@ -140,8 +151,8 @@ class AppDialogsMixin:
         path = self.var_config_path.get().strip()
         if not path:
             path = filedialog.asksaveasfilename(
-                title="保存配置", defaultextension=".json",
-                filetypes=[("JSON", "*.json")])
+                title="保存配置", defaultextension=".json", filetypes=[("JSON", "*.json")]
+            )
             if not path:
                 return
             self.var_config_path.set(path)

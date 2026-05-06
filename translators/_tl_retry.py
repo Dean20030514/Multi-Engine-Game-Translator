@@ -27,6 +27,7 @@ emit a warning. Pure observation — never aborts the chunk.
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -234,7 +235,13 @@ def run_retry_stage(
         futures = {
             pool.submit(
                 _translate_one_retry_chunk,
-                client, system_prompt, fpath, ci, total, ctext, centries,
+                client,
+                system_prompt,
+                fpath,
+                ci,
+                total,
+                ctext,
+                centries,
             ): (fpath, ci, total)
             for fpath, ci, total, ctext, centries in all_tasks
         }
@@ -253,7 +260,8 @@ def run_retry_stage(
                 continue
 
             drifted, drift_ratio, n_missing, n_extra = detect_id_drift(
-                expected_ids, returned_ids,
+                expected_ids,
+                returned_ids,
             )
 
             with _lock:
@@ -270,10 +278,7 @@ def run_retry_stage(
             if dropped:
                 msg += f", 丢弃 {dropped} 条"
             if drifted:
-                msg += (
-                    f"  [W3-DRIFT {drift_ratio:.0%}] "
-                    f"missing={n_missing} extra={n_extra}"
-                )
+                msg += f"  [W3-DRIFT {drift_ratio:.0%}] missing={n_missing} extra={n_extra}"
             logger.info(msg)
 
     if drift_warn_count > 0:
@@ -304,8 +309,12 @@ def run_retry_stage(
                     total_translated += 1
             else:  # StringEntry
                 zh, _fb_level = _match_string_entry_fallback(
-                    entry.old, r_kept,
-                    r_stripped, r_clean, r_norm, r_tagstripped,
+                    entry.old,
+                    r_kept,
+                    r_stripped,
+                    r_clean,
+                    r_norm,
+                    r_tagstripped,
                 )
                 if zh:
                     entry.new = zh
@@ -320,8 +329,6 @@ def run_retry_stage(
                 modified_rpy_files.add(str(Path(fpath).relative_to(game_dir)))
             except ValueError:
                 pass  # absolute path — skip the relative-tracking optimisation
-            logger.debug(
-                f"  [TL-RETRY] 回填 {len(r_matched)} 条到 {Path(fpath).name}"
-            )
+            logger.debug(f"  [TL-RETRY] 回填 {len(r_matched)} 条到 {Path(fpath).name}")
 
     return total_translated, total_filled

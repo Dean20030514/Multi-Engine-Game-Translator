@@ -18,13 +18,24 @@ logger = logging.getLogger(__name__)
 # ---- 常量（从 one_click_pipeline.py 迁入）----
 
 RISK_KEYWORDS = [
-    "screen", "gui", "options", "menu", "club", "dining", "living",
-    "parents", "secret", "weekend", "v0", "help", "interaction",
+    "screen",
+    "gui",
+    "options",
+    "menu",
+    "club",
+    "dining",
+    "living",
+    "parents",
+    "secret",
+    "weekend",
+    "v0",
+    "help",
+    "interaction",
 ]
 
-MAX_FILE_RANK_SCORE = 200        # 文件大小评分上限
-RISK_KEYWORD_SCORE = 80          # 命中风险关键词加分
-SAZMOD_BONUS_SCORE = 30          # SAZMOD 模组额外加分
+MAX_FILE_RANK_SCORE = 200  # 文件大小评分上限
+RISK_KEYWORD_SCORE = 80  # 命中风险关键词加分
+SAZMOD_BONUS_SCORE = 30  # SAZMOD 模组额外加分
 
 LEN_RATIO_LOWER = 0.15
 LEN_RATIO_UPPER = 2.5
@@ -111,20 +122,34 @@ def run_main(
     cmd = [
         sys.executable,
         str(Path(__file__).resolve().parent.parent / "main.py"),
-        "--game-dir", str(game_dir),
-        "--output-dir", str(output_dir),
-        "--provider", provider,
-        "--api-key", api_key,
-        "--genre", genre,
-        "--workers", str(workers),
-        "--rpm", str(rpm),
-        "--rps", str(rps),
-        "--timeout", str(timeout),
-        "--max-chunk-tokens", str(max_chunk_tokens),
-        "--max-response-tokens", str(max_response_tokens),
-        "--log-file", str(log_file),
-        "--stage", stage,
-        "--min-dialogue-density", str(min_dialogue_density),
+        "--game-dir",
+        str(game_dir),
+        "--output-dir",
+        str(output_dir),
+        "--provider",
+        provider,
+        "--api-key",
+        api_key,
+        "--genre",
+        genre,
+        "--workers",
+        str(workers),
+        "--rpm",
+        str(rpm),
+        "--rps",
+        str(rps),
+        "--timeout",
+        str(timeout),
+        "--max-chunk-tokens",
+        str(max_chunk_tokens),
+        "--max-response-tokens",
+        str(max_response_tokens),
+        "--log-file",
+        str(log_file),
+        "--stage",
+        stage,
+        "--min-dialogue-density",
+        str(min_dialogue_density),
     ]
     if model:
         cmd += ["--model", model]
@@ -160,4 +185,4 @@ def package_output(output_root: Path, package_name: str) -> Path:
 
 def _normalize_ws(s: str) -> str:
     """将连续空白压缩为单空格，去除首尾空白。"""
-    return re.sub(r'\s+', ' ', s.strip())
+    return re.sub(r"\s+", " ", s.strip())

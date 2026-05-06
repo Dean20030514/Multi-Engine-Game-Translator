@@ -3,7 +3,6 @@
 
 import io
 import json
-import os
 import pickle
 import struct
 import sys
@@ -15,9 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.rpyc_decompiler import (
     RPYC2_HEADER,
-    NoRenpyRuntime,
-    RPYCError,
-    _DummyClass,
     _RestrictedUnpickler,
     _detect_renpy_version,
     _find_renpy_python,
@@ -31,6 +27,7 @@ from tools.rpyc_decompiler import (
 # ---------------------------------------------------------------------------
 # Helpers: build synthetic .rpyc files
 # ---------------------------------------------------------------------------
+
 
 def _make_rpyc2(ast_data: bytes) -> bytes:
     """Build a minimal RPYC2 file with AST data in slot 1."""
@@ -53,9 +50,11 @@ def _make_legacy_rpyc(ast_data: bytes) -> bytes:
     return zlib.compress(ast_data)
 
 
-def _make_dummy_ast(say_texts: list[tuple[str, str]],
-                    menu_items: list[str] = None,
-                    translate_strings: list[tuple[str, str]] = None) -> bytes:
+def _make_dummy_ast(
+    say_texts: list[tuple[str, str]],
+    menu_items: list[str] = None,
+    translate_strings: list[tuple[str, str]] = None,
+) -> bytes:
     """Build pickled AST that mimics real Ren'Py output.
 
     Uses pickletools to manually build a pickle stream that references
@@ -135,6 +134,7 @@ def _make_dummy_ast(say_texts: list[tuple[str, str]],
 # Tests: RPYC binary format
 # ---------------------------------------------------------------------------
 
+
 def test_read_rpyc2_slot1():
     """Read slot 1 data from a RPYC2 file."""
     original = b"test AST data for slot 1"
@@ -191,6 +191,7 @@ def test_read_corrupted_rpyc():
 # Tests: RestrictedUnpickler
 # ---------------------------------------------------------------------------
 
+
 def test_restricted_unpickler():
     """RestrictedUnpickler substitutes renpy classes with DummyClass."""
     ast_data = _make_dummy_ast([("mc", "Hello world")])
@@ -208,13 +209,16 @@ def test_restricted_unpickler():
 # Tests: text extraction from AST
 # ---------------------------------------------------------------------------
 
+
 def test_extract_say_statements():
     """Extract say statement text from a .rpyc file."""
-    ast_data = _make_dummy_ast([
-        ("mc", "Hello, how are you?"),
-        ("girl", "I'm fine, thanks!"),
-        (None, "The narrator speaks."),
-    ])
+    ast_data = _make_dummy_ast(
+        [
+            ("mc", "Hello, how are you?"),
+            ("girl", "I'm fine, thanks!"),
+            (None, "The narrator speaks."),
+        ]
+    )
     rpyc_data = _make_rpyc2(ast_data)
 
     with tempfile.NamedTemporaryFile(suffix=".rpyc", delete=False) as f:
@@ -331,10 +335,12 @@ def test_extract_empty_rpyc():
 
 def test_extract_unicode_content():
     """Extract Unicode text (CJK, emoji) from a .rpyc file."""
-    ast_data = _make_dummy_ast([
-        ("主角", "你好世界！这是一个测试。"),
-        ("narrator", "日本語テスト"),
-    ])
+    ast_data = _make_dummy_ast(
+        [
+            ("主角", "你好世界！这是一个测试。"),
+            ("narrator", "日本語テスト"),
+        ]
+    )
     rpyc_data = _make_rpyc2(ast_data)
 
     with tempfile.NamedTemporaryFile(suffix=".rpyc", delete=False) as f:
@@ -355,6 +361,7 @@ def test_extract_unicode_content():
 # ---------------------------------------------------------------------------
 # Tests: standalone extraction (directory mode)
 # ---------------------------------------------------------------------------
+
 
 def test_extract_strings_standalone():
     """Extract strings from a directory of .rpyc files."""
@@ -403,6 +410,7 @@ def test_extract_strings_standalone_json_output():
 # Tests: platform detection
 # ---------------------------------------------------------------------------
 
+
 def test_find_renpy_python_not_found():
     """No Python found in empty directory."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -414,6 +422,7 @@ def test_find_renpy_python_not_found():
 def test_find_renpy_python_with_lib():
     """Find Python executable in simulated lib/ structure."""
     import platform as plat
+
     system = plat.system().lower()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -447,6 +456,7 @@ def test_find_renpy_python_with_lib():
 def test_detect_renpy_version():
     """Detect Ren'Py version from Python path patterns."""
     import platform as plat
+
     system = plat.system().lower()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -486,14 +496,13 @@ def test_whitelist_tier1_tier2_consistent():
     from tools.rpyc_decompiler import (
         _SHARED_WHITELIST,
         _WHITELIST_TIER1_PY2_EXTRAS,
-        _RestrictedUnpickler,
         _render_decompile_helper,
     )
 
     rendered = _render_decompile_helper()
 
     def _extract(name: str) -> set:
-        m = _re.search(rf'{name} = frozenset\((\[[^\]]+\])\)', rendered)
+        m = _re.search(rf"{name} = frozenset\((\[[^\]]+\])\)", rendered)
         assert m, f"Tier 1 {name} not found in rendered helper"
         return set(_json.loads(m.group(1)))
 
@@ -503,9 +512,8 @@ def test_whitelist_tier1_tier2_consistent():
     tier1_copyreg = _extract("_SAFE_COPYREG")
 
     # Tier 1 = shared builtins + Py2 extras (long/unicode).
-    expected_tier1_builtins = (
-        set(_SHARED_WHITELIST["builtins"])
-        | set(_WHITELIST_TIER1_PY2_EXTRAS.get("builtins", []))
+    expected_tier1_builtins = set(_SHARED_WHITELIST["builtins"]) | set(
+        _WHITELIST_TIER1_PY2_EXTRAS.get("builtins", [])
     )
     assert tier1_builtins == expected_tier1_builtins, (
         f"Tier 1 builtins drift: expected {expected_tier1_builtins}, got {tier1_builtins}"

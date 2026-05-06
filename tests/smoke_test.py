@@ -40,8 +40,11 @@ def test_w430_len_ratio_suspect_triggered():
     orig = 'label start:\n    e "abcdefghijklmnopqrstuvwxy"\n'
     trans = 'label start:\n    e "一二三四五"\n'
     issues = validate_translation(
-        orig, trans, "t.rpy",
-        len_ratio_lower=0.3, len_ratio_upper=2.5,
+        orig,
+        trans,
+        "t.rpy",
+        len_ratio_lower=0.3,
+        len_ratio_upper=2.5,
     )
     codes = [i["code"] for i in issues]
     assert "W430_LEN_RATIO_SUSPECT" in codes, f"Expected W430 in issues, got: {codes}"
@@ -92,7 +95,9 @@ def test_e411_glossary_lock_miss_triggered():
     terms = data.get("terms", {})
     locked = set(data.get("locked_terms", []))
     issues = validate_translation(
-        orig, trans, "sample_triggers.rpy",
+        orig,
+        trans,
+        "sample_triggers.rpy",
         glossary_terms=terms,
         glossary_locked=locked,
     )
@@ -104,9 +109,13 @@ def test_e420_no_translate_changed_triggered():
     """E420：原文含禁翻片段但译文中缺失时触发。"""
     orig = read_file(TESTS_DIR / "sample_triggers.rpy")
     trans = read_file(TESTS_DIR / "sample_triggers_trans.rpy")
-    no_translate = set(json.load(open(TESTS_DIR / "glossary_test.json", encoding="utf-8")).get("no_translate", []))
+    no_translate = set(
+        json.load(open(TESTS_DIR / "glossary_test.json", encoding="utf-8")).get("no_translate", [])
+    )
     issues = validate_translation(
-        orig, trans, "sample_triggers.rpy",
+        orig,
+        trans,
+        "sample_triggers.rpy",
         glossary_no_translate=no_translate,
     )
     codes = [i["code"] for i in issues]
@@ -119,11 +128,15 @@ def test_e420_case_insensitive_when_kept():
     trans_lines = ['    e "版本是 V1.0 今日发布。"']
     no_translate = {"v1.0"}
     issues = validate_translation(
-        "\n".join(orig_lines), "\n".join(trans_lines), "test.rpy",
+        "\n".join(orig_lines),
+        "\n".join(trans_lines),
+        "test.rpy",
         glossary_no_translate=no_translate,
     )
     e420 = [i for i in issues if i.get("code") == "E420_NO_TRANSLATE_CHANGED"]
-    assert len(e420) == 0, f"E420 should not fire when no_translate kept (case-insensitive), got: {e420}"
+    assert len(e420) == 0, (
+        f"E420 should not fire when no_translate kept (case-insensitive), got: {e420}"
+    )
 
 
 def test_extract_placeholder_sequence_nested_order():
@@ -150,9 +163,11 @@ def test_collect_strings_stats_summary():
 def test_w430_boundary_below_lower():
     """W430 边界：比例 < len_ratio_lower 时触发（需原文>=20、译文>=5 才做比例检查）。"""
     orig = 'e "abcdefghijklmnopqrstuvwxy"'  # 26 字
-    trans = 'e "一二三四五"'                   # 5 字 -> 5/26≈0.19 < 0.3
+    trans = 'e "一二三四五"'  # 5 字 -> 5/26≈0.19 < 0.3
     issues = validate_translation(orig, trans, "t.rpy", len_ratio_lower=0.3, len_ratio_upper=2.5)
-    assert any(i["code"] == "W430_LEN_RATIO_SUSPECT" for i in issues), "W430 should fire when ratio < 0.3"
+    assert any(i["code"] == "W430_LEN_RATIO_SUSPECT" for i in issues), (
+        "W430 should fire when ratio < 0.3"
+    )
 
 
 def test_w430_boundary_at_upper():
@@ -160,7 +175,9 @@ def test_w430_boundary_at_upper():
     orig = 'e "abcdefghijklmnopqrst"'  # 20 字
     trans = 'e "一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一"'  # 51 字 -> 51/20=2.55>2.5
     issues = validate_translation(orig, trans, "t.rpy", len_ratio_lower=0.3, len_ratio_upper=2.5)
-    assert any(i["code"] == "W430_LEN_RATIO_SUSPECT" for i in issues), "W430 should fire when ratio > 2.5"
+    assert any(i["code"] == "W430_LEN_RATIO_SUSPECT" for i in issues), (
+        "W430 should fire when ratio > 2.5"
+    )
 
 
 def test_w251_order_vs_set_same_order_no_w251():

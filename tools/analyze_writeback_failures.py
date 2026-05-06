@@ -53,8 +53,10 @@ def analyze(db_path: Path) -> dict:
         file_size = 0
     if file_size > _MAX_ANALYSIS_DB_SIZE:
         logger.warning(
-            "[ANALYSIS] %s too large (%d bytes > %d-byte cap), "
-            "refusing to load", db_path, file_size, _MAX_ANALYSIS_DB_SIZE,
+            "[ANALYSIS] %s too large (%d bytes > %d-byte cap), refusing to load",
+            db_path,
+            file_size,
+            _MAX_ANALYSIS_DB_SIZE,
         )
         return {"total": 0, "by_type": {}, "samples": {}}
     # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
@@ -62,9 +64,10 @@ def analyze(db_path: Path) -> dict:
         ok, fsize2 = check_fstat_size(f, _MAX_ANALYSIS_DB_SIZE)
         if not ok:
             logger.warning(
-                "[ANALYSIS] %s grew past cap after stat (TOCTOU?): "
-                "%d bytes > %d, refusing to load",
-                db_path, fsize2, _MAX_ANALYSIS_DB_SIZE,
+                "[ANALYSIS] %s grew past cap after stat (TOCTOU?): %d bytes > %d, refusing to load",
+                db_path,
+                fsize2,
+                _MAX_ANALYSIS_DB_SIZE,
             )
             return {"total": 0, "by_type": {}, "samples": {}}
         data = json.loads(f.read())
@@ -87,12 +90,14 @@ def analyze(db_path: Path) -> dict:
         if ft not in samples:
             samples[ft] = []
         if len(samples[ft]) < 3:  # 每种类型保留前 3 个样本
-            samples[ft].append({
-                "file": entry.get("file", ""),
-                "line": entry.get("line", 0),
-                "original": entry.get("original", "")[:80],
-                "detail": diag.get("detail", ""),
-            })
+            samples[ft].append(
+                {
+                    "file": entry.get("file", ""),
+                    "line": entry.get("line", 0),
+                    "original": entry.get("original", "")[:80],
+                    "detail": diag.get("detail", ""),
+                }
+            )
 
     # 按占比排序
     total = len(failures)
@@ -116,10 +121,10 @@ def print_report(result: dict) -> None:
         return
 
     print("=" * 60)
-    print(f"回写失败根因分析报告")
+    print("回写失败根因分析报告")
     print("=" * 60)
     print(f"\n总失败数: {total}")
-    print(f"\n按类型分布:")
+    print("\n按类型分布:")
 
     for ft, info in result["by_type"].items():
         desc = info["description"]
@@ -137,7 +142,7 @@ def print_report(result: dict) -> None:
         for s in samples:
             print(f"  文件: {s['file']}")
             print(f"    行号: {s['line']}")
-            print(f"    原文: \"{s['original']}\"")
+            print(f'    原文: "{s["original"]}"')
             if s["detail"]:
                 print(f"    详情: {s['detail']}")
 

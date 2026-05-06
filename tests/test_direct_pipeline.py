@@ -7,6 +7,7 @@ Exercises the direct-mode file-level pipeline end-to-end with a mocked
 resume / skip-done path. Intended to provide regression coverage before the
 round 23 refactor of ``translators/direct.py`` (1301 → ~350 + 3 submodules).
 """
+
 from __future__ import annotations
 
 import sys
@@ -24,20 +25,25 @@ from core.translation_utils import ProgressTracker
 from translators.direct import translate_file
 
 
-_HAPPY_RPY = '''label start:
+_HAPPY_RPY = """label start:
     "Hello world."
     "Second line of dialogue."
     "Third line of dialogue."
     "Fourth line of dialogue."
     return
-'''
+"""
 
 
 def _build_client_with_mock(translate_side_effect) -> APIClient:
     """Construct an ``APIClient`` whose ``translate`` method is replaced."""
     config = APIConfig(
-        provider='xai', api_key='test', model='grok',
-        max_retries=1, rpm=0, rps=0, use_connection_pool=False,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=1,
+        rpm=0,
+        rps=0,
+        use_connection_pool=False,
     )
     client = APIClient(config)
     client.translate = mock.MagicMock(side_effect=translate_side_effect)
@@ -51,7 +57,7 @@ def test_translate_file_happy_path() -> None:
         game_dir = td_path / "game"
         game_dir.mkdir()
         rpy_path = game_dir / "script.rpy"
-        rpy_path.write_text(_HAPPY_RPY, encoding='utf-8')
+        rpy_path.write_text(_HAPPY_RPY, encoding="utf-8")
         output_dir = td_path / "out"
 
         def fake_translate(_system_prompt, _user_prompt):
@@ -80,7 +86,7 @@ def test_translate_file_happy_path() -> None:
 
         out_file = output_dir / "script.rpy"
         assert out_file.exists(), "output file was not written"
-        translated = out_file.read_text(encoding='utf-8')
+        translated = out_file.read_text(encoding="utf-8")
         assert "你好世界。" in translated, "first translation missing from output"
         assert "第二行对话。" in translated, "second translation missing from output"
         assert "第三行对话。" in translated, "third translation missing from output"
@@ -102,7 +108,7 @@ def test_translate_file_resume_skips_done() -> None:
         game_dir = td_path / "game"
         game_dir.mkdir()
         rpy_path = game_dir / "script.rpy"
-        rpy_path.write_text(_HAPPY_RPY, encoding='utf-8')
+        rpy_path.write_text(_HAPPY_RPY, encoding="utf-8")
         output_dir = td_path / "out"
 
         client = _build_client_with_mock(lambda *_a: [])
@@ -132,7 +138,7 @@ def test_translate_file_resume_skips_done() -> None:
     print("[OK] test_translate_file_resume_skips_done")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_translate_file_happy_path()
     test_translate_file_resume_skips_done()
     print()

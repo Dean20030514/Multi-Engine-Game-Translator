@@ -27,6 +27,7 @@ only, never under the default ``pickle.loads``.
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import os
@@ -77,7 +78,7 @@ class _SubprocessPopenPayload:
     """Pickle gadget — would invoke subprocess.Popen at deserialisation time."""
 
     def __reduce__(self):
-        return (subprocess.Popen, (['echo', 'PWNED via Popen'],))
+        return (subprocess.Popen, (["echo", "PWNED via Popen"],))
 
 
 def test_red_team_blocks_subprocess_popen():
@@ -141,6 +142,7 @@ def test_red_team_codecs_encode_returns_data_only():
     (a passive transformation), never an executable callable.
     """
     import _codecs
+
     # _codecs.encode is in the whitelist; its sole effect is encoding
     # bytes/str. Build a gadget that uses it; the returned data must be
     # inert (no further deserialisation step can re-invoke it).
@@ -181,14 +183,18 @@ def test_red_team_reconstructor_with_malicious_base_blocked():
     try:
         safe_loads(malicious)
     except pickle.UnpicklingError:
-        print("[OK] red_team_reconstructor_with_malicious_base_blocked "
-              "(UnpicklingError on os.system resolution)")
+        print(
+            "[OK] red_team_reconstructor_with_malicious_base_blocked "
+            "(UnpicklingError on os.system resolution)"
+        )
         return
     except (TypeError, AttributeError) as e:
         # Acceptable: pickle infrastructure blocked at type-construction
         # time before SafeUnpickler had a chance to. Either way no RCE.
-        print(f"[OK] red_team_reconstructor_with_malicious_base_blocked "
-              f"(structurally rejected: {type(e).__name__})")
+        print(
+            f"[OK] red_team_reconstructor_with_malicious_base_blocked "
+            f"(structurally rejected: {type(e).__name__})"
+        )
         return
     raise AssertionError(
         "copyreg._reconstructor with os.system base was NOT blocked — "

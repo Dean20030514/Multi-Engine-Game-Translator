@@ -40,11 +40,10 @@ class RenPyEngine(EngineBase):
             "Ren'Py 使用专有管线（direct_translator / tl_translator），不走通用提取流程"
         )
 
-    def write_back(self, game_dir: Path, units: list[TranslatableUnit],
-                   output_dir: Path, **kwargs) -> int:
-        raise NotImplementedError(
-            "Ren'Py 使用专有管线，不走通用回写流程"
-        )
+    def write_back(
+        self, game_dir: Path, units: list[TranslatableUnit], output_dir: Path, **kwargs
+    ) -> int:
+        raise NotImplementedError("Ren'Py 使用专有管线，不走通用回写流程")
 
     def run(self, args) -> None:
         """Route to the Ren'Py-specific pipelines.

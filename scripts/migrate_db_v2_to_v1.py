@@ -29,7 +29,6 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import sys
 from pathlib import Path
 
 
@@ -95,7 +94,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("path", type=Path, help="Path to translation_db.json")
     p.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Report what would change without writing the file.",
     )
     args = p.parse_args(argv)

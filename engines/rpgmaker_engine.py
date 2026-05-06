@@ -49,8 +49,13 @@ _SYSTEM_STRING_FIELDS = ["gameTitle", "currencyUnit"]
 
 # System.json 中的数组字段（每个元素可能是字符串或 null）
 _SYSTEM_ARRAY_FIELDS = [
-    "armorTypes", "elements", "equipTypes", "skillTypes", "weaponTypes",
+    "armorTypes",
+    "elements",
+    "equipTypes",
+    "skillTypes",
+    "weaponTypes",
 ]
+
 
 class RPGMakerMVEngine(EngineBase):
     """RPG Maker MV/MZ 引擎。"""
@@ -60,7 +65,7 @@ class RPGMakerMVEngine(EngineBase):
 
     def detect(self, game_dir: Path) -> bool:
         """检查是否为 RPG Maker MV/MZ 项目。"""
-        return (self._find_data_dir(game_dir) is not None)
+        return self._find_data_dir(game_dir) is not None
 
     # ============================================================
     # 目录定位
@@ -142,10 +147,14 @@ class RPGMakerMVEngine(EngineBase):
         # displayName
         dn = data.get("displayName", "")
         if dn and isinstance(dn, str) and dn.strip():
-            units.append(TranslatableUnit(
-                id=f"{rel}:displayName", original=dn.strip(), file_path=rel,
-                metadata={"type": "field", "json_path": "displayName"},
-            ))
+            units.append(
+                TranslatableUnit(
+                    id=f"{rel}:displayName",
+                    original=dn.strip(),
+                    file_path=rel,
+                    metadata={"type": "field", "json_path": "displayName"},
+                )
+            )
         # events
         events = data.get("events") or []
         for ei, event in enumerate(events):
@@ -188,10 +197,14 @@ class RPGMakerMVEngine(EngineBase):
             # troop name
             name = troop.get("name", "")
             if name and isinstance(name, str) and name.strip():
-                units.append(TranslatableUnit(
-                    id=f"{rel}:[{ti}].name", original=name.strip(), file_path=rel,
-                    metadata={"type": "field", "json_path": f"[{ti}].name"},
-                ))
+                units.append(
+                    TranslatableUnit(
+                        id=f"{rel}:[{ti}].name",
+                        original=name.strip(),
+                        file_path=rel,
+                        metadata={"type": "field", "json_path": f"[{ti}].name"},
+                    )
+                )
             # troop pages → event commands
             pages = troop.get("pages") or []
             for pi, page in enumerate(pages):
@@ -206,8 +219,9 @@ class RPGMakerMVEngine(EngineBase):
     # 事件指令解析（核心）
     # ============================================================
 
-    def _extract_event_commands(self, cmd_list: list, rel: str,
-                                prefix: str) -> list[TranslatableUnit]:
+    def _extract_event_commands(
+        self, cmd_list: list, rel: str, prefix: str
+    ) -> list[TranslatableUnit]:
         """遍历 command list，按 code 分发提取。处理 401/405 连续合并。"""
         units: list[TranslatableUnit] = []
         i = 0
@@ -232,15 +246,20 @@ class RPGMakerMVEngine(EngineBase):
                     i += 1
                 text = "\n".join(lines)
                 if text.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:{prefix}[{start_idx}]",
-                        original=text, file_path=rel,
-                        metadata={
-                            "type": "dialogue", "code": 401,
-                            "start_idx": start_idx, "line_count": len(lines),
-                            "json_prefix": prefix,
-                        },
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:{prefix}[{start_idx}]",
+                            original=text,
+                            file_path=rel,
+                            metadata={
+                                "type": "dialogue",
+                                "code": 401,
+                                "start_idx": start_idx,
+                                "line_count": len(lines),
+                                "json_prefix": prefix,
+                            },
+                        )
+                    )
                 continue
 
             # 连续 405（Show Scrolling Text）合并
@@ -256,15 +275,20 @@ class RPGMakerMVEngine(EngineBase):
                     i += 1
                 text = "\n".join(lines)
                 if text.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:{prefix}[{start_idx}]",
-                        original=text, file_path=rel,
-                        metadata={
-                            "type": "dialogue", "code": 405,
-                            "start_idx": start_idx, "line_count": len(lines),
-                            "json_prefix": prefix,
-                        },
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:{prefix}[{start_idx}]",
+                            original=text,
+                            file_path=rel,
+                            metadata={
+                                "type": "dialogue",
+                                "code": 405,
+                                "start_idx": start_idx,
+                                "line_count": len(lines),
+                                "json_prefix": prefix,
+                            },
+                        )
+                    )
                 continue
 
             # 102（Show Choices）
@@ -272,40 +296,54 @@ class RPGMakerMVEngine(EngineBase):
                 choices = params[0] if isinstance(params[0], list) else []
                 for ci, choice_text in enumerate(choices):
                     if choice_text and isinstance(choice_text, str) and choice_text.strip():
-                        units.append(TranslatableUnit(
-                            id=f"{rel}:{prefix}[{i}].choices[{ci}]",
-                            original=choice_text.strip(), file_path=rel,
-                            metadata={
-                                "type": "choice", "cmd_idx": i,
-                                "choice_idx": ci, "json_prefix": prefix,
-                            },
-                        ))
+                        units.append(
+                            TranslatableUnit(
+                                id=f"{rel}:{prefix}[{i}].choices[{ci}]",
+                                original=choice_text.strip(),
+                                file_path=rel,
+                                metadata={
+                                    "type": "choice",
+                                    "cmd_idx": i,
+                                    "choice_idx": ci,
+                                    "json_prefix": prefix,
+                                },
+                            )
+                        )
 
             # 402（When [Choice]）
             elif code == 402 and len(params) >= 2:
                 text = params[1]
                 if text and isinstance(text, str) and text.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:{prefix}[{i}].when",
-                        original=text.strip(), file_path=rel,
-                        metadata={
-                            "type": "choice_when", "cmd_idx": i,
-                            "json_prefix": prefix,
-                        },
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:{prefix}[{i}].when",
+                            original=text.strip(),
+                            file_path=rel,
+                            metadata={
+                                "type": "choice_when",
+                                "cmd_idx": i,
+                                "json_prefix": prefix,
+                            },
+                        )
+                    )
 
             # 320（Change Name）/ 324（Change Nickname）
             elif code in (320, 324) and len(params) >= 2:
                 text = params[1]
                 if text and isinstance(text, str) and text.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:{prefix}[{i}].name",
-                        original=text.strip(), file_path=rel,
-                        metadata={
-                            "type": "name_change", "cmd_idx": i,
-                            "param_idx": 1, "json_prefix": prefix,
-                        },
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:{prefix}[{i}].name",
+                            original=text.strip(),
+                            file_path=rel,
+                            metadata={
+                                "type": "name_change",
+                                "cmd_idx": i,
+                                "param_idx": 1,
+                                "json_prefix": prefix,
+                            },
+                        )
+                    )
 
             i += 1
         return units
@@ -314,8 +352,7 @@ class RPGMakerMVEngine(EngineBase):
     # 数据库提取
     # ============================================================
 
-    def _extract_database(self, data: list, rel: str,
-                          fields: list[str]) -> list[TranslatableUnit]:
+    def _extract_database(self, data: list, rel: str, fields: list[str]) -> list[TranslatableUnit]:
         """通用数据库文件提取（Actors/Items/Skills 等）。"""
         units: list[TranslatableUnit] = []
         if not isinstance(data, list):
@@ -326,14 +363,17 @@ class RPGMakerMVEngine(EngineBase):
             for field in fields:
                 val = obj.get(field, "")
                 if val and isinstance(val, str) and val.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:[{idx}].{field}",
-                        original=val.strip(), file_path=rel,
-                        metadata={
-                            "type": "database",
-                            "json_path": f"[{idx}].{field}",
-                        },
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:[{idx}].{field}",
+                            original=val.strip(),
+                            file_path=rel,
+                            metadata={
+                                "type": "database",
+                                "json_path": f"[{idx}].{field}",
+                            },
+                        )
+                    )
         return units
 
     # ============================================================
@@ -348,10 +388,14 @@ class RPGMakerMVEngine(EngineBase):
         for field in _SYSTEM_STRING_FIELDS:
             val = data.get(field, "")
             if val and isinstance(val, str) and val.strip():
-                units.append(TranslatableUnit(
-                    id=f"{rel}:{field}", original=val.strip(), file_path=rel,
-                    metadata={"type": "field", "json_path": field},
-                ))
+                units.append(
+                    TranslatableUnit(
+                        id=f"{rel}:{field}",
+                        original=val.strip(),
+                        file_path=rel,
+                        metadata={"type": "field", "json_path": field},
+                    )
+                )
 
         # 数组字段
         for field in _SYSTEM_ARRAY_FIELDS:
@@ -360,10 +404,14 @@ class RPGMakerMVEngine(EngineBase):
                 continue
             for i, val in enumerate(arr):
                 if val and isinstance(val, str) and val.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:{field}[{i}]", original=val.strip(), file_path=rel,
-                        metadata={"type": "field", "json_path": f"{field}[{i}]"},
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:{field}[{i}]",
+                            original=val.strip(),
+                            file_path=rel,
+                            metadata={"type": "field", "json_path": f"{field}[{i}]"},
+                        )
+                    )
 
         # terms 嵌套
         terms = data.get("terms") or {}
@@ -375,11 +423,14 @@ class RPGMakerMVEngine(EngineBase):
         if isinstance(messages, dict):
             for key, val in messages.items():
                 if val and isinstance(val, str) and val.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:terms.messages.{key}",
-                        original=val.strip(), file_path=rel,
-                        metadata={"type": "field", "json_path": f"terms.messages.{key}"},
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:terms.messages.{key}",
+                            original=val.strip(),
+                            file_path=rel,
+                            metadata={"type": "field", "json_path": f"terms.messages.{key}"},
+                        )
+                    )
 
         # terms.commands / terms.params / terms.basic (arrays)
         for arr_name in ("commands", "params", "basic"):
@@ -388,11 +439,14 @@ class RPGMakerMVEngine(EngineBase):
                 continue
             for i, val in enumerate(arr):
                 if val and isinstance(val, str) and val.strip():
-                    units.append(TranslatableUnit(
-                        id=f"{rel}:terms.{arr_name}[{i}]",
-                        original=val.strip(), file_path=rel,
-                        metadata={"type": "field", "json_path": f"terms.{arr_name}[{i}]"},
-                    ))
+                    units.append(
+                        TranslatableUnit(
+                            id=f"{rel}:terms.{arr_name}[{i}]",
+                            original=val.strip(),
+                            file_path=rel,
+                            metadata={"type": "field", "json_path": f"terms.{arr_name}[{i}]"},
+                        )
+                    )
 
         return units
 
@@ -400,8 +454,9 @@ class RPGMakerMVEngine(EngineBase):
     # 回写
     # ============================================================
 
-    def write_back(self, game_dir: Path, units: list[TranslatableUnit],
-                   output_dir: Path, **kwargs) -> int:
+    def write_back(
+        self, game_dir: Path, units: list[TranslatableUnit], output_dir: Path, **kwargs
+    ) -> int:
         """将翻译结果写回 JSON 文件。"""
         game_dir = Path(game_dir)
         output_dir = Path(output_dir)
@@ -646,7 +701,7 @@ class RPGMakerMVEngine(EngineBase):
 
         if path[split_pos] == ".":
             parent_path = path[:split_pos]
-            key = path[split_pos + 1:]
+            key = path[split_pos + 1 :]
             parent = RPGMakerMVEngine._navigate_to_node(data, parent_path)
             if isinstance(parent, dict):
                 parent[key] = value
@@ -656,7 +711,7 @@ class RPGMakerMVEngine(EngineBase):
             end = path.find("]", split_pos)
             parent_path = path[:split_pos]
             try:
-                idx = int(path[split_pos + 1:end])
+                idx = int(path[split_pos + 1 : end])
             except ValueError:
                 return False
             parent = RPGMakerMVEngine._navigate_to_node(data, parent_path)

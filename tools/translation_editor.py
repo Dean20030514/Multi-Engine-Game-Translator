@@ -34,14 +34,13 @@ Pure standard library — no external dependencies.
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import logging
 import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from safety.file_safety import check_fstat_size
 
@@ -69,9 +68,10 @@ _MAX_V2_APPLY_SIZE = _MAX_EDITOR_INPUT_SIZE
 # Data extraction
 # ============================================================
 
+
 def _extract_from_tl_dir(tl_dir: Path) -> List[Dict[str, Any]]:
     """Extract translation entries from tl/<lang>/ directory using tl_parser."""
-    from translators.tl_parser import parse_tl_file, DialogueEntry
+    from translators.tl_parser import parse_tl_file
 
     entries: List[Dict[str, Any]] = []
     rpy_files = sorted(tl_dir.rglob("*.rpy"))
@@ -82,34 +82,40 @@ def _extract_from_tl_dir(tl_dir: Path) -> List[Dict[str, Any]]:
     for rpy in rpy_files:
         result = parse_tl_file(str(rpy))
         for d in result.dialogues:
-            entries.append({
-                "source": "tl",
-                "file": str(rpy),
-                "line": d.tl_line,
-                "original": d.original,
-                "translation": d.translation,
-                "character": d.character,
-                "identifier": d.identifier,
-                "source_file": d.source_file,
-                "source_line": d.source_line,
-            })
+            entries.append(
+                {
+                    "source": "tl",
+                    "file": str(rpy),
+                    "line": d.tl_line,
+                    "original": d.original,
+                    "translation": d.translation,
+                    "character": d.character,
+                    "identifier": d.identifier,
+                    "source_file": d.source_file,
+                    "source_line": d.source_line,
+                }
+            )
         for s in result.strings:
-            entries.append({
-                "source": "tl",
-                "file": str(rpy),
-                "line": s.tl_line,
-                "original": s.old,
-                "translation": s.new,
-                "character": "",
-                "identifier": "",
-                "source_file": s.source_file,
-                "source_line": s.source_line,
-            })
+            entries.append(
+                {
+                    "source": "tl",
+                    "file": str(rpy),
+                    "line": s.tl_line,
+                    "original": s.old,
+                    "translation": s.new,
+                    "character": "",
+                    "identifier": "",
+                    "source_file": s.source_file,
+                    "source_line": s.source_line,
+                }
+            )
     return entries
 
 
 def _extract_from_db(
-    db_path: Path, *, v2_lang: Optional[str] = None,
+    db_path: Path,
+    *,
+    v2_lang: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Extract translation entries from ``translation_db.json`` OR from a
     v2 ``translations.json`` envelope (round 33 Subtask 3).
@@ -139,8 +145,10 @@ def _extract_from_db(
         file_size = 0
     if file_size > _MAX_EDITOR_INPUT_SIZE:
         logger.warning(
-            "[DB-EXPORT] %s too large (%d bytes > %d-byte cap), "
-            "refusing to load", db_path, file_size, _MAX_EDITOR_INPUT_SIZE,
+            "[DB-EXPORT] %s too large (%d bytes > %d-byte cap), refusing to load",
+            db_path,
+            file_size,
+            _MAX_EDITOR_INPUT_SIZE,
         )
         return []
     # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
@@ -150,7 +158,9 @@ def _extract_from_db(
             logger.warning(
                 "[DB-EXPORT] %s grew past cap after stat (TOCTOU?): "
                 "%d bytes > %d, refusing to load",
-                db_path, fsize2, _MAX_EDITOR_INPUT_SIZE,
+                db_path,
+                fsize2,
+                _MAX_EDITOR_INPUT_SIZE,
             )
             return []
         data = json.loads(f.read())
@@ -159,17 +169,19 @@ def _extract_from_db(
     raw_entries = data.get("entries", []) if isinstance(data, dict) else []
     entries: List[Dict[str, Any]] = []
     for e in raw_entries:
-        entries.append({
-            "source": "db",
-            "file": e.get("file", ""),
-            "line": e.get("line", 0),
-            "original": e.get("original", ""),
-            "translation": e.get("translation", ""),
-            "character": "",
-            "identifier": "",
-            "source_file": e.get("file", ""),
-            "source_line": e.get("line", 0),
-        })
+        entries.append(
+            {
+                "source": "db",
+                "file": e.get("file", ""),
+                "line": e.get("line", 0),
+                "original": e.get("original", ""),
+                "translation": e.get("translation", ""),
+                "character": "",
+                "identifier": "",
+                "source_file": e.get("file", ""),
+                "source_line": e.get("line", 0),
+            }
+        )
     return entries
 
 
@@ -219,31 +231,32 @@ def _extract_from_v2_envelope(
         t = bucket.get(target_lang, "")
         if not isinstance(t, str):
             t = ""
-        entries.append({
-            "source": "v2",
-            "file": str(db_path),
-            "line": i,  # synthetic index so the HTML sorts deterministically
-            "original": original,
-            "translation": t,
-            "character": "",
-            "identifier": "",
-            "source_file": str(db_path),
-            "source_line": i,
-            "v2_path": str(db_path),
-            "v2_lang": target_lang,
-            "v2_default_lang": default_lang,
-            "v2_langs_seen": langs_seen,
-            # Round 34 Commit 3: expose full per-language bucket dict so the
-            # HTML can swap translations in place when the operator picks a
-            # different language from the in-page dropdown (no need to re-run
-            # the CLI with a different ``--v2-lang``).  Values may be empty
-            # strings for languages that don't have a translation for this
-            # ``original`` — HTML renders those as "(empty)" just like v1.
-            "languages": {
-                k: v for k, v in bucket.items()
-                if isinstance(k, str) and isinstance(v, str)
-            },
-        })
+        entries.append(
+            {
+                "source": "v2",
+                "file": str(db_path),
+                "line": i,  # synthetic index so the HTML sorts deterministically
+                "original": original,
+                "translation": t,
+                "character": "",
+                "identifier": "",
+                "source_file": str(db_path),
+                "source_line": i,
+                "v2_path": str(db_path),
+                "v2_lang": target_lang,
+                "v2_default_lang": default_lang,
+                "v2_langs_seen": langs_seen,
+                # Round 34 Commit 3: expose full per-language bucket dict so the
+                # HTML can swap translations in place when the operator picks a
+                # different language from the in-page dropdown (no need to re-run
+                # the CLI with a different ``--v2-lang``).  Values may be empty
+                # strings for languages that don't have a translation for this
+                # ``original`` — HTML renders those as "(empty)" just like v1.
+                "languages": {
+                    k: v for k, v in bucket.items() if isinstance(k, str) and isinstance(v, str)
+                },
+            }
+        )
     return entries
 
 
@@ -256,7 +269,6 @@ def _extract_from_v2_envelope(
 # multi-language switch UI landed.  Import aliased to the original private
 # name so the rest of this file stays byte-identical.
 from tools._translation_editor_html import HTML_TEMPLATE as _HTML_TEMPLATE
-
 
 
 def export_html(
@@ -291,7 +303,10 @@ def export_html(
         # bucket dict used by the in-page dropdown to swap translations
         # without re-running the CLI with a different ``--v2-lang``.
         for v2_key in (
-            "v2_path", "v2_lang", "v2_default_lang", "v2_langs_seen",
+            "v2_path",
+            "v2_lang",
+            "v2_default_lang",
+            "v2_langs_seen",
             "languages",
         ):
             if v2_key in e:
@@ -310,6 +325,7 @@ def export_html(
 # ============================================================
 # Import edits
 # ============================================================
+
 
 def import_edits(
     edits_path: Path,
@@ -342,8 +358,10 @@ def import_edits(
         file_size = 0
     if file_size > _MAX_EDITOR_INPUT_SIZE:
         logger.warning(
-            "[IMPORT] %s too large (%d bytes > %d-byte cap), "
-            "refusing to load", edits_path, file_size, _MAX_EDITOR_INPUT_SIZE,
+            "[IMPORT] %s too large (%d bytes > %d-byte cap), refusing to load",
+            edits_path,
+            file_size,
+            _MAX_EDITOR_INPUT_SIZE,
         )
         return {"applied": 0, "skipped": 0, "files_modified": 0}
     # Round 49 Step 2: TOCTOU defense via check_fstat_size on the open fd.
@@ -351,9 +369,10 @@ def import_edits(
         ok, fsize2 = check_fstat_size(f, _MAX_EDITOR_INPUT_SIZE)
         if not ok:
             logger.warning(
-                "[IMPORT] %s grew past cap after stat (TOCTOU?): "
-                "%d bytes > %d, refusing to load",
-                edits_path, fsize2, _MAX_EDITOR_INPUT_SIZE,
+                "[IMPORT] %s grew past cap after stat (TOCTOU?): %d bytes > %d, refusing to load",
+                edits_path,
+                fsize2,
+                _MAX_EDITOR_INPUT_SIZE,
             )
             return {"applied": 0, "skipped": 0, "files_modified": 0}
         edits = json.loads(f.read())
@@ -444,7 +463,11 @@ def import_edits(
                         applied += 1
                         file_changed = True
                     else:
-                        logger.warning("Cannot find quoted string at line %d in %s", edit.get("line", 0), filepath)
+                        logger.warning(
+                            "Cannot find quoted string at line %d in %s",
+                            edit.get("line", 0),
+                            filepath,
+                        )
                         skipped += 1
 
             else:
@@ -456,7 +479,9 @@ def import_edits(
                     applied += 1
                     file_changed = True
                 else:
-                    logger.warning("Original text not found at line %d in %s", edit.get("line", 0), filepath)
+                    logger.warning(
+                        "Original text not found at line %d in %s", edit.get("line", 0), filepath
+                    )
                     skipped += 1
 
         if file_changed:
@@ -546,7 +571,8 @@ def _apply_v2_edits(
                 resolved = Path(p).resolve()
             except OSError:
                 logger.warning(
-                    "[V2-EDIT] cannot resolve v2_path, skipping: %r", p,
+                    "[V2-EDIT] cannot resolve v2_path, skipping: %r",
+                    p,
                 )
                 skipped += 1
                 continue
@@ -555,7 +581,8 @@ def _apply_v2_edits(
             except ValueError:
                 logger.warning(
                     "[V2-EDIT] v2_path outside CWD %s, skipping: %s",
-                    trust_root, resolved,
+                    trust_root,
+                    resolved,
                 )
                 skipped += 1
                 continue
@@ -564,8 +591,7 @@ def _apply_v2_edits(
     for path_str, path_edits in sorted(by_path.items()):
         path = Path(path_str)
         if not path.is_file():
-            logger.warning("[V2-EDIT] file not found, skipping %d edits: %s",
-                           len(path_edits), path)
+            logger.warning("[V2-EDIT] file not found, skipping %d edits: %s", len(path_edits), path)
             skipped += len(path_edits)
             continue
         # Round 37 M2: bound memory on the envelope read.  Even after M4
@@ -577,9 +603,11 @@ def _apply_v2_edits(
             file_size = 0
         if file_size > _MAX_V2_APPLY_SIZE:
             logger.warning(
-                "[V2-EDIT] %s too large (%d bytes > %d-byte cap), "
-                "skipping %d edits",
-                path, file_size, _MAX_V2_APPLY_SIZE, len(path_edits),
+                "[V2-EDIT] %s too large (%d bytes > %d-byte cap), skipping %d edits",
+                path,
+                file_size,
+                _MAX_V2_APPLY_SIZE,
+                len(path_edits),
             )
             skipped += len(path_edits)
             continue
@@ -591,7 +619,10 @@ def _apply_v2_edits(
                     logger.warning(
                         "[V2-EDIT] %s grew past cap after stat (TOCTOU?): "
                         "%d bytes > %d, skipping %d edits",
-                        path, fsize2, _MAX_V2_APPLY_SIZE, len(path_edits),
+                        path,
+                        fsize2,
+                        _MAX_V2_APPLY_SIZE,
+                        len(path_edits),
                     )
                     skipped += len(path_edits)
                     continue
@@ -603,7 +634,8 @@ def _apply_v2_edits(
         if not isinstance(data, dict) or data.get("_schema_version") != 2:
             logger.warning(
                 "[V2-EDIT] %s is not a v2 envelope, skipping %d edits",
-                path, len(path_edits),
+                path,
+                len(path_edits),
             )
             skipped += len(path_edits)
             continue
@@ -629,7 +661,8 @@ def _apply_v2_edits(
             if not isinstance(original, str) or original not in translations:
                 logger.warning(
                     "[V2-EDIT] original %r not found in %s, skipping",
-                    original, path,
+                    original,
+                    path,
                 )
                 skipped += 1
                 continue
@@ -645,6 +678,7 @@ def _apply_v2_edits(
             # Atomic write mirrors core/runtime_hook_emitter._write_json_atomic
             # so an interrupted run never truncates the envelope.
             import os as _os
+
             tmp_path = path.with_suffix(path.suffix + ".tmp")
             tmp_path.write_text(
                 json.dumps(data, ensure_ascii=False, sort_keys=True, indent=2),
@@ -660,20 +694,36 @@ def _apply_v2_edits(
 # CLI
 # ============================================================
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Interactive HTML translation editor — export, edit in browser, import back",
     )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--export", action="store_true", help="Export translations to interactive HTML")
-    group.add_argument("--import-json", type=str, metavar="PATH", help="Import edits from JSON file")
+    group.add_argument(
+        "--export", action="store_true", help="Export translations to interactive HTML"
+    )
+    group.add_argument(
+        "--import-json", type=str, metavar="PATH", help="Import edits from JSON file"
+    )
 
     parser.add_argument("--tl-dir", type=str, help="tl/<lang>/ directory for tl-mode export")
-    parser.add_argument("--db", type=str, help="translation_db.json path for direct-mode export (auto-detects v2 translations.json)")
-    parser.add_argument("--v2-lang", type=str, default=None, metavar="LANG",
-                        help="For v2 envelope input: which language bucket to edit "
-                             "(default: envelope's default_lang)")
-    parser.add_argument("--output", "-o", default="translation_editor.html", help="Output HTML path")
+    parser.add_argument(
+        "--db",
+        type=str,
+        help="translation_db.json path for direct-mode export (auto-detects v2 translations.json)",
+    )
+    parser.add_argument(
+        "--v2-lang",
+        type=str,
+        default=None,
+        metavar="LANG",
+        help="For v2 envelope input: which language bucket to edit "
+        "(default: envelope's default_lang)",
+    )
+    parser.add_argument(
+        "--output", "-o", default="translation_editor.html", help="Output HTML path"
+    )
     parser.add_argument("--no-backup", action="store_true", help="Skip .bak backup on import")
     args = parser.parse_args()
 

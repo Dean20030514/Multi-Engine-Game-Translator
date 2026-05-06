@@ -8,8 +8,6 @@ rationale.  Stdlib-only; no pytest dependency."""
 
 from __future__ import annotations
 
-import io
-import os
 import sys
 import tempfile
 import textwrap
@@ -263,9 +261,7 @@ def test_derive_assertion_points_sums_tests_and_self_tests():
         (td / "tests" / "test_a.py").write_text(
             "def test_1():\n    pass\ndef test_2():\n    pass\n", encoding="utf-8"
         )
-        (td / "tests" / "test_b.py").write_text(
-            "def test_3():\n    pass\n", encoding="utf-8"
-        )
+        (td / "tests" / "test_b.py").write_text("def test_3():\n    pass\n", encoding="utf-8")
         # 2 self-test steps with 10 + 20 assertions.
         (td / ".github" / "workflows" / "test.yml").write_text(
             textwrap.dedent(
@@ -330,7 +326,9 @@ def test_count_ci_steps_raises_on_missing_test_job():
 
     with tempfile.TemporaryDirectory() as td:
         wf = Path(td) / "test.yml"
-        wf.write_text("name: Tests\non: [push]\njobs:\n  build:\n    runs-on: x\n", encoding="utf-8")
+        wf.write_text(
+            "name: Tests\non: [push]\njobs:\n  build:\n    runs-on: x\n", encoding="utf-8"
+        )
         try:
             count_ci_steps(wf)
         except KeyError:
@@ -421,16 +419,19 @@ def test_parse_claims_ignores_inline_comments():
 # ---------------------------------------------------------------------------
 
 
-def _make_fixture_repo(td: Path, *,
-                      ci_steps: int,
-                      test_files: int,
-                      tests_per_file: int = 1,
-                      self_test_assertion_steps: tuple[int, ...] = (),
-                      claim_ci: int | None = None,
-                      claim_test_files: int | None = None,
-                      claim_tests_total: int | None = None,
-                      claim_assertion_points: int | None = None,
-                      oversized_count: int = 0) -> None:
+def _make_fixture_repo(
+    td: Path,
+    *,
+    ci_steps: int,
+    test_files: int,
+    tests_per_file: int = 1,
+    self_test_assertion_steps: tuple[int, ...] = (),
+    claim_ci: int | None = None,
+    claim_test_files: int | None = None,
+    claim_tests_total: int | None = None,
+    claim_assertion_points: int | None = None,
+    oversized_count: int = 0,
+) -> None:
     """Build synthetic repo under ``td`` so ``main()`` runs via
     ``--repo-root``.  Levers map to the 4 drift dimensions; each
     ``claim_*`` defaults to the matching real value (drift only on
@@ -443,13 +444,8 @@ def _make_fixture_repo(td: Path, *,
 
     # tests/ — n synthetic test modules with K real def test_* each.
     for i in range(test_files):
-        bodies = "\n\n".join(
-            f"def test_{i}_{j}():\n    assert True"
-            for j in range(tests_per_file)
-        )
-        (td / "tests" / f"test_synthetic_{i}.py").write_text(
-            bodies + "\n", encoding="utf-8"
-        )
+        bodies = "\n\n".join(f"def test_{i}_{j}():\n    assert True" for j in range(tests_per_file))
+        (td / "tests" / f"test_synthetic_{i}.py").write_text(bodies + "\n", encoding="utf-8")
 
     # .github/workflows/test.yml — n synthetic test steps + optional
     # self-test steps.  Total step count = ci_steps; the first
@@ -471,10 +467,10 @@ def _make_fixture_repo(td: Path, *,
         raise ValueError("ci_steps must be >= len(self_test_assertion_steps)")
     for k, n in enumerate(self_steps):
         yaml_lines.append(f"      - name: Self-test FOO_{k} ({n} assertions)")
-        yaml_lines.append(f"        run: python -c \"pass\"")
+        yaml_lines.append('        run: python -c "pass"')
     for i in range(plain_steps):
         yaml_lines.append(f"      - name: Run synthetic-{i}")
-        yaml_lines.append(f"        run: python -c \"pass\"")
+        yaml_lines.append('        run: python -c "pass"')
     (td / ".github" / "workflows" / "test.yml").write_text(
         "\n".join(yaml_lines) + "\n",
         encoding="utf-8",
@@ -524,9 +520,7 @@ def test_main_fast_path_returns_zero_when_everything_matches():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_ci=5, claim_test_files=3)
+        _make_fixture_repo(td, ci_steps=5, test_files=3, claim_ci=5, claim_test_files=3)
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 0, f"expected exit 0, got {rc}"
     print("[OK] main_fast_path_returns_zero_when_everything_matches")
@@ -539,10 +533,9 @@ def test_main_fast_path_fails_on_oversized_py_file():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_ci=5, claim_test_files=3,
-                           oversized_count=1)
+        _make_fixture_repo(
+            td, ci_steps=5, test_files=3, claim_ci=5, claim_test_files=3, oversized_count=1
+        )
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 1, f"expected exit 1 on oversized .py, got {rc}"
     print("[OK] main_fast_path_fails_on_oversized_py_file")
@@ -554,9 +547,7 @@ def test_main_fast_path_fails_on_test_file_count_drift():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_ci=5, claim_test_files=2)
+        _make_fixture_repo(td, ci_steps=5, test_files=3, claim_ci=5, claim_test_files=2)
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 1, f"expected exit 1 on test-files drift, got {rc}"
     print("[OK] main_fast_path_fails_on_test_file_count_drift")
@@ -568,9 +559,7 @@ def test_main_fast_path_fails_on_ci_steps_drift():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_ci=4, claim_test_files=3)
+        _make_fixture_repo(td, ci_steps=5, test_files=3, claim_ci=4, claim_test_files=3)
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 1, f"expected exit 1 on ci-steps drift, got {rc}"
     print("[OK] main_fast_path_fails_on_ci_steps_drift")
@@ -584,9 +573,7 @@ def test_main_fast_path_fails_on_missing_handoff():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_ci=5, claim_test_files=3)
+        _make_fixture_repo(td, ci_steps=5, test_files=3, claim_ci=5, claim_test_files=3)
         # Overwrite HANDOFF without claim block.
         (td / "HANDOFF.md").write_text("# HANDOFF\nno block.\n", encoding="utf-8")
         rc = main(["--fast", "--repo-root", str(td)])
@@ -603,9 +590,9 @@ def test_main_fast_path_fails_on_tests_total_drift():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5, test_files=3,
-                           claim_tests_total=99)  # diverge only this lever
+        _make_fixture_repo(
+            td, ci_steps=5, test_files=3, claim_tests_total=99
+        )  # diverge only this lever
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 1, f"expected exit 1 on tests_total drift, got {rc}"
     print("[OK] main_fast_path_fails_on_tests_total_drift")
@@ -619,11 +606,13 @@ def test_main_fast_path_fails_on_assertion_points_drift():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        _make_fixture_repo(td,
-                           ci_steps=5,
-                           test_files=3,
-                           self_test_assertion_steps=(5, 7),
-                           claim_assertion_points=999)
+        _make_fixture_repo(
+            td,
+            ci_steps=5,
+            test_files=3,
+            self_test_assertion_steps=(5, 7),
+            claim_assertion_points=999,
+        )
         rc = main(["--fast", "--repo-root", str(td)])
     assert rc == 1, f"expected exit 1 on assertion_points drift, got {rc}"
     print("[OK] main_fast_path_fails_on_assertion_points_drift")
@@ -656,6 +645,7 @@ def test_parse_claims_skips_malformed_lines_silently_for_all_edge_cases():
     scenarios silently skipped (backward-compat fail-open)."""
     import tempfile
     from scripts.verify_docs_claims import parse_claims, CLAIM_BLOCK_START, CLAIM_BLOCK_END
+
     for label, bad in [
         ("non-int value", "tests_total: abc"),
         ("missing colon", "tests_total 488"),
@@ -665,8 +655,9 @@ def test_parse_claims_skips_malformed_lines_silently_for_all_edge_cases():
     ]:
         with tempfile.TemporaryDirectory() as td:
             h = Path(td) / "HANDOFF.md"
-            h.write_text(f"{CLAIM_BLOCK_START}\n{bad}\nci_steps: 36\n{CLAIM_BLOCK_END}\n",
-                         encoding="utf-8")
+            h.write_text(
+                f"{CLAIM_BLOCK_START}\n{bad}\nci_steps: 36\n{CLAIM_BLOCK_END}\n", encoding="utf-8"
+            )
             claims = parse_claims(h)
         assert claims == {"ci_steps": 36}, f"{label}: {claims!r}"
     print("[OK] parse_claims_skips_malformed_lines_silently_for_all_edge_cases")
@@ -676,6 +667,7 @@ def test_parse_claims_returns_partial_dict_on_mixed_valid_invalid():
     """Round 50 1d: valid + unknown keys both kept (main reports MISS for required absent)."""
     import tempfile
     from scripts.verify_docs_claims import parse_claims, CLAIM_BLOCK_START, CLAIM_BLOCK_END
+
     with tempfile.TemporaryDirectory() as td:
         h = Path(td) / "HANDOFF.md"
         h.write_text(
@@ -692,6 +684,7 @@ def test_workflow_includes_mock_target_consistency_check_step():
     catches both mock.patch + patch.object forms; filter 'file_safety'
     (not 'core\\.file_safety') to handle qualified forms."""
     import yaml
+
     wp = REPO_ROOT / ".github" / "workflows" / "test.yml"
     steps = yaml.safe_load(wp.read_text(encoding="utf-8"))["jobs"]["test"]["steps"]
     matches = [s for s in steps if "Mock target consistency" in s.get("name", "")]

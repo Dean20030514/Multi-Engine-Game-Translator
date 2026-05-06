@@ -15,7 +15,6 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from safety.file_safety import check_fstat_size
 
@@ -33,9 +32,11 @@ _MAX_PROGRESS_JSON_SIZE = 50 * 1024 * 1024
 # GenericChunk 数据类
 # ============================================================
 
+
 @dataclass
 class GenericChunk:
     """通用翻译 chunk，按文件分组 + 条数/字符数拆分。"""
+
     chunk_id: int
     units: list = field(default_factory=list)  # list[TranslatableUnit]
     file_path: str = ""
@@ -76,6 +77,7 @@ def build_generic_chunks(
 # Prompt 构建
 # ============================================================
 
+
 def _build_generic_user_prompt(chunk: GenericChunk, target_lang: str = "zh") -> str:
     """构建通用 user prompt：JSON 数组格式。"""
     items = []
@@ -97,6 +99,7 @@ def _build_generic_user_prompt(chunk: GenericChunk, target_lang: str = "zh") -> 
 # ============================================================
 # 翻译结果匹配
 # ============================================================
+
 
 def _match_translations_to_units(
     translations: list[dict],
@@ -152,6 +155,7 @@ def _match_translations_to_units(
 # 进度管理
 # ============================================================
 
+
 def _load_progress(progress_path: Path) -> set[int]:
     """加载已完成的 chunk_id 集合。"""
     if not progress_path.exists():
@@ -199,6 +203,7 @@ def _save_progress(progress_path: Path, completed: set[int]) -> None:
 # 主流水线
 # ============================================================
 
+
 def run_generic_pipeline(engine, args) -> None:
     """通用翻译流水线入口。由 EngineBase.run() 默认调用。"""
     from core.api_client import APIClient, APIConfig
@@ -208,7 +213,7 @@ def run_generic_pipeline(engine, args) -> None:
     from core.prompts import build_system_prompt
 
     game_dir = Path(args.game_dir)
-    output_dir = Path(getattr(args, 'output_dir', 'output') or 'output')
+    output_dir = Path(getattr(args, "output_dir", "output") or "output")
     output_dir.mkdir(parents=True, exist_ok=True)
     # Round 52 C4 BREAKING: target_lang fixed to "zh"; lang_config retired.
     target_lang = "zh"
@@ -216,7 +221,7 @@ def run_generic_pipeline(engine, args) -> None:
 
     # ── Stage 0: 提取 ──
     logger.info(f"\n[PIPELINE] 引擎: {profile.display_name}")
-    logger.info(f"[PIPELINE] 提取可翻译文本...")
+    logger.info("[PIPELINE] 提取可翻译文本...")
     units = engine.extract_texts(game_dir)
     if not units:
         logger.info("[PIPELINE] 未找到可翻译文本，退出")
@@ -224,39 +229,46 @@ def run_generic_pipeline(engine, args) -> None:
 
     files = set(u.file_path for u in units)
     total_chars = sum(len(u.original) for u in units)
-    logger.info(f"[PIPELINE] 提取完成: {len(units)} 条文本, {len(files)} 个文件, {total_chars:,} 字符")
+    logger.info(
+        f"[PIPELINE] 提取完成: {len(units)} 条文本, {len(files)} 个文件, {total_chars:,} 字符"
+    )
 
     # dry-run 模式
-    if getattr(args, 'dry_run', False):
+    if getattr(args, "dry_run", False):
         logger.info(f"\n[DRY-RUN] {profile.display_name}: {len(units)} 条文本待翻译")
-        logger.info(f"[DRY-RUN] 去掉 --dry-run 参数开始实际翻译。")
+        logger.info("[DRY-RUN] 去掉 --dry-run 参数开始实际翻译。")
         return
 
     # ── Stage 1: 初始化 ──
-    provider = getattr(args, 'provider', 'xai') or 'xai'
-    model = getattr(args, 'model', '') or ''
-    api_key = getattr(args, 'api_key', '') or ''
+    provider = getattr(args, "provider", "xai") or "xai"
+    model = getattr(args, "model", "") or ""
+    api_key = getattr(args, "api_key", "") or ""
     config = APIConfig(
-        provider=provider, model=model, api_key=api_key,
-        custom_module=getattr(args, 'custom_module', '') or '',
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        custom_module=getattr(args, "custom_module", "") or "",
     )
-    config.timeout = getattr(args, 'timeout', 180.0) or 180.0
-    config.temperature = getattr(args, 'temperature', 0.1) or 0.1
-    config.max_response_tokens = getattr(args, 'max_response_tokens', 32768) or 32768
+    config.timeout = getattr(args, "timeout", 180.0) or 180.0
+    config.temperature = getattr(args, "temperature", 0.1) or 0.1
+    config.max_response_tokens = getattr(args, "max_response_tokens", 32768) or 32768
 
-    config.rpm = getattr(args, 'rpm', 60) or 60
-    config.rps = getattr(args, 'rps', 5) or 5
+    config.rpm = getattr(args, "rpm", 60) or 60
+    config.rps = getattr(args, "rps", 5) or 5
     client = APIClient(config)
 
     glossary = Glossary()
     glossary_path = output_dir / "glossary.json"
     glossary.load(str(glossary_path))
-    if getattr(args, 'dict', None):
+    if getattr(args, "dict", None):
         for dp in args.dict:
             if Path(dp).exists():
                 glossary.load_dict(dp)
     # RPG Maker 引擎：自动从 Actors.json / System.json 提取角色名和系统术语
-    if hasattr(glossary, 'scan_rpgmaker_database') and profile.name in ("rpgmaker_mv", "rpgmaker_mz"):
+    if hasattr(glossary, "scan_rpgmaker_database") and profile.name in (
+        "rpgmaker_mv",
+        "rpgmaker_mz",
+    ):
         try:
             glossary.scan_rpgmaker_database(game_dir)
         except Exception as e:
@@ -268,7 +280,7 @@ def run_generic_pipeline(engine, args) -> None:
 
     # 构建 system prompt（带引擎 addon）
     glossary_text = glossary.to_prompt_text()
-    genre = getattr(args, 'genre', 'adult') or 'adult'
+    genre = getattr(args, "genre", "adult") or "adult"
     system_prompt = build_system_prompt(
         genre=genre,
         glossary_text=glossary_text,
@@ -303,17 +315,21 @@ def run_generic_pipeline(engine, args) -> None:
 
     # ── Stage 2: 分块 ──
     pending_units = [u for u in units if u.status == "pending"]
-    logger.info(f"[PIPELINE] 待翻译: {len(pending_units)} 条（已完成 {len(units) - len(pending_units)} 条）")
+    logger.info(
+        f"[PIPELINE] 待翻译: {len(pending_units)} 条（已完成 {len(units) - len(pending_units)} 条）"
+    )
 
     chunks = build_generic_chunks(pending_units)
     remaining_chunks = [c for c in chunks if c.chunk_id not in completed_chunks]
-    logger.info(f"[PIPELINE] 分块: {len(chunks)} 个 chunk（跳过 {len(chunks) - len(remaining_chunks)} 个已完成）")
+    logger.info(
+        f"[PIPELINE] 分块: {len(chunks)} 个 chunk（跳过 {len(chunks) - len(remaining_chunks)} 个已完成）"
+    )
 
     if not remaining_chunks:
         logger.info("[PIPELINE] 所有 chunk 已完成，跳过翻译阶段")
     else:
         # ── Stage 3: 翻译 ──
-        workers = max(1, getattr(args, 'workers', 1) or 1)
+        workers = max(1, getattr(args, "workers", 1) or 1)
         t0 = time.time()
         total_matched = 0
 
@@ -324,7 +340,9 @@ def run_generic_pipeline(engine, args) -> None:
 
             # 占位符保护
             if ph_patterns:
-                protected_prompt, ph_mapping = protect_placeholders(user_prompt, patterns=ph_patterns)
+                protected_prompt, ph_mapping = protect_placeholders(
+                    user_prompt, patterns=ph_patterns
+                )
             else:
                 protected_prompt = user_prompt
                 ph_mapping = []
@@ -357,18 +375,20 @@ def run_generic_pipeline(engine, args) -> None:
             # 记录到 translation_db
             for u in chunk.units:
                 if u.status == "translated":
-                    translation_db.upsert_entry({
-                        "file": u.file_path,
-                        "line": 0,
-                        "original": u.original,
-                        "translation": u.translation,
-                        "status": "ok",
-                        "error_codes": [],
-                        "warning_codes": [],
-                        "provider": provider,
-                        "model": model,
-                        "stage": "generic",
-                    })
+                    translation_db.upsert_entry(
+                        {
+                            "file": u.file_path,
+                            "line": 0,
+                            "original": u.original,
+                            "translation": u.translation,
+                            "status": "ok",
+                            "error_codes": [],
+                            "warning_codes": [],
+                            "provider": provider,
+                            "model": model,
+                            "stage": "generic",
+                        }
+                    )
 
             return matched
 
@@ -378,15 +398,13 @@ def run_generic_pipeline(engine, args) -> None:
                 total_matched += m
                 completed_chunks.add(chunk.chunk_id)
                 _save_progress(progress_path, completed_chunks)
-                logger.debug(f"  [CHUNK] {chunk.chunk_id + 1}/{len(chunks)}: "
-                             f"匹配 {m}/{len(chunk.units)} 条")
+                logger.debug(
+                    f"  [CHUNK] {chunk.chunk_id + 1}/{len(chunks)}: 匹配 {m}/{len(chunk.units)} 条"
+                )
         else:
             logger.info(f"[PIPELINE] 并发翻译: {workers} 线程")
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-                future_map = {
-                    executor.submit(_translate_one_chunk, c): c
-                    for c in remaining_chunks
-                }
+                future_map = {executor.submit(_translate_one_chunk, c): c for c in remaining_chunks}
                 for future in concurrent.futures.as_completed(future_map):
                     chunk = future_map[future]
                     try:
@@ -394,8 +412,10 @@ def run_generic_pipeline(engine, args) -> None:
                         total_matched += m
                         completed_chunks.add(chunk.chunk_id)
                         _save_progress(progress_path, completed_chunks)
-                        logger.debug(f"  [CHUNK] {chunk.chunk_id + 1}/{len(chunks)}: "
-                                     f"匹配 {m}/{len(chunk.units)} 条")
+                        logger.debug(
+                            f"  [CHUNK] {chunk.chunk_id + 1}/{len(chunks)}: "
+                            f"匹配 {m}/{len(chunk.units)} 条"
+                        )
                     except Exception as e:
                         logger.error(f"  [CHUNK] {chunk.chunk_id} 失败: {e}")
 
@@ -425,6 +445,7 @@ def run_generic_pipeline(engine, args) -> None:
     # Round 31 Tier C: opt-in runtime-hook emit (skipped unless --emit-runtime-hook)
     try:
         from core.runtime_hook_emitter import emit_if_requested
+
         emit_if_requested(args, output_dir, translation_db)
     except ImportError:
         pass
@@ -438,16 +459,16 @@ def run_generic_pipeline(engine, args) -> None:
         "pending": pending_count,
         "translation_rate": round(translated_count / len(units), 4) if units else 0,
         "written": written,
-        "api_usage": client.usage.to_dict() if hasattr(client, 'usage') else {},
+        "api_usage": client.usage.to_dict() if hasattr(client, "usage") else {},
     }
     report_path = output_dir / "pipeline_report.json"
     try:
-        report_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         logger.info(f"[PIPELINE] 报告: {report_path}")
     except OSError as e:
         logger.warning(f"[PIPELINE] 写入报告失败: {e}")
 
-    logger.info(f"[PIPELINE] 完成: {translated_count}/{len(units)} 已翻译 "
-                f"({report['translation_rate']*100:.1f}%), {written} 条写入")
+    logger.info(
+        f"[PIPELINE] 完成: {translated_count}/{len(units)} 已翻译 "
+        f"({report['translation_rate'] * 100:.1f}%), {written} 条写入"
+    )

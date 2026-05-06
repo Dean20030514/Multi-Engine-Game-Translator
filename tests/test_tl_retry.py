@@ -14,6 +14,7 @@ the layer-6 LLM ID-space drift detection added in r53 W3:
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import logging
@@ -202,6 +203,7 @@ class _FakeAPIClient:
     by chunk_text token presence; tests can inspect ``calls`` post-run to
     assert per-chunk parallelism worked.
     """
+
     response_factory: callable
     _lock: threading.Lock = None
     calls: list = None
@@ -226,8 +228,11 @@ def test_run_retry_stage_empty_returns_zero():
     client = _FakeAPIClient(response_factory=lambda _u: [])
     with tempfile.TemporaryDirectory() as td:
         translated, filled = run_retry_stage(
-            retry_all=[], client=client, system_prompt="sys",
-            workers=1, game_dir=Path(td),
+            retry_all=[],
+            client=client,
+            system_prompt="sys",
+            workers=1,
+            game_dir=Path(td),
             fill_translation=_fake_fill_translation,
             DialogueEntry=DialogueEntry,
             modified_rpy_files=set(),
@@ -244,10 +249,7 @@ def test_run_retry_stage_basic_translates():
 
     def _factory(user_prompt: str) -> list[dict]:
         # Return zh for all 3 IDs (must echo original to pass check_response_item)
-        return [
-            {"id": f"id_{i}", "original": f"orig_id_{i}", "zh": f"译文_{i}"}
-            for i in range(3)
-        ]
+        return [{"id": f"id_{i}", "original": f"orig_id_{i}", "zh": f"译文_{i}"} for i in range(3)]
 
     client = _FakeAPIClient(response_factory=_factory)
     with tempfile.TemporaryDirectory() as td:
@@ -259,8 +261,11 @@ def test_run_retry_stage_basic_translates():
 
         modified: set[str] = set()
         translated, filled = run_retry_stage(
-            retry_all=entries, client=client, system_prompt="sys",
-            workers=1, game_dir=Path(td),
+            retry_all=entries,
+            client=client,
+            system_prompt="sys",
+            workers=1,
+            game_dir=Path(td),
             fill_translation=_fake_fill_translation,
             DialogueEntry=DialogueEntry,
             modified_rpy_files=modified,
@@ -287,16 +292,18 @@ def test_run_retry_stage_adaptive_chunk_size():
             e.tl_file = str(tl_file)
 
         run_retry_stage(
-            retry_all=entries, client=client, system_prompt="sys",
-            workers=2, game_dir=Path(td),
+            retry_all=entries,
+            client=client,
+            system_prompt="sys",
+            workers=2,
+            game_dir=Path(td),
             fill_translation=_fake_fill_translation,
             DialogueEntry=DialogueEntry,
             modified_rpy_files=set(),
         )
     # 51 entries / 10-per-chunk = 6 chunks (5 full + 1 partial)
     assert len(client.calls) == 6, (
-        f"51 entries with adaptive chunk size 10 should produce 6 chunks, "
-        f"got {len(client.calls)}"
+        f"51 entries with adaptive chunk size 10 should produce 6 chunks, got {len(client.calls)}"
     )
 
     # 50 entries → keeps 5/chunk → 10 chunks
@@ -309,15 +316,17 @@ def test_run_retry_stage_adaptive_chunk_size():
             e.tl_file = str(tl_file)
 
         run_retry_stage(
-            retry_all=entries_small, client=client2, system_prompt="sys",
-            workers=2, game_dir=Path(td),
+            retry_all=entries_small,
+            client=client2,
+            system_prompt="sys",
+            workers=2,
+            game_dir=Path(td),
             fill_translation=_fake_fill_translation,
             DialogueEntry=DialogueEntry,
             modified_rpy_files=set(),
         )
     assert len(client2.calls) == 10, (
-        f"50 entries with chunk size 5 should produce 10 chunks, "
-        f"got {len(client2.calls)}"
+        f"50 entries with chunk size 5 should produce 10 chunks, got {len(client2.calls)}"
     )
     print("[OK] run_retry_stage_adaptive_chunk_size")
 
@@ -328,10 +337,7 @@ def test_run_retry_stage_drift_warning_logged():
 
     # Return only 15 of 20 IDs → 5/20 = 25% drift > 10%
     def _factory(_u: str) -> list[dict]:
-        return [
-            {"id": f"id_{i}", "original": f"orig_id_{i}", "zh": f"译_{i}"}
-            for i in range(15)
-        ]
+        return [{"id": f"id_{i}", "original": f"orig_id_{i}", "zh": f"译_{i}"} for i in range(15)]
 
     client = _FakeAPIClient(response_factory=_factory)
 
@@ -354,8 +360,11 @@ def test_run_retry_stage_drift_warning_logged():
                 e.tl_file = str(tl_file)
 
             run_retry_stage(
-                retry_all=entries, client=client, system_prompt="sys",
-                workers=1, game_dir=Path(td),
+                retry_all=entries,
+                client=client,
+                system_prompt="sys",
+                workers=1,
+                game_dir=Path(td),
                 fill_translation=_fake_fill_translation,
                 DialogueEntry=DialogueEntry,
                 modified_rpy_files=set(),
@@ -366,9 +375,7 @@ def test_run_retry_stage_drift_warning_logged():
 
     # Look for W3-DRIFT marker in any captured log
     drift_messages = [r.getMessage() for r in captured if "W3-DRIFT" in r.getMessage()]
-    assert len(drift_messages) > 0, (
-        "drift warning [W3-DRIFT] must appear when 25% of IDs drop"
-    )
+    assert len(drift_messages) > 0, "drift warning [W3-DRIFT] must appear when 25% of IDs drop"
     print("[OK] run_retry_stage_drift_warning_logged")
 
 
@@ -399,8 +406,11 @@ def test_run_retry_stage_progress_logging():
                 e.tl_file = str(tl_file)
 
             run_retry_stage(
-                retry_all=entries, client=client, system_prompt="sys",
-                workers=1, game_dir=Path(td),
+                retry_all=entries,
+                client=client,
+                system_prompt="sys",
+                workers=1,
+                game_dir=Path(td),
                 fill_translation=_fake_fill_translation,
                 DialogueEntry=DialogueEntry,
                 modified_rpy_files=set(),
@@ -411,9 +421,7 @@ def test_run_retry_stage_progress_logging():
 
     # 10 entries / chunk size 5 → 2 chunks → expect [TL-RETRY 1/2] and [TL-RETRY 2/2]
     progress_msgs = [m for m in captured if "[TL-RETRY" in m and "/2]" in m]
-    assert len(progress_msgs) >= 2, (
-        f"expected ≥2 [TL-RETRY n/2] progress lines, got: {captured}"
-    )
+    assert len(progress_msgs) >= 2, f"expected ≥2 [TL-RETRY n/2] progress lines, got: {captured}"
     print("[OK] run_retry_stage_progress_logging")
 
 

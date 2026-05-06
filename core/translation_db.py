@@ -120,10 +120,13 @@ class TranslationDB:
                 file_size = 0
             if file_size > self._MAX_DB_FILE_SIZE:
                 import logging as _logging
+
                 _logging.getLogger(__name__).warning(
                     "[DB] %s too large (%d bytes > %d-byte cap), "
                     "refusing to load to protect memory",
-                    self.path, file_size, self._MAX_DB_FILE_SIZE,
+                    self.path,
+                    file_size,
+                    self._MAX_DB_FILE_SIZE,
                 )
                 self.entries = []
                 self._index = {}
@@ -138,10 +141,13 @@ class TranslationDB:
                     ok, fsize2 = check_fstat_size(f, self._MAX_DB_FILE_SIZE)
                     if not ok:
                         import logging as _logging
+
                         _logging.getLogger(__name__).warning(
                             "[DB] %s grew past cap after stat (TOCTOU?): "
                             "%d bytes > %d-byte cap, refusing to load",
-                            self.path, fsize2, self._MAX_DB_FILE_SIZE,
+                            self.path,
+                            fsize2,
+                            self._MAX_DB_FILE_SIZE,
                         )
                         self.entries = []
                         self._index = {}
@@ -191,9 +197,7 @@ class TranslationDB:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.path.with_suffix(self.path.suffix + ".tmp")
             try:
-                tmp.write_text(
-                    json.dumps(payload, ensure_ascii=False), encoding="utf-8"
-                )
+                tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
                 os.replace(str(tmp), str(self.path))
             except OSError:
                 # Best-effort cleanup of the temp file; re-raise so the caller

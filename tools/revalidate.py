@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.gate import evaluate_gate
@@ -39,4 +40,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

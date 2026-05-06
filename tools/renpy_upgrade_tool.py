@@ -46,13 +46,15 @@ RULES = []
 
 
 def rule(rule_id, description, pattern, replacement, severity="error"):
-    RULES.append({
-        "id": rule_id,
-        "description": description,
-        "pattern": re.compile(pattern),
-        "replacement": replacement,
-        "severity": severity,
-    })
+    RULES.append(
+        {
+            "id": rule_id,
+            "description": description,
+            "pattern": re.compile(pattern),
+            "replacement": replacement,
+            "severity": severity,
+        }
+    )
 
 
 # ---- Python 2 print statement → print() function ----
@@ -62,102 +64,102 @@ def rule(rule_id, description, pattern, replacement, severity="error"):
 rule(
     "PY3-001",
     'print statement → print() function: print "x" should be print("x")',
-    r'(?<=\$\s)print\s+(?!\()(.*)',
-    lambda m: f'print({m.group(1).strip()})',
+    r"(?<=\$\s)print\s+(?!\()(.*)",
+    lambda m: f"print({m.group(1).strip()})",
     "error",
 )
 
 rule(
     "PY3-001b",
-    'print statement → print() function (in python block)',
-    r'^(\s+)print\s+(?!\()(.+)',
-    lambda m: f'{m.group(1)}print({m.group(2).strip()})',
+    "print statement → print() function (in python block)",
+    r"^(\s+)print\s+(?!\()(.+)",
+    lambda m: f"{m.group(1)}print({m.group(2).strip()})",
     "error",
 )
 
 # ---- dict.has_key(x) → x in dict ----
 rule(
     "PY3-002",
-    'dict.has_key(x) → x in dict',
-    r'(\w+)\.has_key\(([^)]+)\)',
-    lambda m: f'{m.group(2).strip()} in {m.group(1)}',
+    "dict.has_key(x) → x in dict",
+    r"(\w+)\.has_key\(([^)]+)\)",
+    lambda m: f"{m.group(2).strip()} in {m.group(1)}",
     "error",
 )
 
 # ---- <> operator → != ----
 rule(
     "PY3-003",
-    '<> operator → != operator',
-    r'(?<!=)\s*<>\s*(?!=)',
-    ' != ',
+    "<> operator → != operator",
+    r"(?<!=)\s*<>\s*(?!=)",
+    " != ",
     "error",
 )
 
 # ---- xrange() → range() ----
 rule(
     "PY3-004",
-    'xrange() → range()',
-    r'\bxrange\s*\(',
-    'range(',
+    "xrange() → range()",
+    r"\bxrange\s*\(",
+    "range(",
     "error",
 )
 
 # ---- raw_input() → input() ----
 rule(
     "PY3-005",
-    'raw_input() → input()',
-    r'\braw_input\s*\(',
-    'input(',
+    "raw_input() → input()",
+    r"\braw_input\s*\(",
+    "input(",
     "error",
 )
 
 # ---- dict.iterkeys() / itervalues() / iteritems() ----
 rule(
     "PY3-006a",
-    '.iterkeys() → .keys()',
-    r'\.iterkeys\s*\(\)',
-    '.keys()',
+    ".iterkeys() → .keys()",
+    r"\.iterkeys\s*\(\)",
+    ".keys()",
     "error",
 )
 rule(
     "PY3-006b",
-    '.itervalues() → .values()',
-    r'\.itervalues\s*\(\)',
-    '.values()',
+    ".itervalues() → .values()",
+    r"\.itervalues\s*\(\)",
+    ".values()",
     "error",
 )
 rule(
     "PY3-006c",
-    '.iteritems() → .items()',
-    r'\.iteritems\s*\(\)',
-    '.items()',
+    ".iteritems() → .items()",
+    r"\.iteritems\s*\(\)",
+    ".items()",
     "error",
 )
 
 # ---- unicode() → str() ----
 rule(
     "PY3-007",
-    'unicode() → str()',
-    r'\bunicode\s*\(',
-    'str(',
+    "unicode() → str()",
+    r"\bunicode\s*\(",
+    "str(",
     "error",
 )
 
 # ---- long type → int ----
 rule(
     "PY3-008",
-    'long() → int() (Python 3 unified int/long)',
-    r'\blong\s*\(',
-    'int(',
+    "long() → int() (Python 3 unified int/long)",
+    r"\blong\s*\(",
+    "int(",
     "warning",
 )
 
 # ---- except Exception, e → except Exception as e ----
 rule(
     "PY3-009",
-    'except X, e → except X as e',
-    r'except\s+(\w+)\s*,\s*(\w+)\s*:',
-    lambda m: f'except {m.group(1)} as {m.group(2)}:',
+    "except X, e → except X as e",
+    r"except\s+(\w+)\s*,\s*(\w+)\s*:",
+    lambda m: f"except {m.group(1)} as {m.group(2)}:",
     "error",
 )
 
@@ -180,8 +182,8 @@ rule(
 # ---- Integer division (spaced operator like `a / b`, avoids paths & strings) ----
 rule(
     "PY3-011",
-    'Integer division: / may return float in Python 3 (review manually)',
-    r'(?<=[\w)\]])\s+/\s+(?=[\w(])',
+    "Integer division: / may return float in Python 3 (review manually)",
+    r"(?<=[\w)\]])\s+/\s+(?=[\w(])",
     None,
     "warning",
 )
@@ -189,17 +191,17 @@ rule(
 # ---- apply() removed ----
 rule(
     "PY3-012",
-    'apply(func, args) → func(*args)',
-    r'\bapply\s*\(\s*(\w+)\s*,\s*([^)]+)\)',
-    lambda m: f'{m.group(1)}(*{m.group(2).strip()})',
+    "apply(func, args) → func(*args)",
+    r"\bapply\s*\(\s*(\w+)\s*,\s*([^)]+)\)",
+    lambda m: f"{m.group(1)}(*{m.group(2).strip()})",
     "error",
 )
 
 # ---- reduce() moved to functools ----
 rule(
     "PY3-013",
-    'reduce() moved to functools.reduce() in Python 3',
-    r'(?<!functools\.)\breduce\s*\(',
+    "reduce() moved to functools.reduce() in Python 3",
+    r"(?<!functools\.)\breduce\s*\(",
     None,  # Needs manual fix — add "from functools import reduce"
     "warning",
 )
@@ -207,8 +209,8 @@ rule(
 # ---- map/filter return iterators, not lists ----
 rule(
     "PY3-014",
-    'map()/filter() returns iterator in Python 3, may need list() wrapper',
-    r'\b(?:map|filter)\s*\(',
+    "map()/filter() returns iterator in Python 3, may need list() wrapper",
+    r"\b(?:map|filter)\s*\(",
     None,
     "warning",
 )
@@ -216,10 +218,10 @@ rule(
 # ---- Ren'Py specific: old-style ui. calls ----
 rule(
     "RENPY-001",
-    'Deprecated ui.* function call (use screen language instead)',
-    r'\bui\.(text|button|add|image|imagebutton|textbutton|bar|vbar|'
-    r'hbox|vbox|grid|fixed|frame|window|null|timer|input|key|'
-    r'side|viewport|imagemap|hotspot|hotbar)\s*\(',
+    "Deprecated ui.* function call (use screen language instead)",
+    r"\bui\.(text|button|add|image|imagebutton|textbutton|bar|vbar|"
+    r"hbox|vbox|grid|fixed|frame|window|null|timer|input|key|"
+    r"side|viewport|imagemap|hotspot|hotbar)\s*\(",
     None,  # Cannot auto-fix — needs manual screen rewrite
     "warning",
 )
@@ -227,8 +229,8 @@ rule(
 # ---- Ren'Py: style.* direct access (old style) ----
 rule(
     "RENPY-002",
-    'Old style property access: style.default.* (use style prefix in screens)',
-    r'\bstyle\.default\.\w+',
+    "Old style property access: style.default.* (use style prefix in screens)",
+    r"\bstyle\.default\.\w+",
     None,
     "warning",
 )
@@ -236,9 +238,9 @@ rule(
 # ---- Ren'Py: im.Composite / im.* image manipulators ----
 rule(
     "RENPY-003",
-    'im.* image manipulators may be deprecated, consider Transform()',
-    r'\bim\.(Composite|Scale|Crop|Flip|Grayscale|Sepia|Alpha|'
-    r'MatrixColor|FactorScale)\s*\(',
+    "im.* image manipulators may be deprecated, consider Transform()",
+    r"\bim\.(Composite|Scale|Crop|Flip|Grayscale|Sepia|Alpha|"
+    r"MatrixColor|FactorScale)\s*\(",
     None,
     "warning",
 )
@@ -246,8 +248,8 @@ rule(
 # ---- Ren'Py: layout.* functions ----
 rule(
     "RENPY-004",
-    'layout.* functions are deprecated in Ren\'Py 8',
-    r'\blayout\.(yesno_screen|navigation|imagemap_navigation)\s*\(',
+    "layout.* functions are deprecated in Ren'Py 8",
+    r"\blayout\.(yesno_screen|navigation|imagemap_navigation)\s*\(",
     None,
     "warning",
 )
@@ -255,8 +257,8 @@ rule(
 # ---- Ren'Py: config.keymap old entries ----
 rule(
     "RENPY-005",
-    'Check config.keymap — some key names changed in Ren\'Py 8',
-    r'\bconfig\.keymap\s*\[',
+    "Check config.keymap — some key names changed in Ren'Py 8",
+    r"\bconfig\.keymap\s*\[",
     None,
     "warning",
 )
@@ -264,8 +266,8 @@ rule(
 # ---- tuple parameter unpacking (Python 3 removed) ----
 rule(
     "PY3-015",
-    'Tuple parameter unpacking removed in Python 3: def f((a,b))',
-    r'def\s+\w+\s*\([^)]*\([^)]+\)[^)]*\)',
+    "Tuple parameter unpacking removed in Python 3: def f((a,b))",
+    r"def\s+\w+\s*\([^)]*\([^)]+\)[^)]*\)",
     None,
     "error",
 )
@@ -273,8 +275,8 @@ rule(
 # ---- exec statement ----
 rule(
     "PY3-016",
-    'exec as statement → exec() function',
-    r'(?<=\s)exec\s+(?!\()',
+    "exec as statement → exec() function",
+    r"(?<=\s)exec\s+(?!\()",
     None,
     "warning",
 )
@@ -282,17 +284,17 @@ rule(
 # ---- basestring removed ----
 rule(
     "PY3-017",
-    'basestring removed in Python 3, use str instead',
-    r'\bbasestring\b',
-    'str',
+    "basestring removed in Python 3, use str instead",
+    r"\bbasestring\b",
+    "str",
     "error",
 )
 
 # ---- cmp() removed ----
 rule(
     "PY3-018",
-    'cmp() removed in Python 3',
-    r'\bcmp\s*\(',
+    "cmp() removed in Python 3",
+    r"\bcmp\s*\(",
     None,
     "warning",
 )
@@ -300,8 +302,8 @@ rule(
 # ---- sorted() with cmp parameter ----
 rule(
     "PY3-019",
-    'sorted()/list.sort() cmp parameter removed in Python 3, use key=',
-    r'sorted\s*\([^)]*cmp\s*=',
+    "sorted()/list.sort() cmp parameter removed in Python 3, use key=",
+    r"sorted\s*\([^)]*cmp\s*=",
     None,
     "warning",
 )
@@ -317,8 +319,8 @@ rule(
 # determine whether an ATL block (indented xpos/ypos/etc.) follows.
 # ---------------------------------------------------------------------------
 
-_RE_SHOW_WITH_COLON = re.compile(r'^(\s*show\s+\S+(?:\s+\S+)*):\s*$')
-_SHOW_ATL_KEYWORDS = re.compile(r'\b(at|behind|as|with|onlayer|zorder|screen)\b')
+_RE_SHOW_WITH_COLON = re.compile(r"^(\s*show\s+\S+(?:\s+\S+)*):\s*$")
+_SHOW_ATL_KEYWORDS = re.compile(r"\b(at|behind|as|with|onlayer|zorder|screen)\b")
 
 _RENPY020_RULE_INFO = {
     "id": "RENPY-020",
@@ -338,7 +340,7 @@ def _scan_show_empty_atl(lines: list[str], filepath: str) -> list:
             continue
         # Skip if line contains ATL sub-clause keywords (at/behind/as/with etc.)
         body = m.group(1).split(None, 1)
-        after_show = body[1] if len(body) > 1 else ''
+        after_show = body[1] if len(body) > 1 else ""
         if _SHOW_ATL_KEYWORDS.search(after_show):
             continue
         # Look ahead: if next non-blank line is MORE indented, it's an ATL block → colon is needed
@@ -356,19 +358,22 @@ def _scan_show_empty_atl(lines: list[str], filepath: str) -> list:
             continue  # colon is correct, ATL block follows
         # No ATL block → remove trailing colon
         fixed = m.group(1)
-        results.append(ScanResult(
-            filepath=filepath,
-            line_number=i + 1,
-            line_content=line.rstrip(),
-            rule_info=_RENPY020_RULE_INFO,
-            fixed_line=fixed,
-        ))
+        results.append(
+            ScanResult(
+                filepath=filepath,
+                line_number=i + 1,
+                line_content=line.rstrip(),
+                rule_info=_RENPY020_RULE_INFO,
+                fixed_line=fixed,
+            )
+        )
     return results
 
 
 # ---------------------------------------------------------------------------
 # Scanner
 # ---------------------------------------------------------------------------
+
 
 class ScanResult:
     def __init__(self, filepath, line_number, line_content, rule_info, fixed_line=None):
@@ -389,7 +394,7 @@ def is_in_python_context(lines, line_idx):
     indent = len(lines[line_idx]) - len(lines[line_idx].lstrip())
     for i in range(line_idx - 1, max(line_idx - 50, -1), -1):
         prev = lines[i].strip()
-        if re.match(r'^(init\s+)?python(\s+\w+)?\s*:', prev):
+        if re.match(r"^(init\s+)?python(\s+\w+)?\s*:", prev):
             prev_indent = len(lines[i]) - len(lines[i].lstrip())
             if indent > prev_indent:
                 return True
@@ -397,7 +402,7 @@ def is_in_python_context(lines, line_idx):
         if prev and not prev.startswith("#"):
             prev_indent = len(lines[i]) - len(lines[i].lstrip())
             if prev_indent < indent:
-                if not re.match(r'^(if|elif|else|for|while|try|except|with|def|class)', prev):
+                if not re.match(r"^(if|elif|else|for|while|try|except|with|def|class)", prev):
                     break
     return False
 
@@ -442,13 +447,15 @@ def scan_file(filepath):
                 else:
                     fixed_line = r["pattern"].sub(r["replacement"], line)
 
-            results.append(ScanResult(
-                filepath=filepath,
-                line_number=line_idx + 1,
-                line_content=line.rstrip(),
-                rule_info=r,
-                fixed_line=fixed_line,
-            ))
+            results.append(
+                ScanResult(
+                    filepath=filepath,
+                    line_number=line_idx + 1,
+                    line_content=line.rstrip(),
+                    rule_info=r,
+                    fixed_line=fixed_line,
+                )
+            )
 
     return results
 
@@ -556,7 +563,9 @@ def print_report(results, file_count):
         for r in sorted(file_results, key=lambda x: x.line_number):
             severity_mark = "ERROR" if r.rule["severity"] == "error" else "WARN "
             fix_mark = "[auto-fix]" if r.fixed_line is not None else "[manual]  "
-            print(f"  L{r.line_number:<5} {severity_mark} {fix_mark} [{r.rule['id']}] {r.rule['description']}")
+            print(
+                f"  L{r.line_number:<5} {severity_mark} {fix_mark} [{r.rule['id']}] {r.rule['description']}"
+            )
             print(f"         {r.line_content.strip()}")
             if r.fixed_line is not None:
                 print(f"      => {r.fixed_line.strip()}")
@@ -570,8 +579,9 @@ def print_report(results, file_count):
     print("=" * 70)
 
 
-def run_scan(game_dir: str, fix: bool = False, backup: bool = True,
-             clean_rpyc: bool = False) -> tuple[list[ScanResult], int]:
+def run_scan(
+    game_dir: str, fix: bool = False, backup: bool = True, clean_rpyc: bool = False
+) -> tuple[list[ScanResult], int]:
     """Programmatic entry point — scan, optionally fix, return (results, file_count)."""
     results, file_count = scan_directory(game_dir)
     print_report(results, file_count)
@@ -592,26 +602,19 @@ def run_scan(game_dir: str, fix: bool = False, backup: bool = True,
 def main():
     parser = argparse.ArgumentParser(
         description="Ren'Py 7.x → 8.x Upgrade Assistant: "
-                    "Scan and fix Python 2 / old Ren'Py API incompatibilities."
+        "Scan and fix Python 2 / old Ren'Py API incompatibilities."
     )
+    parser.add_argument("game_dir", help="Path to the Ren'Py project's 'game' directory")
     parser.add_argument(
-        "game_dir",
-        help="Path to the Ren'Py project's 'game' directory"
-    )
-    parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Apply auto-fixes to files (default: scan only)"
+        "--fix", action="store_true", help="Apply auto-fixes to files (default: scan only)"
     )
     parser.add_argument(
         "--backup",
         action="store_true",
-        help="Create .bak backup files before modifying (use with --fix)"
+        help="Create .bak backup files before modifying (use with --fix)",
     )
     parser.add_argument(
-        "--clean-rpyc",
-        action="store_true",
-        help="Delete all .rpyc files to force recompilation"
+        "--clean-rpyc", action="store_true", help="Delete all .rpyc files to force recompilation"
     )
     args = parser.parse_args()
 

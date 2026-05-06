@@ -95,30 +95,52 @@ def main(argv: list[str] | None = None) -> int:
     # 收集所有需要打包的 Python 模块（非测试、非工具）
     hidden_imports = [
         # core infrastructure
-        "core", "core.api_client", "core.config", "core.glossary",
-        "core.prompts", "core.translation_db",
+        "core",
+        "core.api_client",
+        "core.config",
+        "core.glossary",
+        "core.prompts",
+        "core.translation_db",
         "core.translation_utils",
         # translators
-        "translators", "translators.direct", "translators.tl_mode",
-        "translators.retranslator", "translators.screen",
-        "translators.tl_parser", "translators.renpy_text_utils",
+        "translators",
+        "translators.direct",
+        "translators.tl_mode",
+        "translators.retranslator",
+        "translators.screen",
+        "translators.tl_parser",
+        "translators.renpy_text_utils",
         # file_processor
         "file_processor",
-        "file_processor.splitter", "file_processor.patcher",
-        "file_processor.checker", "file_processor.validator",
+        "file_processor.splitter",
+        "file_processor.patcher",
+        "file_processor.checker",
+        "file_processor.validator",
         # core (round 27 A-H-5: font_patch moved from tools/ to core/)
         "core.font_patch",
         # tools
-        "tools", "tools.renpy_upgrade_tool",
-        "tools.review_generator", "tools.rpa_packer", "tools.translation_editor",
+        "tools",
+        "tools.renpy_upgrade_tool",
+        "tools.review_generator",
+        "tools.rpa_packer",
+        "tools.translation_editor",
         # pipeline
-        "pipeline", "pipeline.helpers", "pipeline.gate", "pipeline.stages",
+        "pipeline",
+        "pipeline.helpers",
+        "pipeline.gate",
+        "pipeline.stages",
         # engines
-        "engines", "engines.engine_base", "engines.engine_detector",
-        "engines.generic_pipeline", "engines.renpy_engine",
-        "engines.rpgmaker_engine", "engines.csv_engine",
+        "engines",
+        "engines.engine_base",
+        "engines.engine_detector",
+        "engines.generic_pipeline",
+        "engines.renpy_engine",
+        "engines.rpgmaker_engine",
+        "engines.csv_engine",
         # entry points
-        "main", "one_click_pipeline", "start_launcher",
+        "main",
+        "one_click_pipeline",
+        "start_launcher",
     ]
 
     # 数据文件
@@ -137,11 +159,15 @@ def main(argv: list[str] | None = None) -> int:
         datas.append((str(presets_dir), "prompt_presets"))
 
     cmd = [
-        sys.executable, "-m", "PyInstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--onefile",
         "--windowed",
-        "--name", "多引擎游戏汉化工具",
-        "--icon", "NONE",
+        "--name",
+        "多引擎游戏汉化工具",
+        "--icon",
+        "NONE",
         "--noconfirm",
         "--clean",
     ]
@@ -156,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
     print("=" * 60)
     print("PyInstaller 打包")
     print("=" * 60)
-    print(f"入口: gui.py")
+    print("入口: gui.py")
     print(f"Hidden imports: {len(hidden_imports)}")
     print(f"Data files: {len(datas)}")
     print()

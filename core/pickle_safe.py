@@ -20,6 +20,7 @@ stays minimal and reusable.
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import io
@@ -27,16 +28,31 @@ import pickle
 from typing import Any, FrozenSet
 
 # Primitive builtins that appear in almost any legitimate pickle payload.
-_SAFE_BUILTINS: FrozenSet[str] = frozenset({
-    "list", "tuple", "dict", "str", "bytes", "bytearray",
-    "int", "float", "bool", "NoneType",
-    "set", "frozenset", "complex",
-})
+_SAFE_BUILTINS: FrozenSet[str] = frozenset(
+    {
+        "list",
+        "tuple",
+        "dict",
+        "str",
+        "bytes",
+        "bytearray",
+        "int",
+        "float",
+        "bool",
+        "NoneType",
+        "set",
+        "frozenset",
+        "complex",
+    }
+)
 
 # Ordered / default dict variants that commonly appear in Python object graphs.
-_SAFE_COLLECTIONS: FrozenSet[str] = frozenset({
-    "OrderedDict", "defaultdict",
-})
+_SAFE_COLLECTIONS: FrozenSet[str] = frozenset(
+    {
+        "OrderedDict",
+        "defaultdict",
+    }
+)
 
 # Pickle internal helpers: pickle uses ``_codecs.encode`` (via the REDUCE
 # opcode) to reconstruct bytes / unicode objects and ``copyreg._reconstructor``
@@ -67,9 +83,7 @@ class SafeUnpickler(pickle.Unpickler):
             return super().find_class(module, name)
         if module in ("copyreg", "copy_reg") and name in _SAFE_COPYREG:
             return super().find_class(module, name)
-        raise pickle.UnpicklingError(
-            f"Refused to load {module}.{name} (not in safe whitelist)"
-        )
+        raise pickle.UnpicklingError(f"Refused to load {module}.{name} (not in safe whitelist)")
 
 
 def safe_loads(data: bytes, *, encoding: str = "ASCII", errors: str = "strict") -> Any:

@@ -8,7 +8,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.renpy_lint_fixer import (
-    LintResult,
     _fix_errors,
     _parse_lint_errors,
     _remove_consecutive_empty_lines,
@@ -19,6 +18,7 @@ from tools.renpy_lint_fixer import (
 # ---------------------------------------------------------------------------
 # Tests: consecutive empty line cleanup
 # ---------------------------------------------------------------------------
+
 
 def test_remove_consecutive_empty_lines():
     """Collapse multiple empty lines into one."""
@@ -40,9 +40,12 @@ def test_remove_consecutive_no_change():
 # Tests: lint error parsing
 # ---------------------------------------------------------------------------
 
+
 def test_parse_lint_termination_error():
     """Parse 'not terminated with a newline' error."""
-    output = 'At script.rpy, line 42: is not terminated with a newline. (Check strings and parenthesis.)'
+    output = (
+        "At script.rpy, line 42: is not terminated with a newline. (Check strings and parenthesis.)"
+    )
     with tempfile.TemporaryDirectory() as tmpdir:
         errors = _parse_lint_errors(output, Path(tmpdir))
     assert len(errors) == 1
@@ -53,7 +56,7 @@ def test_parse_lint_termination_error():
 
 def test_parse_lint_end_of_line():
     """Parse 'end of line expected' error."""
-    output = 'At tl/chinese/script.rpy, line 15: end of line expected.'
+    output = "At tl/chinese/script.rpy, line 15: end of line expected."
     with tempfile.TemporaryDirectory() as tmpdir:
         errors = _parse_lint_errors(output, Path(tmpdir))
     assert len(errors) == 1
@@ -63,7 +66,7 @@ def test_parse_lint_end_of_line():
 
 def test_parse_lint_empty_block():
     """Parse 'expects a non-empty block' error."""
-    output = 'At game/script.rpy, line 100: expects a non-empty block.'
+    output = "At game/script.rpy, line 100: expects a non-empty block."
     with tempfile.TemporaryDirectory() as tmpdir:
         errors = _parse_lint_errors(output, Path(tmpdir))
     assert len(errors) == 1
@@ -73,7 +76,7 @@ def test_parse_lint_empty_block():
 
 def test_parse_lint_unknown_statement():
     """Parse 'unknown statement' error."""
-    output = 'At screens.rpy, line 5: unknown statement'
+    output = "At screens.rpy, line 5: unknown statement"
     with tempfile.TemporaryDirectory() as tmpdir:
         errors = _parse_lint_errors(output, Path(tmpdir))
     assert len(errors) == 1
@@ -83,7 +86,7 @@ def test_parse_lint_unknown_statement():
 
 def test_parse_lint_duplicate_translation():
     """Parse duplicate translation error."""
-    output = 'Exception: A translation for start_12345 already exists at tl/chinese/script.rpy:42.'
+    output = "Exception: A translation for start_12345 already exists at tl/chinese/script.rpy:42."
     with tempfile.TemporaryDirectory() as tmpdir:
         errors = _parse_lint_errors(output, Path(tmpdir))
     assert len(errors) == 1
@@ -121,16 +124,17 @@ def test_parse_lint_no_errors():
 # Tests: error fixing
 # ---------------------------------------------------------------------------
 
+
 def test_fix_old_new_pair():
     """Fix error on an old/new translation pair."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
         test_file = tmpdir / "script.rpy"
         test_file.write_text(
-            '    # comment\n'
+            "    # comment\n"
             '    old "Hello"\n'
             '    new "你好\n'  # Missing closing quote — error on this line
-            '\n'
+            "\n"
             '    old "World"\n'
             '    new "世界"\n',
             encoding="utf-8",
@@ -152,9 +156,7 @@ def test_fix_unknown_statement():
         tmpdir = Path(tmpdir)
         test_file = tmpdir / "script.rpy"
         test_file.write_text(
-            'label start:\n'
-            '    GARBAGE_STATEMENT\n'
-            '    "Hello"\n',
+            'label start:\n    GARBAGE_STATEMENT\n    "Hello"\n',
             encoding="utf-8",
         )
 
@@ -174,8 +176,7 @@ def test_fix_translate_block():
         tmpdir = Path(tmpdir)
         test_file = tmpdir / "script.rpy"
         test_file.write_text(
-            'translate chinese BADBLOCK:\n'
-            '    "test"\n',
+            'translate chinese BADBLOCK:\n    "test"\n',
             encoding="utf-8",
         )
 
@@ -194,9 +195,9 @@ def test_fix_preserves_other_content():
         tmpdir = Path(tmpdir)
         test_file = tmpdir / "script.rpy"
         original_lines = [
-            'label start:\n',
+            "label start:\n",
             '    "Good line 1"\n',
-            '    BAD_LINE\n',
+            "    BAD_LINE\n",
             '    "Good line 2"\n',
         ]
         test_file.write_text("".join(original_lines), encoding="utf-8")
@@ -214,6 +215,7 @@ def test_fix_preserves_other_content():
 # ---------------------------------------------------------------------------
 # Tests: lint availability detection
 # ---------------------------------------------------------------------------
+
 
 def test_lint_not_available_empty_dir():
     """Lint not available for empty directory."""

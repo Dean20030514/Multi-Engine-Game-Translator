@@ -2,6 +2,17 @@
 
 [简体中文](#简体中文) · [English](#english)
 
+> 📚 **Documentation language note** (r57 P4): this README and
+> [`CONTRIBUTING.md`](CONTRIBUTING.md) are bilingual (zh + en). Other
+> docs in this repository — including [`CLAUDE.md`](CLAUDE.md),
+> [`HANDOFF.md`](HANDOFF.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
+> [`docs/REFERENCE.md`](docs/REFERENCE.md), and [`SECURITY.md`](SECURITY.md)
+> — are **Simplified Chinese only** because the project's primary user
+> base and contributor pool is Chinese-speaking. International
+> contributors should start from this README + CONTRIBUTING; all
+> in-repo code, comments, identifiers, and commit messages remain
+> English (per [`CLAUDE.md`](CLAUDE.md) global communication rule).
+
 ---
 
 ## 简体中文

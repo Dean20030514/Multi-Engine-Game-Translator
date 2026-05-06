@@ -115,23 +115,11 @@ SYSTEM_PROMPT_TEMPLATE = """\
 ⚠️ 如果文件中没有需要翻译的内容，返回空数组 `[]`。"""
 
 STYLE_ADULT = (
-    "## 翻译风格\n"
-    "- 成人游戏风格：直白露骨，用词大胆\n"
-    "- 保持原文的挑逗/色情意味\n"
-    "- 对话自然口语化"
+    "## 翻译风格\n- 成人游戏风格：直白露骨，用词大胆\n- 保持原文的挑逗/色情意味\n- 对话自然口语化"
 )
-STYLE_VISUAL_NOVEL = (
-    "## 翻译风格\n"
-    "- 视觉小说风格：文学化，注重叙事感和情感表达"
-)
-STYLE_RPG = (
-    "## 翻译风格\n"
-    "- RPG 风格：简洁有力，注重游戏性用语"
-)
-STYLE_GENERAL = (
-    "## 翻译风格\n"
-    "- 通用游戏风格：自然流畅"
-)
+STYLE_VISUAL_NOVEL = "## 翻译风格\n- 视觉小说风格：文学化，注重叙事感和情感表达"
+STYLE_RPG = "## 翻译风格\n- RPG 风格：简洁有力，注重游戏性用语"
+STYLE_GENERAL = "## 翻译风格\n- 通用游戏风格：自然流畅"
 
 _STYLES = {
     "adult": STYLE_ADULT,
@@ -188,6 +176,7 @@ _COT_ADDON_ZH = """
 
 在 JSON 输出中，只返回第 3 步的最终译文。不要输出中间推理步骤。
 """
+
 
 def build_system_prompt(
     genre: str = "adult",
@@ -246,8 +235,8 @@ def build_system_prompt(
 
     # 追加引擎专属说明（仅非 Ren'Py 引擎）
     if engine_profile is not None:
-        addon_key = getattr(engine_profile, 'prompt_addon_key', '')
-        addon = _ENGINE_PROMPT_ADDONS.get(addon_key, '')
+        addon_key = getattr(engine_profile, "prompt_addon_key", "")
+        addon = _ENGINE_PROMPT_ADDONS.get(addon_key, "")
         if addon:
             base = base.rstrip() + "\n\n" + addon.strip() + "\n"
 
@@ -267,7 +256,7 @@ def build_user_prompt(filename: str, content: str, chunk_info: dict = None) -> s
         chunk_info: 分块信息 {"part": 1, "total": 3, "line_offset": 0,
                      可选 "prev_context": str, "prev_context_offset": int}
     """
-    lines = content.split('\n')
+    lines = content.split("\n")
     offset = chunk_info.get("line_offset", 0) if chunk_info else 0
 
     header = f"文件：{filename}\n"
@@ -278,7 +267,7 @@ def build_user_prompt(filename: str, content: str, chunk_info: dict = None) -> s
     # 上文上下文（仅供 AI 了解前文语境，不需要翻译）
     context_block = ""
     if chunk_info and chunk_info.get("prev_context"):
-        ctx_lines = chunk_info["prev_context"].split('\n')
+        ctx_lines = chunk_info["prev_context"].split("\n")
         ctx_offset = chunk_info.get("prev_context_offset", 0)
         numbered_ctx = []
         for i, line in enumerate(ctx_lines):
@@ -286,7 +275,7 @@ def build_user_prompt(filename: str, content: str, chunk_info: dict = None) -> s
             numbered_ctx.append(f"{lineno:5d}| {line}")
         context_block = (
             "--- 以下是前一部分末尾的上下文（仅供参考，不要翻译） ---\n"
-            + '\n'.join(numbered_ctx)
+            + "\n".join(numbered_ctx)
             + "\n--- 上下文结束，以下是需要翻译的内容 ---\n\n"
         )
 
@@ -295,7 +284,7 @@ def build_user_prompt(filename: str, content: str, chunk_info: dict = None) -> s
     for i, line in enumerate(lines):
         lineno = i + 1 + offset
         numbered_lines.append(f"{lineno:5d}| {line}")
-    numbered = '\n'.join(numbered_lines)
+    numbered = "\n".join(numbered_lines)
 
     return f"请翻译以下 Ren'Py 文件中需要翻译的文本：\n\n{header}\n{context_block}{numbered}"
 
@@ -437,7 +426,4 @@ def build_tl_system_prompt(
 
 def build_tl_user_prompt(chunk_text: str, entry_count: int) -> str:
     """构建 tl-mode 用户提示词。"""
-    return (
-        f"请翻译以下 {entry_count} 条 Ren'Py 游戏文本：\n\n"
-        f"{chunk_text}"
-    )
+    return f"请翻译以下 {entry_count} 条 Ren'Py 游戏文本：\n\n{chunk_text}"

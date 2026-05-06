@@ -25,18 +25,10 @@ idempotent) tests stay in ``tests/test_custom_engine.py``.
 Tests are byte-identical to their pre-split forms.
 """
 
-import json
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from core.api_client import (
-    APIConfig,
-    APIClient,
-    _SubprocessPluginClient,
-)
 
 
 def test_sandbox_rejects_oversize_response_line():
@@ -97,9 +89,7 @@ def test_sandbox_rejects_oversize_response_line():
         except RuntimeError as e:
             msg = str(e)
             raised = (
-                "oversized" in msg.lower()
-                or "exceeded" in msg.lower()
-                or "bytes" in msg.lower()
+                "oversized" in msg.lower() or "exceeded" in msg.lower() or "bytes" in msg.lower()
             )
         assert raised, (
             "plugin response > cap bytes without newline must raise "
@@ -183,9 +173,7 @@ def test_sandbox_oversize_response_line_char_semantics_multibyte():
             client._read_response_line(req_id=100)
         except RuntimeError:
             raised_ascii = True
-        assert raised_ascii, (
-            "ASCII payload > cap chars without newline must also raise"
-        )
+        assert raised_ascii, "ASCII payload > cap chars without newline must also raise"
     print("[OK] test_sandbox_oversize_response_line_char_semantics_multibyte")
 
 
@@ -374,15 +362,22 @@ def test_sandbox_oversize_response_line_2byte_latin():
     class _FakeStdout:
         def __init__(self, payload: str):
             self._payload = payload
+
         def readline(self, size: int = -1) -> str:
             return self._payload[:size] if size > 0 else self._payload
 
     class _FakeProc:
         def __init__(self, payload: str):
             self.stdout = _FakeStdout(payload)
-        def poll(self): return None
-        def kill(self): pass
-        def wait(self, timeout=None): pass
+
+        def poll(self):
+            return None
+
+        def kill(self):
+            pass
+
+        def wait(self, timeout=None):
+            pass
 
     test_cases = [
         ("ñ", "Spanish ñ U+00F1 (2-byte UTF-8)"),
@@ -423,6 +418,7 @@ def test_sandbox_oversize_response_line_with_newline_terminated_multibyte():
     class _FakeStdout:
         def __init__(self, payload: str):
             self._payload = payload
+
         def readline(self, size: int = -1) -> str:
             # Real text-mode readline behaviour: returns up to ``size``
             # chars OR up-to-and-including the next \n, whichever
@@ -431,14 +427,20 @@ def test_sandbox_oversize_response_line_with_newline_terminated_multibyte():
                 return self._payload
             up_to = self._payload[:size]
             nl = up_to.find("\n")
-            return up_to[:nl + 1] if nl >= 0 else up_to
+            return up_to[: nl + 1] if nl >= 0 else up_to
 
     class _FakeProc:
         def __init__(self, payload: str):
             self.stdout = _FakeStdout(payload)
-        def poll(self): return None
-        def kill(self): pass
-        def wait(self, timeout=None): pass
+
+        def poll(self):
+            return None
+
+        def kill(self):
+            pass
+
+        def wait(self, timeout=None):
+            pass
 
     client = _SubprocessPluginClient.__new__(_SubprocessPluginClient)
     client._timeout = 5.0
@@ -476,19 +478,26 @@ def test_sandbox_response_line_cap_minus_1_with_newline_passes():
     class _FakeStdout:
         def __init__(self, payload: str):
             self._payload = payload
+
         def readline(self, size: int = -1) -> str:
             if size <= 0:
                 return self._payload
             up_to = self._payload[:size]
             nl = up_to.find("\n")
-            return up_to[:nl + 1] if nl >= 0 else up_to
+            return up_to[: nl + 1] if nl >= 0 else up_to
 
     class _FakeProc:
         def __init__(self, payload: str):
             self.stdout = _FakeStdout(payload)
-        def poll(self): return None
-        def kill(self): pass
-        def wait(self, timeout=None): pass
+
+        def poll(self):
+            return None
+
+        def kill(self):
+            pass
+
+        def wait(self, timeout=None):
+            pass
 
     client = _SubprocessPluginClient.__new__(_SubprocessPluginClient)
     client._timeout = 5.0
@@ -501,9 +510,7 @@ def test_sandbox_response_line_cap_minus_1_with_newline_passes():
             client._read_response_line(req_id=500)
         except RuntimeError as e:
             cap_raised = "chars" in str(e).lower() or "exceeded" in str(e).lower()
-        assert not cap_raised, (
-            "1023 chars + newline (well-formed at cap-1) must NOT trigger cap"
-        )
+        assert not cap_raised, "1023 chars + newline (well-formed at cap-1) must NOT trigger cap"
     print("[OK] test_sandbox_response_line_cap_minus_1_with_newline_passes")
 
 
@@ -522,19 +529,26 @@ def test_sandbox_response_line_cap_exact_with_newline_passes():
     class _FakeStdout:
         def __init__(self, payload: str):
             self._payload = payload
+
         def readline(self, size: int = -1) -> str:
             if size <= 0:
                 return self._payload
             up_to = self._payload[:size]
             nl = up_to.find("\n")
-            return up_to[:nl + 1] if nl >= 0 else up_to
+            return up_to[: nl + 1] if nl >= 0 else up_to
 
     class _FakeProc:
         def __init__(self, payload: str):
             self.stdout = _FakeStdout(payload)
-        def poll(self): return None
-        def kill(self): pass
-        def wait(self, timeout=None): pass
+
+        def poll(self):
+            return None
+
+        def kill(self):
+            pass
+
+        def wait(self, timeout=None):
+            pass
 
     client = _SubprocessPluginClient.__new__(_SubprocessPluginClient)
     client._timeout = 5.0
@@ -550,10 +564,10 @@ def test_sandbox_response_line_cap_exact_with_newline_passes():
         except RuntimeError as e:
             cap_raised = "chars" in str(e).lower() or "exceeded" in str(e).lower()
         assert not cap_raised, (
-            "1024 chars exact with \\n at pos 1023 (cap exact + newline) "
-            "must NOT trigger cap"
+            "1024 chars exact with \\n at pos 1023 (cap exact + newline) must NOT trigger cap"
         )
     print("[OK] test_sandbox_response_line_cap_exact_with_newline_passes")
+
 
 ALL_TESTS = [
     # Round 43 audit-tail: per-response-line size cap (matches r30 stderr cap)

@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Union
 
 from safety.file_safety import check_fstat_size
 
@@ -44,20 +44,17 @@ MODEL_SPEAKING_PATTERNS = [
 # 格式 (regex, category_name)；匹配顺序影响提取结果（更具体的模式应靠前，如 {#id} 在通用 {tag} 前）
 # 'tag' 模式同时覆盖样式标签（{color=...}/{b}/{i} 等）和控制标签（{w}/{p}/{nw}/{fast}/{cps=N}/{done} 等）
 PLACEHOLDER_ORDER_PATTERNS = [
-    (r'\[\w+\]', 'var'),
-    (r'\{#[^}]+\}', 'menu_id'),
-    (r'\{/?[a-zA-Z]+=?[^}]*\}', 'tag'),
-    (r'%\([^)]+\)[sd]', 'fmt'),
+    (r"\[\w+\]", "var"),
+    (r"\{#[^}]+\}", "menu_id"),
+    (r"\{/?[a-zA-Z]+=?[^}]*\}", "tag"),
+    (r"%\([^)]+\)[sd]", "fmt"),
 ]
 
 # 预编译为单一正则，按"最早出现"的匹配从左到右收集（用于 _extract_placeholder_sequence）
-_PLACEHOLDER_ORDER_REGEX = re.compile(
-    '|'.join(f'({p})' for p, _ in PLACEHOLDER_ORDER_PATTERNS)
-)
+_PLACEHOLDER_ORDER_REGEX = re.compile("|".join(f"({p})" for p, _ in PLACEHOLDER_ORDER_PATTERNS))
 
 
-def _extract_placeholder_sequence(text: str,
-                                  regex: "re.Pattern | None" = None) -> list[str]:
+def _extract_placeholder_sequence(text: str, regex: "re.Pattern | None" = None) -> list[str]:
     """按从左到右顺序提取文本中的占位符序列，用于顺序一致性校验。
 
     使用 PLACEHOLDER_ORDER_PATTERNS 对应的联合正则，finditer 保证出现顺序。
@@ -90,9 +87,10 @@ def clear_placeholder_cache() -> None:
     _placeholder_cache.clear()
 
 
-def protect_placeholders(text: str,
-                         patterns: "list[str] | None" = None,
-                         ) -> tuple[str, list[tuple[str, str]]]:
+def protect_placeholders(
+    text: str,
+    patterns: "list[str] | None" = None,
+) -> tuple[str, list[tuple[str, str]]]:
     """将文本中的占位符替换为唯一令牌，供发往 API 时使用。
 
     使用与 PLACEHOLDER_ORDER_PATTERNS 相同的模式提取占位符，按首次出现顺序去重后，
@@ -150,9 +148,7 @@ def protect_placeholders(text: str,
     ]
     orig_to_token = {orig: token for token, orig in mapping}
     # 从后往前替换，避免偏移变化
-    replacements = [
-        (s, e, orig_to_token[m]) for s, e, m in matches
-    ]
+    replacements = [(s, e, orig_to_token[m]) for s, e, m in matches]
     replacements.sort(key=lambda x: x[0], reverse=True)
     result = text
     for start, end, token in replacements:
@@ -280,8 +276,9 @@ def check_response_chunk(chunk_content: str, translations: list[dict]) -> list[s
     return warnings
 
 
-def check_response_item(item: dict, line_offset: int = 0,
-                        placeholder_re: "re.Pattern | None" = None) -> list[str]:
+def check_response_item(
+    item: dict, line_offset: int = 0, placeholder_re: "re.Pattern | None" = None
+) -> list[str]:
     """轻量 ResponseChecker：对单条 API 返回的翻译做本地校验，不调 API。
 
     检查：原文非空时译文非空、占位符集合一致、必要字段存在。
@@ -330,6 +327,7 @@ def check_response_item(item: dict, line_offset: int = 0,
 # dicts ``{"line", "original", "zh", ...}`` and belong next to the
 # single-item primitives they delegate to.
 # ============================================================
+
 
 def _filter_checked_translations(
     translations: list[dict],
@@ -421,16 +419,48 @@ def _restore_locked_terms_in_translations(
 # notice.  Strict-Stdlib: just a frozenset + one normalisation function.
 # ============================================================
 
-COMMON_UI_BUTTONS: frozenset[str] = frozenset({
-    "yes", "no", "ok", "cancel", "quit", "return", "exit",
-    "back", "next", "skip", "continue", "retry",
-    "start", "load", "save", "delete", "new game",
-    "main menu", "menu", "preferences", "prefs", "options",
-    "settings", "about", "help", "credits",
-    "auto", "history", "rollback",
-    "confirm", "close", "done", "apply", "reset",
-    "on", "off", "enable", "disable",
-})
+COMMON_UI_BUTTONS: frozenset[str] = frozenset(
+    {
+        "yes",
+        "no",
+        "ok",
+        "cancel",
+        "quit",
+        "return",
+        "exit",
+        "back",
+        "next",
+        "skip",
+        "continue",
+        "retry",
+        "start",
+        "load",
+        "save",
+        "delete",
+        "new game",
+        "main menu",
+        "menu",
+        "preferences",
+        "prefs",
+        "options",
+        "settings",
+        "about",
+        "help",
+        "credits",
+        "auto",
+        "history",
+        "rollback",
+        "confirm",
+        "close",
+        "done",
+        "apply",
+        "reset",
+        "on",
+        "off",
+        "enable",
+        "disable",
+    }
+)
 
 
 def _normalise_ui_button(text: str) -> str:
@@ -547,7 +577,9 @@ def load_ui_button_whitelist(paths: Iterable[Union[str, Path]]) -> int:
         if fsize > _MAX_UI_WHITELIST_SIZE:
             logger.warning(
                 "[UI-WHITELIST] 跳过 %s: 文件 %d 字节超过 %d 字节上限",
-                p, fsize, _MAX_UI_WHITELIST_SIZE,
+                p,
+                fsize,
+                _MAX_UI_WHITELIST_SIZE,
             )
             continue
         try:
@@ -558,7 +590,9 @@ def load_ui_button_whitelist(paths: Iterable[Union[str, Path]]) -> int:
                     logger.warning(
                         "[UI-WHITELIST] 跳过 %s: 文件 stat 后增长到 %d 字节"
                         "（疑似 TOCTOU 攻击），超过 %d 字节上限",
-                        p, fsize2, _MAX_UI_WHITELIST_SIZE,
+                        p,
+                        fsize2,
+                        _MAX_UI_WHITELIST_SIZE,
                     )
                     continue
                 text = f.read()
@@ -576,7 +610,8 @@ def load_ui_button_whitelist(paths: Iterable[Union[str, Path]]) -> int:
                 continue
             if not isinstance(data, list):
                 logger.warning(
-                    "[UI-WHITELIST] JSON 结构应为 list[str]，跳过 %s", p,
+                    "[UI-WHITELIST] JSON 结构应为 list[str]，跳过 %s",
+                    p,
                 )
                 continue
             tokens = [t for t in data if isinstance(t, str)]
@@ -591,7 +626,9 @@ def load_ui_button_whitelist(paths: Iterable[Union[str, Path]]) -> int:
         total_added += added
         logger.info(
             "[UI-WHITELIST] %s: 新增 %d 条 UI 按钮（文件原始 %d 条）",
-            p, added, len(tokens),
+            p,
+            added,
+            len(tokens),
         )
     return total_added
 

@@ -167,8 +167,7 @@ class Config:
             expected_type = schema["type"]
             if not isinstance(value, expected_type):
                 msg = (
-                    f"[CONFIG] '{key}' 类型错误: "
-                    f"期望 {expected_type}, 实际 {type(value).__name__}"
+                    f"[CONFIG] '{key}' 类型错误: 期望 {expected_type}, 实际 {type(value).__name__}"
                 )
                 warnings.append(msg)
                 logger.warning(msg)
@@ -176,26 +175,17 @@ class Config:
 
             # choices 检查
             if "choices" in schema and value not in schema["choices"]:
-                msg = (
-                    f"[CONFIG] '{key}' 值无效: '{value}', "
-                    f"可选值: {schema['choices']}"
-                )
+                msg = f"[CONFIG] '{key}' 值无效: '{value}', 可选值: {schema['choices']}"
                 warnings.append(msg)
                 logger.warning(msg)
 
             # min / max 范围检查
             if "min" in schema and value < schema["min"]:
-                msg = (
-                    f"[CONFIG] '{key}' 值过小: {value}, "
-                    f"最小值: {schema['min']}"
-                )
+                msg = f"[CONFIG] '{key}' 值过小: {value}, 最小值: {schema['min']}"
                 warnings.append(msg)
                 logger.warning(msg)
             if "max" in schema and value > schema["max"]:
-                msg = (
-                    f"[CONFIG] '{key}' 值过大: {value}, "
-                    f"最大值: {schema['max']}"
-                )
+                msg = f"[CONFIG] '{key}' 值过大: {value}, 最大值: {schema['max']}"
                 warnings.append(msg)
                 logger.warning(msg)
 
@@ -276,9 +266,7 @@ class Config:
                 p.relative_to(sp)
             except ValueError:
                 continue
-            logger.warning(
-                "[CONFIG] api_key_file 指向敏感系统目录 (%s)，已拒绝: %s", sp, p
-            )
+            logger.warning("[CONFIG] api_key_file 指向敏感系统目录 (%s)，已拒绝: %s", sp, p)
             return ""
 
         if not p.exists():
@@ -292,7 +280,8 @@ class Config:
         if size > cls._MAX_API_KEY_FILE_BYTES:
             logger.warning(
                 "[CONFIG] api_key_file 大小 %d 字节超过 %d 上限，疑似误配置，拒绝",
-                size, cls._MAX_API_KEY_FILE_BYTES,
+                size,
+                cls._MAX_API_KEY_FILE_BYTES,
             )
             return ""
 
@@ -310,3 +299,66 @@ class Config:
     def has_config_file(self) -> bool:
         """是否加载了配置文件。"""
         return bool(self._file_config)
+
+
+# ============================================================
+# Round 58 A1: shared CLI-args + config-file resolver
+# ============================================================
+
+
+def resolve_args_from_config(args, cfg: "Config") -> None:
+    """Merge ``Config`` values into argparse ``Namespace`` in place.
+
+    Round 58 A1 — extracted from inline code in ``main.py::main()`` so
+    the GUI / one-click pipeline / future entry points share the same
+    three-layer precedence (CLI > config file > defaults). Originally
+    duplicated inline; this helper is the single source of truth.
+
+    Three-layer precedence applied here:
+        1. CLI args explicitly set (non-``None``) → kept
+        2. CLI args missing (``None``) → filled from config file
+        3. Both missing → argparse default / hardcoded constant
+
+    Round 52 C4 BREAKING: ``target_lang`` is hardcoded to ``"zh"``
+    regardless of any config-file value.
+
+    Note: ``args.game_dir`` is *not* touched here — callers are
+    expected to have already sanitized it (r57 S2
+    ``_sanitize_user_path``) and resolved any "game/" subdir
+    auto-detection before invoking this helper.
+
+    Note: API key resolution has its own multi-source precedence
+    (CLI > ``_RENPY_TRANSLATOR_CHILD_API_KEY`` env > config
+    ``api_key_env`` / ``api_key_file`` / ``api_key``) and is not
+    handled here — see :func:`Config.resolve_api_key` for that
+    chain.
+
+    See ``docs/REFERENCE.md`` §7a for the documented precedence.
+    """
+    # Scalar config fields with defaults
+    args.output_dir = cfg.get("output_dir", "output")
+    args.provider = cfg.get("provider", "xai")
+    args.model = cfg.get("model", "")
+    args.genre = cfg.get("genre", "adult")
+    args.workers = cfg.get("workers", 1)
+    args.file_workers = cfg.get("file_workers", 1)
+    args.rpm = cfg.get("rpm", 60)
+    args.rps = cfg.get("rps", 5)
+    args.timeout = cfg.get("timeout", 180.0)
+    args.temperature = cfg.get("temperature", 0.1)
+    args.max_chunk_tokens = cfg.get("max_chunk_tokens", 4000)
+    args.max_response_tokens = cfg.get("max_response_tokens", 32768)
+
+    # Round 52 C4 BREAKING: target_lang fixed to "zh".
+    args.target_lang = "zh"
+
+    args.min_dialogue_density = cfg.get("min_dialogue_density", 0.20)
+    args.tl_lang = cfg.get("tl_lang", "chinese")
+
+    # List-valued config fields — only fill if CLI didn't provide.
+    if args.dict is None:
+        args.dict = cfg.get("dict", []) or []
+    if args.exclude is None:
+        args.exclude = cfg.get("exclude", []) or []
+    if getattr(args, "ui_button_whitelist", None) is None:
+        args.ui_button_whitelist = cfg.get("ui_button_whitelist", []) or []

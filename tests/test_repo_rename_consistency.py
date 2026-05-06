@@ -96,9 +96,9 @@ def test_pyproject_no_orphan_repo_refs():
     assert 'name = "multi-engine-game-translator"' in content, (
         "pyproject.toml missing new package name 'multi-engine-game-translator'"
     )
-    assert (
-        "https://github.com/Dean20030514/Multi-Engine-Game-Translator" in content
-    ), "pyproject.toml Repository URL not updated to new GitHub repo"
+    assert "https://github.com/Dean20030514/Multi-Engine-Game-Translator" in content, (
+        "pyproject.toml Repository URL not updated to new GitHub repo"
+    )
     print("[OK] test_pyproject_no_orphan_repo_refs")
 
 
@@ -108,9 +108,9 @@ def test_example_json_no_orphan_repo_refs():
     assert "Renpy-Translator" not in content, (
         "renpy_translate.example.json still contains old repo URL"
     )
-    assert (
-        "https://github.com/Dean20030514/Multi-Engine-Game-Translator" in content
-    ), "renpy_translate.example.json $schema not updated to new repo URL"
+    assert "https://github.com/Dean20030514/Multi-Engine-Game-Translator" in content, (
+        "renpy_translate.example.json $schema not updated to new repo URL"
+    )
     print("[OK] test_example_json_no_orphan_repo_refs")
 
 
@@ -150,9 +150,7 @@ def test_upstream_attribution_preserved():
             f"(MIT, 2024) removed from {rel} - this is a license-compliance "
             f"violation; the rename only applies to self-references."
         )
-        assert "anonymousException" in content, (
-            f"upstream author attribution removed from {rel}"
-        )
+        assert "anonymousException" in content, f"upstream author attribution removed from {rel}"
     print("[OK] test_upstream_attribution_preserved")
 
 
@@ -172,6 +170,7 @@ def test_skip_parts_excludes_pycache_dir():
     fails together if the production loop is changed.
     """
     import tempfile
+
     pattern = re.compile(r"""getLogger\(["']renpy_translator["']\)""")
     with tempfile.TemporaryDirectory() as td:
         td_path = pathlib.Path(td)
@@ -322,8 +321,7 @@ def test_ci_mock_target_guard_catches_known_stale_forms():
 
     # Form 1: mock.patch(...os.fstat) -- string-arg form
     assert r"mock\.patch.*os\.fstat" in workflow, (
-        "CI mock-target guard missing string-arg form; "
-        "see Round 50 1a guard rationale."
+        "CI mock-target guard missing string-arg form; see Round 50 1a guard rationale."
     )
     # Form 2: patch.object(os, "fstat", ...) -- object-arg form
     assert r"patch\.object" in workflow and "fstat" in workflow, (

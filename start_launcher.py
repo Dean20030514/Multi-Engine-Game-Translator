@@ -24,7 +24,7 @@ def _normalize_input(s: str) -> str:
         return ""
     s = s.strip()
     # 去掉首尾常见引号（英文/中文）
-    quote_chars = '"\'“”‘’'
+    quote_chars = "\"'“”‘’"
     while len(s) >= 2 and s[0] in quote_chars and s[-1] in quote_chars:
         s = s[1:-1].strip()
     return s
@@ -86,7 +86,12 @@ def main() -> int:
             return 1
         scan_dir = str(Path(scan_dir).expanduser())
         do_fix = ask("自动修复？[y/N]（默认 N）: ", "n").lower() == "y"
-        cmd = [sys.executable, str(Path(__file__).resolve().parent / "tools" / "renpy_upgrade_tool.py"), scan_dir, "--backup"]
+        cmd = [
+            sys.executable,
+            str(Path(__file__).resolve().parent / "tools" / "renpy_upgrade_tool.py"),
+            scan_dir,
+            "--backup",
+        ]
         if do_fix:
             cmd.append("--fix")
         return run(cmd)
@@ -106,10 +111,14 @@ def main() -> int:
 
     if mode == "3":
         cmd = [
-            py, "main.py",
-            "--game-dir", game_dir,
-            "--provider", provider,
-            "--model", model,
+            py,
+            "main.py",
+            "--game-dir",
+            game_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
             "--dry-run",
         ]
         return run(cmd)
@@ -126,22 +135,35 @@ def main() -> int:
     if mode in ("5", "6"):
         tl_lang = ask("tl 语言目录名（默认 chinese）: ", "chinese")
         workers = ask("并发线程数（默认 5）: ", "5")
-        use_screen = ask("翻译 screen 裸英文？[y/N]（补充 tl 框架无法覆盖的 UI 文本）: ", "n").lower() == "y"
+        use_screen = (
+            ask("翻译 screen 裸英文？[y/N]（补充 tl 框架无法覆盖的 UI 文本）: ", "n").lower() == "y"
+        )
         extra = ["--resume"] if mode == "6" else []
         if use_screen:
             extra.append("--tl-screen")
         cmd = [
-            py, "-u", "main.py",
-            "--game-dir", game_dir,
-            "--output-dir", output_dir,
-            "--provider", provider,
-            "--model", model,
-            "--genre", genre,
-            "--rpm", rpm,
-            "--rps", rps,
-            "--workers", workers,
+            py,
+            "-u",
+            "main.py",
+            "--game-dir",
+            game_dir,
+            "--output-dir",
+            output_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--genre",
+            genre,
+            "--rpm",
+            rpm,
+            "--rps",
+            rps,
+            "--workers",
+            workers,
             "--tl-mode",
-            "--tl-lang", tl_lang,
+            "--tl-lang",
+            tl_lang,
             *extra,
         ]
         return run(cmd, api_key=api_key)
@@ -150,16 +172,26 @@ def main() -> int:
     if mode == "8":
         workers = ask("并发线程数（默认 3）: ", "3")
         cmd = [
-            py, "main.py",
-            "--engine", "rpgmaker",
-            "--game-dir", game_dir,
-            "--output-dir", output_dir,
-            "--provider", provider,
-            "--model", model,
-            "--genre", genre,
-            "--workers", workers,
-            "--rpm", rpm,
-            "--rps", rps,
+            py,
+            "main.py",
+            "--engine",
+            "rpgmaker",
+            "--game-dir",
+            game_dir,
+            "--output-dir",
+            output_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--genre",
+            genre,
+            "--workers",
+            workers,
+            "--rpm",
+            rpm,
+            "--rps",
+            rps,
         ]
         return run(cmd, api_key=api_key)
 
@@ -170,32 +202,53 @@ def main() -> int:
             engine = "csv"
         workers = ask("并发线程数（默认 3）: ", "3")
         cmd = [
-            py, "main.py",
-            "--engine", engine,
-            "--game-dir", game_dir,
-            "--output-dir", output_dir,
-            "--provider", provider,
-            "--model", model,
-            "--workers", workers,
-            "--rpm", rpm,
-            "--rps", rps,
+            py,
+            "main.py",
+            "--engine",
+            engine,
+            "--game-dir",
+            game_dir,
+            "--output-dir",
+            output_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--workers",
+            workers,
+            "--rpm",
+            rpm,
+            "--rps",
+            rps,
         ]
         return run(cmd, api_key=api_key)
 
     workers = ask("并发线程数（默认 3）: ", "3")
 
     if mode == "4":
-        use_tl = ask("使用 tl-mode？[y/N]（默认 N，选 y 则跳过试跑/补翻，直接 tl 翻译）: ", "n").lower() == "y"
+        use_tl = (
+            ask("使用 tl-mode？[y/N]（默认 N，选 y 则跳过试跑/补翻，直接 tl 翻译）: ", "n").lower()
+            == "y"
+        )
         cmd = [
-            py, "one_click_pipeline.py",
-            "--game-dir", game_dir,
-            "--output-dir", output_dir,
-            "--provider", provider,
-            "--model", model,
-            "--genre", genre,
-            "--workers", workers,
-            "--rpm", rpm,
-            "--rps", rps,
+            py,
+            "one_click_pipeline.py",
+            "--game-dir",
+            game_dir,
+            "--output-dir",
+            output_dir,
+            "--provider",
+            provider,
+            "--model",
+            model,
+            "--genre",
+            genre,
+            "--workers",
+            workers,
+            "--rpm",
+            rpm,
+            "--rps",
+            rps,
             "--clean-output",
         ]
         if use_tl:
@@ -209,15 +262,24 @@ def main() -> int:
 
     extra = ["--resume"] if mode == "2" else []
     cmd = [
-        py, "main.py",
-        "--game-dir", game_dir,
-        "--output-dir", output_dir,
-        "--provider", provider,
-        "--model", model,
-        "--genre", genre,
-        "--workers", workers,
-        "--rpm", rpm,
-        "--rps", rps,
+        py,
+        "main.py",
+        "--game-dir",
+        game_dir,
+        "--output-dir",
+        output_dir,
+        "--provider",
+        provider,
+        "--model",
+        model,
+        "--genre",
+        genre,
+        "--workers",
+        workers,
+        "--rpm",
+        rpm,
+        "--rps",
+        rps,
         *extra,
     ]
     return run(cmd, api_key=api_key)

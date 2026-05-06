@@ -57,6 +57,7 @@ brackets, dots) — this protection is best-effort, not a guarantee.
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import logging
@@ -88,9 +89,7 @@ _XUAT_EXTENSIONS: frozenset[str] = frozenset({".txt"})
 # Regex rule line: r:"<pattern>"="<replacement>"
 # Both pattern and replacement are double-quoted; we use a raw regex to
 # extract the two payloads while honouring backslash-escaped quotes.
-_REGEX_RULE_LINE = re.compile(
-    r'^r:"((?:[^"\\]|\\.)*)"="((?:[^"\\]|\\.)*)"\s*$'
-)
+_REGEX_RULE_LINE = re.compile(r'^r:"((?:[^"\\]|\\.)*)"="((?:[^"\\]|\\.)*)"\s*$')
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -106,13 +105,14 @@ class _ParsedLine:
     line_ending attribute captures whether the source used ``\\r\\n``
     or ``\\n`` so write_back can preserve it exactly.
     """
-    line_no: int                       # 1-based
-    line_type: str                     # "blank" / "comment" / "translation" / "regex_rule" / "malformed"
-    raw: str                           # original text without trailing newline
-    line_ending: str                   # "\n" or "\r\n"
-    original: str = ""                 # parsed original (translation / regex_rule only)
-    translation: str = ""              # parsed translation (translation / regex_rule only)
-    regex_pattern: str = ""            # filled when line_type == "regex_rule"
+
+    line_no: int  # 1-based
+    line_type: str  # "blank" / "comment" / "translation" / "regex_rule" / "malformed"
+    raw: str  # original text without trailing newline
+    line_ending: str  # "\n" or "\r\n"
+    original: str = ""  # parsed original (translation / regex_rule only)
+    translation: str = ""  # parsed translation (translation / regex_rule only)
+    regex_pattern: str = ""  # filled when line_type == "regex_rule"
 
 
 def _parse_lines(text: str) -> list[_ParsedLine]:
@@ -151,41 +151,42 @@ def _classify_line(line_no: int, raw: str, line_ending: str) -> _ParsedLine:
 
     # Blank
     if not stripped:
-        return _ParsedLine(line_no=line_no, line_type="blank",
-                           raw=raw, line_ending=line_ending)
+        return _ParsedLine(line_no=line_no, line_type="blank", raw=raw, line_ending=line_ending)
 
     # Comment (XUAT uses //; we also accept # for tolerance though XUAT itself
     # doesn't emit it — keep // as the canonical form on write-back)
     if stripped.startswith("//"):
-        return _ParsedLine(line_no=line_no, line_type="comment",
-                           raw=raw, line_ending=line_ending)
+        return _ParsedLine(line_no=line_no, line_type="comment", raw=raw, line_ending=line_ending)
 
     # Regex rule: r:"<pattern>"="<replacement>"
     m = _REGEX_RULE_LINE.match(stripped)
     if m:
         return _ParsedLine(
-            line_no=line_no, line_type="regex_rule",
-            raw=raw, line_ending=line_ending,
-            original=m.group(2),       # the replacement text is what gets translated
-            translation=m.group(2),    # placeholder until LLM fills
+            line_no=line_no,
+            line_type="regex_rule",
+            raw=raw,
+            line_ending=line_ending,
+            original=m.group(2),  # the replacement text is what gets translated
+            translation=m.group(2),  # placeholder until LLM fills
             regex_pattern=m.group(1),
         )
 
     # Plain translation entry: split on FIRST '=' only.
     # Hard contract (Round 55): MUST use partition('='), not split('=').
     if "=" not in raw:
-        return _ParsedLine(line_no=line_no, line_type="malformed",
-                           raw=raw, line_ending=line_ending)
+        return _ParsedLine(line_no=line_no, line_type="malformed", raw=raw, line_ending=line_ending)
     original, _, translation = raw.partition("=")
     if not original:
         # Lines like ``=foo`` have empty original — treat as malformed
         # rather than silently dropping the value.
-        return _ParsedLine(line_no=line_no, line_type="malformed",
-                           raw=raw, line_ending=line_ending)
+        return _ParsedLine(line_no=line_no, line_type="malformed", raw=raw, line_ending=line_ending)
     return _ParsedLine(
-        line_no=line_no, line_type="translation",
-        raw=raw, line_ending=line_ending,
-        original=original, translation=translation,
+        line_no=line_no,
+        line_type="translation",
+        raw=raw,
+        line_ending=line_ending,
+        original=original,
+        translation=translation,
     )
 
 
@@ -234,8 +235,7 @@ class UnityXUnityEngine(EngineBase):
 
         translatable = [u for u in units if u.status == "pending"]
         logger.info(
-            f"[XUAT] 提取 {len(translatable)} 条待翻译"
-            f"（共扫描 {len(units)} 条 entry，含已译条目）"
+            f"[XUAT] 提取 {len(translatable)} 条待翻译（共扫描 {len(units)} 条 entry，含已译条目）"
         )
         return translatable
 
@@ -248,8 +248,7 @@ class UnityXUnityEngine(EngineBase):
             return
         if stat.st_size > _MAX_XUAT_FILE_SIZE:
             logger.warning(
-                f"[XUAT] 文件 {file_path} 过大 "
-                f"({stat.st_size} > {_MAX_XUAT_FILE_SIZE})，跳过"
+                f"[XUAT] 文件 {file_path} 过大 ({stat.st_size} > {_MAX_XUAT_FILE_SIZE})，跳过"
             )
             return
 
@@ -261,8 +260,7 @@ class UnityXUnityEngine(EngineBase):
                 ok, fsize2 = check_fstat_size(f, _MAX_XUAT_FILE_SIZE)
                 if not ok:
                     logger.warning(
-                        f"[XUAT] 文件 {file_path} stat 后增长到 "
-                        f"{fsize2} 字节（疑似 TOCTOU），跳过"
+                        f"[XUAT] 文件 {file_path} stat 后增长到 {fsize2} 字节（疑似 TOCTOU），跳过"
                     )
                     return
                 text = f.read()
@@ -279,8 +277,7 @@ class UnityXUnityEngine(EngineBase):
             if line.line_type in ("blank", "comment", "malformed"):
                 if line.line_type == "malformed" and line.line_no not in malformed_warned:
                     logger.debug(
-                        f"[XUAT] {file_path}:{line.line_no} 格式异常，跳过: "
-                        f"{line.raw[:80]!r}"
+                        f"[XUAT] {file_path}:{line.line_no} 格式异常，跳过: {line.raw[:80]!r}"
                     )
                     malformed_warned.add(line.line_no)
                 continue
@@ -342,8 +339,9 @@ class UnityXUnityEngine(EngineBase):
     # Write-back
     # ────────────────────────────────────────────────────────────────
 
-    def write_back(self, game_dir: Path, units: list[TranslatableUnit],
-                   output_dir: Path, **kwargs) -> int:
+    def write_back(
+        self, game_dir: Path, units: list[TranslatableUnit], output_dir: Path, **kwargs
+    ) -> int:
         """Write translated units back, preserving comments / blanks / order.
 
         Output goes to ``output_dir/<relative_path>``. The original input
@@ -381,9 +379,7 @@ class UnityXUnityEngine(EngineBase):
             for line in parsed:
                 new_translation = line_map.get(line.line_no)
 
-                if new_translation is None or line.line_type not in (
-                    "translation", "regex_rule"
-                ):
+                if new_translation is None or line.line_type not in ("translation", "regex_rule"):
                     buf.append(line.raw + line.line_ending)
                     continue
 
@@ -396,9 +392,7 @@ class UnityXUnityEngine(EngineBase):
                     # the same double-quote envelope without re-escaping
                     # — the LLM is expected to emit clean text.
                     pattern = line.regex_pattern
-                    buf.append(
-                        f'r:"{pattern}"="{new_translation}"' + line.line_ending
-                    )
+                    buf.append(f'r:"{pattern}"="{new_translation}"' + line.line_ending)
 
                 written += 1
 

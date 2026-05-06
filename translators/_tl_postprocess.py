@@ -14,6 +14,7 @@ emits ``nvl clear`` inside translate blocks or leaves them empty after
 filtering. Kept separate from the core parser because they operate on
 already-translated output, not on source tl files.
 """
+
 from __future__ import annotations
 
 
@@ -21,11 +22,12 @@ import logging
 
 import re
 from pathlib import Path
+
 logger = logging.getLogger("multi_engine_translator")
 
 
 # 与 tl_parser 共享的 translate 块头正则（单独定义避免循环依赖）。
-_RE_TRANSLATE_BLOCK = re.compile(r'^translate\s+\w+\s+\w+\s*:\s*$')
+_RE_TRANSLATE_BLOCK = re.compile(r"^translate\s+\w+\s+\w+\s*:\s*$")
 
 
 def postprocess_tl_file(file_path: str) -> dict:
@@ -37,9 +39,9 @@ def postprocess_tl_file(file_path: str) -> dict:
 
     Returns dict with fix counts: {"nvl_removed": int, "pass_added": int}.
     """
-    content = Path(file_path).read_text(encoding='utf-8-sig')
+    content = Path(file_path).read_text(encoding="utf-8-sig")
     lines = content.splitlines()
-    has_trailing_nl = content.endswith('\n')
+    has_trailing_nl = content.endswith("\n")
 
     new_lines: list[str] = []
     stats = {"nvl_removed": 0, "pass_added": 0}
@@ -47,7 +49,7 @@ def postprocess_tl_file(file_path: str) -> dict:
 
     while i < len(lines):
         header = lines[i].strip()
-        if _RE_TRANSLATE_BLOCK.match(header) and 'strings' not in header:
+        if _RE_TRANSLATE_BLOCK.match(header) and "strings" not in header:
             new_lines.append(lines[i])
             i += 1
 
@@ -55,13 +57,13 @@ def postprocess_tl_file(file_path: str) -> dict:
             has_code = False
             while i < len(lines):
                 s = lines[i].strip()
-                if s == '' or s.startswith('#'):
+                if s == "" or s.startswith("#"):
                     block_lines.append(lines[i])
                     i += 1
                     continue
-                if _RE_TRANSLATE_BLOCK.match(s) or s.startswith('translate '):
+                if _RE_TRANSLATE_BLOCK.match(s) or s.startswith("translate "):
                     break
-                if s == 'nvl clear':
+                if s == "nvl clear":
                     stats["nvl_removed"] += 1
                     i += 1
                     continue
@@ -69,19 +71,19 @@ def postprocess_tl_file(file_path: str) -> dict:
                 block_lines.append(lines[i])
                 i += 1
             if not has_code:
-                new_lines.append('    pass')
+                new_lines.append("    pass")
                 stats["pass_added"] += 1
             new_lines.extend(block_lines)
         else:
             new_lines.append(lines[i])
             i += 1
 
-    result = '\n'.join(new_lines)
+    result = "\n".join(new_lines)
     if has_trailing_nl:
-        result += '\n'
+        result += "\n"
 
     if stats["nvl_removed"] or stats["pass_added"]:
-        Path(file_path).write_text(result, encoding='utf-8')
+        Path(file_path).write_text(result, encoding="utf-8")
 
     return stats
 
@@ -104,7 +106,9 @@ def postprocess_tl_directory(tl_dir: str, lang: str) -> dict:
             totals["pass_added"] += stats["pass_added"]
 
     if totals["files"]:
-        logger.info(f"[TL-POSTPROCESS] 修复 {totals['files']} 个文件: "
-              f"移除 {totals['nvl_removed']} 处 nvl clear, "
-              f"补 {totals['pass_added']} 处 pass")
+        logger.info(
+            f"[TL-POSTPROCESS] 修复 {totals['files']} 个文件: "
+            f"移除 {totals['nvl_removed']} 处 nvl clear, "
+            f"补 {totals['pass_added']} 处 pass"
+        )
     return totals

@@ -18,13 +18,15 @@ from pathlib import Path
 
 # ── Data structures ─────────────────────────────────────────────────
 
+
 @dataclass
 class ScreenTextEntry:
     """One translatable string found inside a ``screen`` definition."""
-    file_path: str       # Absolute path to the source .rpy
-    line_number: int     # 1-based line number
-    pattern_type: str    # "text" | "textbutton" | "tt_action" | "notify"
-    original: str        # Literal content (unescaped)
+
+    file_path: str  # Absolute path to the source .rpy
+    line_number: int  # 1-based line number
+    pattern_type: str  # "text" | "textbutton" | "tt_action" | "notify"
+    original: str  # Literal content (unescaped)
 
 
 # ── Regexes ─────────────────────────────────────────────────────────
@@ -37,14 +39,25 @@ _RE_TT_ACTION = re.compile(r'(tt\.Action\s*\(\s*)"((?:[^"\\]|\\.)*)"(\s*\))')
 _RE_NOTIFY = re.compile(r'(Notify\s*\(\s*)"((?:[^"\\]|\\.)*)"(\s*\))')
 
 # Skip-list detection.
-_RE_PURE_VAR = re.compile(r'^\[[\w.!]+\]$')
+_RE_PURE_VAR = re.compile(r"^\[[\w.!]+\]$")
 _FILE_EXTENSIONS = (
-    '.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3',
-    '.ogg', '.wav', '.ttf', '.otf', '.rpyc', '.rpy',
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".mp3",
+    ".ogg",
+    ".wav",
+    ".ttf",
+    ".otf",
+    ".rpyc",
+    ".rpy",
 )
 
 
 # ── Scan ────────────────────────────────────────────────────────────
+
 
 def scan_screen_files(game_dir: Path) -> list[Path]:
     """Return every ``.rpy`` under ``game_dir`` excluding tl/renpy/lib."""
@@ -58,6 +71,7 @@ def scan_screen_files(game_dir: Path) -> list[Path]:
 
 
 # ── Skip logic ──────────────────────────────────────────────────────
+
 
 def _should_skip(text: str) -> bool:
     """Return True for strings that should not be sent to the translator.
@@ -81,8 +95,8 @@ def _should_skip(text: str) -> bool:
         return True
     # Strip Ren'Py tags before the path heuristic so ``{/size}`` etc.
     # don't falsely trigger the ``/`` + ``.`` match.
-    tag_stripped = re.sub(r'\{/?[^}]*\}', '', stripped)
-    if '/' in tag_stripped and '.' in tag_stripped:
+    tag_stripped = re.sub(r"\{/?[^}]*\}", "", stripped)
+    if "/" in tag_stripped and "." in tag_stripped:
         return True
     return False
 
@@ -92,10 +106,11 @@ def _line_has_underscore_wrap(line: str) -> bool:
     the line — those strings are already handled by Ren'Py's tl framework.
     """
     before_quote = line.split('"')[0]
-    return '_(' in before_quote
+    return "_(" in before_quote
 
 
 # ── Extract ─────────────────────────────────────────────────────────
+
 
 def extract_screen_strings(file_path: Path) -> list[ScreenTextEntry]:
     """Extract all bare-English entries from a single ``.rpy`` file.

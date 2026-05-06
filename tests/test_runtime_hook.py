@@ -17,6 +17,7 @@ the v2 schema surface for future schema_version=3 evolution.
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
@@ -32,14 +33,38 @@ def test_runtime_hook_emit_builds_map_and_copies_template():
     with tempfile.TemporaryDirectory() as td:
         out_game = Path(td) / "game"
         entries = [
-            {"file": "a.rpy", "line": 1, "original": "Hello", "translation": "你好", "status": "ok"},
-            {"file": "a.rpy", "line": 2, "original": "World", "translation": "世界", "status": "ok"},
+            {
+                "file": "a.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "你好",
+                "status": "ok",
+            },
+            {
+                "file": "a.rpy",
+                "line": 2,
+                "original": "World",
+                "translation": "世界",
+                "status": "ok",
+            },
             # status != "ok" must be filtered out
-            {"file": "a.rpy", "line": 3, "original": "Fail",  "translation": "",    "status": "dropped"},
+            {
+                "file": "a.rpy",
+                "line": 3,
+                "original": "Fail",
+                "translation": "",
+                "status": "dropped",
+            },
             # missing translation must be filtered
-            {"file": "a.rpy", "line": 4, "original": "Empty", "translation": "",    "status": "ok"},
+            {"file": "a.rpy", "line": 4, "original": "Empty", "translation": "", "status": "ok"},
             # duplicate original keeps first
-            {"file": "b.rpy", "line": 1, "original": "Hello", "translation": "别的", "status": "ok"},
+            {
+                "file": "b.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "别的",
+                "status": "ok",
+            },
         ]
 
         json_path, hook_path, count = emit_runtime_hook(out_game, entries)
@@ -73,10 +98,15 @@ def test_runtime_hook_emit_if_requested_respects_flag():
     with tempfile.TemporaryDirectory() as td:
         out_dir = Path(td)
         db = TranslationDB(out_dir / "translation_db.json")
-        db.upsert_entry({
-            "file": "a.rpy", "line": 1, "original": "Hello",
-            "translation": "你好", "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "a.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "你好",
+                "status": "ok",
+            }
+        )
 
         # Flag off → no files emitted.
         args_off = SimpleNamespace(emit_runtime_hook=False)
@@ -108,10 +138,15 @@ def test_emit_runtime_hook_writes_ui_sidecar_when_extensions_set():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     with tempfile.TemporaryDirectory() as td:
         out_game = Path(td) / "game"
@@ -119,7 +154,8 @@ def test_emit_runtime_hook_writes_ui_sidecar_when_extensions_set():
         # already-normalised tokens verbatim (the normalisation happens on
         # the Python-side ``add_ui_button_whitelist`` path before we get here).
         emit_runtime_hook(
-            out_game, entries,
+            out_game,
+            entries,
             ui_button_extensions=["存档", "读档", "main hub"],
         )
         sidecar = out_game / "ui_button_whitelist.json"
@@ -144,10 +180,15 @@ def test_emit_runtime_hook_skips_ui_sidecar_when_empty():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     for ext in (None, [], (), frozenset(), {""}):
         with tempfile.TemporaryDirectory() as td:
@@ -171,10 +212,15 @@ def test_emit_runtime_hook_copies_font_when_path_given():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
@@ -204,10 +250,15 @@ def test_emit_runtime_hook_skips_font_when_none():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     for font in (None, Path("/does/not/exist/font.ttf")):
         with tempfile.TemporaryDirectory() as td:
@@ -231,10 +282,15 @@ def test_emit_runtime_hook_font_same_file_tolerated():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     with tempfile.TemporaryDirectory() as td:
         out_game = Path(td) / "game"
@@ -268,10 +324,15 @@ def test_emit_if_requested_resolves_font_from_args_font_file():
         fake_font.write_bytes(b"TTF\x00CUSTOM\x04\x05\x06")
 
         db = TranslationDB(td_path / "translation_db.json")
-        db.upsert_entry({
-            "file": "a.rpy", "line": 1, "original": "Hello",
-            "translation": "你好", "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "a.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "你好",
+                "status": "ok",
+            }
+        )
 
         args = SimpleNamespace(
             emit_runtime_hook=True,
@@ -295,10 +356,15 @@ def test_emit_gui_overrides_rpy_when_font_config_has_overrides():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
     font_config = {
         "gui_overrides": {
             "gui.text_size": 22,
@@ -340,10 +406,15 @@ def test_emit_gui_overrides_rpy_skips_when_empty():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
 
     for cfg in (
         None,
@@ -373,16 +444,21 @@ def test_emit_gui_overrides_rpy_rejects_unsafe_keys():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
     hostile_config = {
         "gui_overrides": {
             # Safe: should land in the output.
             "gui.text_size": 22,
             # Unsafe: statement injection.
-            "gui.test; import os; os.system(\"echo pwn\")": 1,
+            'gui.test; import os; os.system("echo pwn")': 1,
             # Unsafe: not under gui.
             "import sys": 1,
             # Unsafe: expression.
@@ -424,20 +500,25 @@ def test_emit_gui_overrides_rpy_rejects_unsafe_values():
     from pathlib import Path
     from core.runtime_hook_emitter import emit_runtime_hook
 
-    entries = [{
-        "file": "a.rpy", "line": 1, "original": "Hello",
-        "translation": "你好", "status": "ok",
-    }]
+    entries = [
+        {
+            "file": "a.rpy",
+            "line": 1,
+            "original": "Hello",
+            "translation": "你好",
+            "status": "ok",
+        }
+    ]
     mixed_config = {
         "gui_overrides": {
-            "gui.text_size": 22,          # ok — int
-            "gui.name_text_size": 24.0,   # ok — float
-            "gui.choice_text_size": "25", # reject — str
-            "gui.icon_size": [22],         # reject — list
+            "gui.text_size": 22,  # ok — int
+            "gui.name_text_size": 24.0,  # ok — float
+            "gui.choice_text_size": "25",  # reject — str
+            "gui.icon_size": [22],  # reject — list
             "gui.nvl_text_size": {"x": 22},  # reject — dict
-            "gui.hide_bold": True,         # reject — bool
-            "gui.hide_italic": False,      # reject — bool
-            "gui.maybe_none": None,        # reject — None
+            "gui.hide_bold": True,  # reject — bool
+            "gui.hide_italic": False,  # reject — bool
+            "gui.maybe_none": None,  # reject — None
         }
     }
 
@@ -481,10 +562,15 @@ def test_emit_if_requested_resolves_font_config():
         )
 
         db = TranslationDB(td_path / "translation_db.json")
-        db.upsert_entry({
-            "file": "a.rpy", "line": 1, "original": "Hello",
-            "translation": "你好", "status": "ok",
-        })
+        db.upsert_entry(
+            {
+                "file": "a.rpy",
+                "line": 1,
+                "original": "Hello",
+                "translation": "你好",
+                "status": "ok",
+            }
+        )
 
         args = SimpleNamespace(
             emit_runtime_hook=True,
@@ -502,10 +588,15 @@ def test_emit_if_requested_resolves_font_config():
         with tempfile.TemporaryDirectory() as td2:
             td2_path = Path(td2)
             db2 = TranslationDB(td2_path / "translation_db.json")
-            db2.upsert_entry({
-                "file": "a.rpy", "line": 1, "original": "Hi",
-                "translation": "你好", "status": "ok",
-            })
+            db2.upsert_entry(
+                {
+                    "file": "a.rpy",
+                    "line": 1,
+                    "original": "Hi",
+                    "translation": "你好",
+                    "status": "ok",
+                }
+            )
             args_noconfig = SimpleNamespace(
                 emit_runtime_hook=True,
                 font_config="",

@@ -49,9 +49,7 @@ Inspired by renpy-translator (MIT, anonymousException 2024).
 
 from __future__ import annotations
 
-import io
 import logging
-import os
 import re
 import subprocess
 import sys
@@ -73,9 +71,11 @@ DEFAULT_LINT_TIMEOUT = 120
 # Data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LintFix:
     """Record of a single fix applied."""
+
     file: str
     line: int
     description: str
@@ -84,6 +84,7 @@ class LintFix:
 @dataclass
 class LintResult:
     """Result of a lint + fix pass."""
+
     available: bool = True
     passes: int = 0
     total_fixes: int = 0
@@ -95,6 +96,7 @@ class LintResult:
 # ---------------------------------------------------------------------------
 # Detection: is lint available?
 # ---------------------------------------------------------------------------
+
 
 def _find_game_executable(game_dir: Path) -> Optional[Path]:
     """Find a Ren'Py game executable (.exe on Windows, .sh on Linux, .app on macOS).
@@ -170,6 +172,7 @@ def is_lint_available(game_dir: Path) -> bool:
 # Execute lint
 # ---------------------------------------------------------------------------
 
+
 def _exec_lint(
     game_dir: Path,
     timeout: int = DEFAULT_LINT_TIMEOUT,
@@ -243,13 +246,9 @@ _FIXABLE_PATTERNS = [
     "Could not parse string",
 ]
 
-_DUPLICATE_PATTERN = re.compile(
-    r"Exception: A translation for (.+?) already exists at (.+)"
-)
+_DUPLICATE_PATTERN = re.compile(r"Exception: A translation for (.+?) already exists at (.+)")
 
-_ERROR_LOCATION = re.compile(
-    r"(?:At\s+)?(.+?), line (\d+)"
-)
+_ERROR_LOCATION = re.compile(r"(?:At\s+)?(.+?), line (\d+)")
 
 
 def _parse_lint_errors(
@@ -298,6 +297,7 @@ def _parse_lint_errors(
 # ---------------------------------------------------------------------------
 # Fix errors
 # ---------------------------------------------------------------------------
+
 
 def _remove_consecutive_empty_lines(lines: list[str]) -> list[str]:
     """Collapse consecutive empty lines into a single empty line."""
@@ -353,12 +353,12 @@ def _fix_errors(
                 lines[line_num] = "\n"
                 if line_num > 0 and lines[line_num - 1].strip().startswith("#"):
                     lines[line_num - 1] = "\n"
-                fixes.append(LintFix(str(file_path), line_num, f"删除重复翻译条目"))
+                fixes.append(LintFix(str(file_path), line_num, "删除重复翻译条目"))
                 modified = True
 
             elif err_type in ("unknown statement", "expected statement"):
                 lines[line_num] = "\n"
-                fixes.append(LintFix(str(file_path), line_num, f"删除无效语句"))
+                fixes.append(LintFix(str(file_path), line_num, "删除无效语句"))
                 modified = True
 
             elif current_line.strip().startswith("old ") and line_num + 1 < len(lines):
@@ -368,7 +368,7 @@ def _fix_errors(
                     lines[line_num + 1] = "\n"
                 if line_num > 0 and lines[line_num - 1].strip().startswith("#"):
                     lines[line_num - 1] = "\n"
-                fixes.append(LintFix(str(file_path), line_num, f"删除错误的翻译对"))
+                fixes.append(LintFix(str(file_path), line_num, "删除错误的翻译对"))
                 modified = True
 
             elif current_line.strip().startswith("new ") and line_num > 0:
@@ -378,18 +378,18 @@ def _fix_errors(
                     lines[line_num - 1] = "\n"
                 if line_num > 1 and lines[line_num - 2].strip().startswith("#"):
                     lines[line_num - 2] = "\n"
-                fixes.append(LintFix(str(file_path), line_num, f"删除错误的翻译对"))
+                fixes.append(LintFix(str(file_path), line_num, "删除错误的翻译对"))
                 modified = True
 
             elif current_line.strip().startswith("translate"):
                 lines[line_num] = "\n"
-                fixes.append(LintFix(str(file_path), line_num, f"删除错误的 translate 块头"))
+                fixes.append(LintFix(str(file_path), line_num, "删除错误的 translate 块头"))
                 modified = True
 
             else:
                 # Generic fix: replace with empty string
                 lines[line_num] = '    ""\n'
-                fixes.append(LintFix(str(file_path), line_num, f"替换为空字符串"))
+                fixes.append(LintFix(str(file_path), line_num, "替换为空字符串"))
                 modified = True
 
         if modified:
@@ -402,6 +402,7 @@ def _fix_errors(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def run_lint(
     game_dir: Path,
@@ -467,14 +468,19 @@ def run_lint(
         remaining = _parse_lint_errors(output, project_dir)
         result.errors_remaining = len(remaining)
 
-    logger.info("[LINT] 完成 %d 轮，共修复 %d 处，剩余 %d 个错误",
-                result.passes, result.total_fixes, result.errors_remaining)
+    logger.info(
+        "[LINT] 完成 %d 轮，共修复 %d 处，剩余 %d 个错误",
+        result.passes,
+        result.total_fixes,
+        result.errors_remaining,
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main(argv: Optional[list[str]] = None) -> int:
     """CLI entry point."""
@@ -485,10 +491,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         description="运行 Ren'Py lint 并自动修复翻译错误",
     )
     parser.add_argument("game_dir", help="游戏目录路径")
-    parser.add_argument("--max-passes", type=int, default=8,
-                        help="最大 lint 迭代次数（默认: 8）")
-    parser.add_argument("--timeout", type=int, default=DEFAULT_LINT_TIMEOUT,
-                        help=f"每轮 lint 超时秒数（默认: {DEFAULT_LINT_TIMEOUT}）")
+    parser.add_argument("--max-passes", type=int, default=8, help="最大 lint 迭代次数（默认: 8）")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_LINT_TIMEOUT,
+        help=f"每轮 lint 超时秒数（默认: {DEFAULT_LINT_TIMEOUT}）",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -510,13 +519,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("Lint 不可用，已跳过。")
         return 0
 
-    print(f"\nLint 完成:")
+    print("\nLint 完成:")
     print(f"  轮次: {result.passes}")
     print(f"  总修复: {result.total_fixes}")
     print(f"  剩余错误: {result.errors_remaining}")
 
     if result.fixes:
-        print(f"\n修复详情:")
+        print("\n修复详情:")
         for fix in result.fixes[:50]:
             print(f"  {fix.file}:{fix.line} — {fix.description}")
         if len(result.fixes) > 50:

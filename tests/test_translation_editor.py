@@ -21,6 +21,7 @@ from tools.translation_editor import (
 # Helpers
 # ============================================================
 
+
 def _make_tl_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -53,12 +54,21 @@ translate chinese strings:
 # Export tests
 # ============================================================
 
+
 def test_export_basic():
     """Export entries to HTML, verify it contains expected content."""
     entries = [
-        {"source": "tl", "file": "game/tl/chinese/script.rpy", "line": 4,
-         "original": "Hello, world!", "translation": "", "character": "e",
-         "identifier": "start_abc", "source_file": "game/script.rpy", "source_line": 10},
+        {
+            "source": "tl",
+            "file": "game/tl/chinese/script.rpy",
+            "line": 4,
+            "original": "Hello, world!",
+            "translation": "",
+            "character": "e",
+            "identifier": "start_abc",
+            "source_file": "game/script.rpy",
+            "source_line": 10,
+        },
     ]
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "test.html"
@@ -75,15 +85,39 @@ def test_export_basic():
 def test_export_multiple():
     """Export multiple entries, verify metadata JSON is embedded."""
     entries = [
-        {"source": "tl", "file": "a.rpy", "line": 1, "original": "One",
-         "translation": "壹", "character": "", "identifier": "id1",
-         "source_file": "a.rpy", "source_line": 1},
-        {"source": "tl", "file": "a.rpy", "line": 5, "original": "Two",
-         "translation": "", "character": "mc", "identifier": "id2",
-         "source_file": "a.rpy", "source_line": 5},
-        {"source": "db", "file": "b.rpy", "line": 3, "original": "Three",
-         "translation": "叁", "character": "", "identifier": "",
-         "source_file": "b.rpy", "source_line": 3},
+        {
+            "source": "tl",
+            "file": "a.rpy",
+            "line": 1,
+            "original": "One",
+            "translation": "壹",
+            "character": "",
+            "identifier": "id1",
+            "source_file": "a.rpy",
+            "source_line": 1,
+        },
+        {
+            "source": "tl",
+            "file": "a.rpy",
+            "line": 5,
+            "original": "Two",
+            "translation": "",
+            "character": "mc",
+            "identifier": "id2",
+            "source_file": "a.rpy",
+            "source_line": 5,
+        },
+        {
+            "source": "db",
+            "file": "b.rpy",
+            "line": 3,
+            "original": "Three",
+            "translation": "叁",
+            "character": "",
+            "identifier": "",
+            "source_file": "b.rpy",
+            "source_line": 3,
+        },
     ]
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "multi.html"
@@ -111,23 +145,34 @@ def test_export_empty():
 def test_export_html_escaping():
     """Special characters in text are properly HTML-escaped."""
     entries = [
-        {"source": "tl", "file": "a.rpy", "line": 1,
-         "original": '<script>alert("xss")</script>',
-         "translation": '{color=#f00}red{/color}', "character": "",
-         "identifier": "", "source_file": "", "source_line": 0},
+        {
+            "source": "tl",
+            "file": "a.rpy",
+            "line": 1,
+            "original": '<script>alert("xss")</script>',
+            "translation": "{color=#f00}red{/color}",
+            "character": "",
+            "identifier": "",
+            "source_file": "",
+            "source_line": 0,
+        },
     ]
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "xss.html"
         export_html(entries, out)
         content = out.read_text(encoding="utf-8")
         # The script tag should be escaped in the JSON metadata, not rendered
-        assert "<script>alert" not in content.split("</head>")[1].split('<script type="application/json"')[0]
+        assert (
+            "<script>alert"
+            not in content.split("</head>")[1].split('<script type="application/json"')[0]
+        )
     print("[OK] test_export_html_escaping")
 
 
 # ============================================================
 # Extract from tl tests
 # ============================================================
+
 
 def test_extract_from_tl():
     """Extract entries from tl directory using tl_parser."""
@@ -153,10 +198,20 @@ def test_extract_from_db():
         db_data = {
             "version": 1,
             "entries": [
-                {"file": "script.rpy", "line": 10, "original": "Hello",
-                 "translation": "你好", "status": "ok"},
-                {"file": "script.rpy", "line": 20, "original": "World",
-                 "translation": "", "status": "ok"},
+                {
+                    "file": "script.rpy",
+                    "line": 10,
+                    "original": "Hello",
+                    "translation": "你好",
+                    "status": "ok",
+                },
+                {
+                    "file": "script.rpy",
+                    "line": 20,
+                    "original": "World",
+                    "translation": "",
+                    "status": "ok",
+                },
             ],
         }
         db_path = td / "translation_db.json"
@@ -173,6 +228,7 @@ def test_extract_from_db():
 # ============================================================
 # Import tests
 # ============================================================
+
 
 def test_import_tl_mode():
     """Import edits back into a tl file — replace existing translation."""
@@ -200,8 +256,8 @@ def test_import_tl_mode():
         assert result["files_modified"] == 1
 
         content = tl_file.read_text(encoding="utf-8")
-        assert '你好，世界！' in content
-        assert '你好世界' not in content
+        assert "你好，世界！" in content
+        assert "你好世界" not in content
 
         # Backup created
         assert (tl_file.with_suffix(".rpy.bak")).exists()
@@ -244,8 +300,16 @@ def test_import_no_overwrite_backup():
         bak = tl_file.with_suffix(".rpy.bak")
         bak.write_text("original backup content", encoding="utf-8")
 
-        edits = [{"source": "tl", "file": str(tl_file), "line": 4,
-                   "original": "Hello", "old_translation": "", "new_translation": "你好"}]
+        edits = [
+            {
+                "source": "tl",
+                "file": str(tl_file),
+                "line": 4,
+                "original": "Hello",
+                "old_translation": "",
+                "new_translation": "你好",
+            }
+        ]
         edits_path = td / "edits.json"
         edits_path.write_text(json.dumps(edits), encoding="utf-8")
 
@@ -290,8 +354,16 @@ def test_import_missing_file():
     """Import skips edits for non-existent files."""
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        edits = [{"source": "tl", "file": str(td / "ghost.rpy"), "line": 1,
-                   "original": "x", "old_translation": "", "new_translation": "y"}]
+        edits = [
+            {
+                "source": "tl",
+                "file": str(td / "ghost.rpy"),
+                "line": 1,
+                "original": "x",
+                "old_translation": "",
+                "new_translation": "y",
+            }
+        ]
         edits_path = td / "edits.json"
         edits_path.write_text(json.dumps(edits), encoding="utf-8")
 
@@ -308,8 +380,16 @@ def test_import_empty_new_translation():
         tl_file = td / "script.rpy"
         tl_file.write_text(_SAMPLE_TL, encoding="utf-8")
 
-        edits = [{"source": "tl", "file": str(tl_file), "line": 4,
-                   "original": "Hello", "old_translation": "", "new_translation": ""}]
+        edits = [
+            {
+                "source": "tl",
+                "file": str(tl_file),
+                "line": 4,
+                "original": "Hello",
+                "old_translation": "",
+                "new_translation": "",
+            }
+        ]
         edits_path = td / "edits.json"
         edits_path.write_text(json.dumps(edits), encoding="utf-8")
 
@@ -322,17 +402,19 @@ def test_import_empty_new_translation():
 # Utility tests
 # ============================================================
 
+
 def test_escape_for_rpy():
     """Escape quotes and backslashes for Ren'Py strings."""
-    assert _escape_for_rpy('hello') == 'hello'
+    assert _escape_for_rpy("hello") == "hello"
     assert _escape_for_rpy('he said "hi"') == 'he said \\"hi\\"'
-    assert _escape_for_rpy('path\\to\\file') == 'path\\\\to\\\\file'
+    assert _escape_for_rpy("path\\to\\file") == "path\\\\to\\\\file"
     print("[OK] test_escape_for_rpy")
 
 
 # ============================================================
 # Round 38 M2 — 50 MB size-cap on editor JSON inputs
 # ============================================================
+
 
 def test_extract_from_db_rejects_oversized_file():
     """Round 38 M2: ``_extract_from_db`` skips db files above the 50 MB
@@ -346,9 +428,7 @@ def test_extract_from_db_rejects_oversized_file():
             f.seek(51 * 1024 * 1024 - 1)
             f.write(b"\0")
         entries = _extract_from_db(big_path)
-        assert entries == [], (
-            "M2: oversized db file must return empty entries"
-        )
+        assert entries == [], "M2: oversized db file must return empty entries"
     print("[OK] test_extract_from_db_rejects_oversized_file")
 
 
@@ -408,6 +488,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[FAIL] {t.__name__}: {e}")
             import traceback
+
             traceback.print_exc()
             failed += 1
 

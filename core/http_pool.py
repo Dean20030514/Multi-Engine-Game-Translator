@@ -25,6 +25,7 @@ to ``urllib.request.urlopen``.
 
 Pure standard library — no third-party dependencies.
 """
+
 from __future__ import annotations
 
 import email.message

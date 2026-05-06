@@ -11,28 +11,28 @@ or collectively via ``python tests/test_all.py`` (which delegates to
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core import api_client
-import file_processor
-from core import glossary
-from core import prompts
+
 
 def test_api_config():
-    c = api_client.APIConfig(provider='xai', api_key='test')
-    assert c.endpoint == 'https://api.x.ai/v1/chat/completions'
-    assert c.model == 'grok-4-1-fast-reasoning'
-    c2 = api_client.APIConfig(provider='claude', api_key='test')
-    assert c2.endpoint == 'https://api.anthropic.com/v1/messages'
-    c3 = api_client.APIConfig(provider='deepseek', api_key='test', model='my-model')
-    assert c3.model == 'my-model'
-    c4 = api_client.APIConfig(provider='gemini', api_key='test')
-    assert 'googleapis' in c4.endpoint
-    assert c4.model == 'gemini-2.5-flash'
+    c = api_client.APIConfig(provider="xai", api_key="test")
+    assert c.endpoint == "https://api.x.ai/v1/chat/completions"
+    assert c.model == "grok-4-1-fast-reasoning"
+    c2 = api_client.APIConfig(provider="claude", api_key="test")
+    assert c2.endpoint == "https://api.anthropic.com/v1/messages"
+    c3 = api_client.APIConfig(provider="deepseek", api_key="test", model="my-model")
+    assert c3.model == "my-model"
+    c4 = api_client.APIConfig(provider="gemini", api_key="test")
+    assert "googleapis" in c4.endpoint
+    assert c4.model == "gemini-2.5-flash"
     print("[OK] APIConfig")
 
+
 def test_usage_stats():
-    u = api_client.UsageStats('xai', 'grok-3')
+    u = api_client.UsageStats("xai", "grok-3")
     u.record(1000, 500)
     u.record(2000, 1000)
     assert u.total_input_tokens == 3000
@@ -40,15 +40,17 @@ def test_usage_stats():
     assert u.total_requests == 2
     assert u.estimated_cost > 0
     s = u.summary()
-    assert '3,000' in s
-    assert '$' in s
+    assert "3,000" in s
+    assert "$" in s
     print(f"[OK] UsageStats: {s}")
+
 
 def test_rate_limiter():
     r = api_client.RateLimiter(rpm=100, rps=10)
     r.acquire()
     r.acquire()
     print("[OK] RateLimiter")
+
 
 def test_json_parse():
     p = api_client.APIClient._parse_json_response
@@ -62,24 +64,27 @@ def test_json_parse():
     r3 = p('[{"line": 1, "original": "hi", "zh": "hey"},]')
     assert len(r3) == 1
     # Empty
-    r4 = p('[]')
+    r4 = p("[]")
     assert r4 == []
     # Garbage
-    r5 = p('I cannot translate this')
+    r5 = p("I cannot translate this")
     assert r5 == []
     # 逐对象提取（数组格式损坏但单个对象完整）
-    r6 = p('Some text {"line": 5, "original": "hello", "zh": "你好"} and {"line": 10, "original": "world", "zh": "世界"} end')
+    r6 = p(
+        'Some text {"line": 5, "original": "hello", "zh": "你好"} and {"line": 10, "original": "world", "zh": "世界"} end'
+    )
     assert len(r6) == 2
-    assert r6[0]['line'] == 5
-    assert r6[1]['zh'] == '世界'
+    assert r6[0]["line"] == 5
+    assert r6[1]["zh"] == "世界"
     # 含转义引号的对象
     r7 = p('[{"line": 1, "original": "She said \\"hello\\"", "zh": "她说\\"你好\\""}]')
     assert len(r7) == 1
-    assert '\\' in r7[0]['original'] or 'hello' in r7[0]['original']
+    assert "\\" in r7[0]["original"] or "hello" in r7[0]["original"]
     # 字段顺序变化
     r8 = p('{"zh": "你好", "line": 1, "original": "hi"}')
     # 应该能被 strategy 6 或 direct parse 捕获
     print("[OK] _parse_json_response (含逐对象提取)")
+
 
 def test_w2_escape_fix_inner_quotes_in_zh():
     """Round 53 W2 layer 7: stray ``"`` inside zh value gets repaired.
@@ -167,33 +172,33 @@ def test_pricing_lookup():
     from core.api_client import get_pricing, is_reasoning_model
 
     # 精确匹配
-    pin, pout, exact = get_pricing('xai', 'grok-4-1-fast-reasoning')
+    pin, pout, exact = get_pricing("xai", "grok-4-1-fast-reasoning")
     assert exact is True
     assert pin == 0.20
     assert pout == 0.50
 
     # grok-4.20 精确匹配
-    pin, pout, exact = get_pricing('xai', 'grok-4.20-beta-0309-reasoning')
+    pin, pout, exact = get_pricing("xai", "grok-4.20-beta-0309-reasoning")
     assert exact is True
     assert pin == 2.00
 
     # 前缀匹配（带日期后缀）
-    pin, pout, exact = get_pricing('xai', 'grok-4-1-fast-reasoning-20260301')
+    pin, pout, exact = get_pricing("xai", "grok-4-1-fast-reasoning-20260301")
     assert exact is True
     assert pin == 0.20
 
     # 未知模型 → 提供商兜底
-    pin, pout, exact = get_pricing('xai', 'grok-99-unknown')
+    pin, pout, exact = get_pricing("xai", "grok-99-unknown")
     assert exact is False
 
     # 推理模型检测
-    assert is_reasoning_model('grok-4-1-fast-reasoning') is True
-    assert is_reasoning_model('deepseek-reasoner') is True
-    assert is_reasoning_model('o1-mini') is True
-    assert is_reasoning_model('o3') is True
-    assert is_reasoning_model('gpt-4o-mini') is False
-    assert is_reasoning_model('grok-3-fast') is False
-    assert is_reasoning_model('claude-sonnet-4-20250514') is False
+    assert is_reasoning_model("grok-4-1-fast-reasoning") is True
+    assert is_reasoning_model("deepseek-reasoner") is True
+    assert is_reasoning_model("o1-mini") is True
+    assert is_reasoning_model("o3") is True
+    assert is_reasoning_model("gpt-4o-mini") is False
+    assert is_reasoning_model("grok-3-fast") is False
+    assert is_reasoning_model("claude-sonnet-4-20250514") is False
 
     print("[OK] pricing lookup & reasoning detection")
 
@@ -202,9 +207,11 @@ def test_pricing_lookup():
 # B1: 核心函数单元测试 — protect/restore_placeholders
 # ============================================================
 
+
 def test_api_empty_choices():
     """T50: API 返回空 choices 时不崩溃"""
     from core import api_client
+
     # 模拟空 choices 的情况——直接测试解析逻辑
     # _call_openai_format 需要网络，这里测试 get_pricing 和 is_reasoning_model
     assert api_client.is_reasoning_model("grok-4-1-fast-reasoning") is True
@@ -217,10 +224,15 @@ def test_api_empty_choices():
 def test_reasoning_model_timeout():
     """推理模型自动提升 timeout"""
     from core import api_client
-    config = api_client.APIConfig(provider='xai', api_key='test', model='grok-4-1-fast-reasoning', timeout=180.0)
+
+    config = api_client.APIConfig(
+        provider="xai", api_key="test", model="grok-4-1-fast-reasoning", timeout=180.0
+    )
     assert config.timeout >= 300.0, f"Expected >= 300, got {config.timeout}"
     # 非推理模型不应提升
-    config2 = api_client.APIConfig(provider='openai', api_key='test', model='gpt-4o-mini', timeout=180.0)
+    config2 = api_client.APIConfig(
+        provider="openai", api_key="test", model="gpt-4o-mini", timeout=180.0
+    )
     assert config2.timeout == 180.0
     print("[OK] reasoning_model_timeout")
 
@@ -234,6 +246,7 @@ def _make_urlopen_success(body_bytes: bytes):
     """
     from unittest.mock import MagicMock
     import io
+
     ctx = MagicMock()
     resp = MagicMock()
     resp.read = io.BytesIO(body_bytes).read
@@ -247,6 +260,7 @@ def _build_httperror(code: int, retry_after: str = ""):
     from urllib.error import HTTPError
     from io import BytesIO
     import email.message
+
     hdrs = email.message.Message()
     if retry_after:
         hdrs["Retry-After"] = retry_after
@@ -265,7 +279,12 @@ def test_api_429_retry_after_header():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
@@ -273,10 +292,12 @@ def test_api_429_retry_after_header():
     err = _build_httperror(429, retry_after="2")
     ok = _make_urlopen_success(_OPENAI_OK_BODY)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=[err, ok]) as m_open, \
-         patch.object(api_client.time, 'sleep') as m_sleep, \
-         patch('random.uniform', return_value=0.0):
-        raw = client._call_api('sys', 'user')
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=[err, ok]) as m_open,
+        patch.object(api_client.time, "sleep") as m_sleep,
+        patch("random.uniform", return_value=0.0),
+    ):
+        raw = client._call_api("sys", "user")
 
     assert raw == "ok"
     assert m_open.call_count == 2
@@ -292,7 +313,12 @@ def test_api_429_exponential_backoff():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
@@ -300,10 +326,12 @@ def test_api_429_exponential_backoff():
     err = _build_httperror(429)  # no Retry-After
     ok = _make_urlopen_success(_OPENAI_OK_BODY)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=[err, ok]), \
-         patch.object(api_client.time, 'sleep') as m_sleep, \
-         patch('random.uniform', return_value=0.0):
-        raw = client._call_api('sys', 'user')
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=[err, ok]),
+        patch.object(api_client.time, "sleep") as m_sleep,
+        patch("random.uniform", return_value=0.0),
+    ):
+        raw = client._call_api("sys", "user")
 
     assert raw == "ok"
     assert m_sleep.call_count == 1
@@ -319,7 +347,12 @@ def test_api_500_retry():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
@@ -327,10 +360,12 @@ def test_api_500_retry():
     err = _build_httperror(500)
     ok = _make_urlopen_success(_OPENAI_OK_BODY)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=[err, ok]), \
-         patch.object(api_client.time, 'sleep') as m_sleep, \
-         patch('random.uniform', return_value=0.0):
-        raw = client._call_api('sys', 'user')
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=[err, ok]),
+        patch.object(api_client.time, "sleep") as m_sleep,
+        patch("random.uniform", return_value=0.0),
+    ):
+        raw = client._call_api("sys", "user")
 
     assert raw == "ok"
     assert m_sleep.call_count == 1
@@ -346,17 +381,24 @@ def test_api_401_no_retry():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
 
     err = _build_httperror(401)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=err), \
-         patch.object(api_client.time, 'sleep') as m_sleep:
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=err),
+        patch.object(api_client.time, "sleep") as m_sleep,
+    ):
         try:
-            client._call_api('sys', 'user')
+            client._call_api("sys", "user")
             raised = False
         except RuntimeError as e:
             raised = True
@@ -374,17 +416,24 @@ def test_api_404_no_retry():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='bad-model', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="bad-model",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
 
     err = _build_httperror(404)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=err), \
-         patch.object(api_client.time, 'sleep') as m_sleep:
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=err),
+        patch.object(api_client.time, "sleep") as m_sleep,
+    ):
         try:
-            client._call_api('sys', 'user')
+            client._call_api("sys", "user")
             raised = False
         except RuntimeError as e:
             raised = True
@@ -403,7 +452,12 @@ def test_api_urlerror_retry():
     from core import api_client
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok', max_retries=3, rpm=0, rps=0,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=3,
+        rpm=0,
+        rps=0,
         use_connection_pool=False,
     )
     client = api_client.APIClient(config)
@@ -411,10 +465,12 @@ def test_api_urlerror_retry():
     err = URLError("connection refused")
     ok = _make_urlopen_success(_OPENAI_OK_BODY)
 
-    with patch.object(api_client.urlreq, 'urlopen', side_effect=[err, ok]) as m_open, \
-         patch.object(api_client.time, 'sleep') as m_sleep, \
-         patch('random.uniform', return_value=0.0):
-        raw = client._call_api('sys', 'user')
+    with (
+        patch.object(api_client.urlreq, "urlopen", side_effect=[err, ok]) as m_open,
+        patch.object(api_client.time, "sleep") as m_sleep,
+        patch("random.uniform", return_value=0.0),
+    ):
+        raw = client._call_api("sys", "user")
 
     assert raw == "ok"
     assert m_open.call_count == 2
@@ -432,6 +488,7 @@ def _mock_http_response(status: int, body: bytes = b'{"ok":true}', headers=None)
     """
     from unittest.mock import MagicMock
     import io
+
     resp = MagicMock()
     resp.status = status
     resp.getheaders = MagicMock(return_value=headers or [])
@@ -452,11 +509,10 @@ def test_http_pool_reuses_connection():
     # 每次 getresponse() 返回全新 resp（带独立 BytesIO），这样 3 次 post 都能读到完整 body
     mock_conn.getresponse = MagicMock(side_effect=lambda: _mock_http_response(200))
 
-    with patch('core.http_pool.http.client.HTTPSConnection',
-               return_value=mock_conn) as m_cls:
+    with patch("core.http_pool.http.client.HTTPSConnection", return_value=mock_conn) as m_cls:
         pool = HTTPSConnectionPool()
         for _ in range(3):
-            body = pool.post("https://api.example.com/v1/x", b'{}', {"X": "1"})
+            body = pool.post("https://api.example.com/v1/x", b"{}", {"X": "1"})
             assert body == b'{"ok":true}'
         assert m_cls.call_count == 1, f"expected 1 connection created, got {m_cls.call_count}"
         assert mock_conn.request.call_count == 3
@@ -474,10 +530,11 @@ def test_http_pool_reconnects_on_transport_error():
     mock_fresh = MagicMock()
     mock_fresh.getresponse = MagicMock(return_value=_mock_http_response(200))
 
-    with patch('core.http_pool.http.client.HTTPSConnection',
-               side_effect=[mock_broken, mock_fresh]) as m_cls:
+    with patch(
+        "core.http_pool.http.client.HTTPSConnection", side_effect=[mock_broken, mock_fresh]
+    ) as m_cls:
         pool = HTTPSConnectionPool()
-        body = pool.post("https://api.example.com/v1/x", b'{}', {})
+        body = pool.post("https://api.example.com/v1/x", b"{}", {})
 
     assert body == b'{"ok":true}'
     assert m_cls.call_count == 2, f"expected reconnect (2 conns), got {m_cls.call_count}"
@@ -493,14 +550,16 @@ def test_http_pool_raises_http_error_on_4xx():
     from core.http_pool import HTTPSConnectionPool
 
     mock_conn = MagicMock()
-    mock_conn.getresponse = MagicMock(return_value=_mock_http_response(
-        429, body=b'{"error":"rate"}', headers=[("Retry-After", "5")]
-    ))
+    mock_conn.getresponse = MagicMock(
+        return_value=_mock_http_response(
+            429, body=b'{"error":"rate"}', headers=[("Retry-After", "5")]
+        )
+    )
 
-    with patch('core.http_pool.http.client.HTTPSConnection', return_value=mock_conn):
+    with patch("core.http_pool.http.client.HTTPSConnection", return_value=mock_conn):
         pool = HTTPSConnectionPool()
         try:
-            pool.post("https://api.example.com/v1/x", b'{}', {})
+            pool.post("https://api.example.com/v1/x", b"{}", {})
             raised = False
         except HTTPError as e:
             raised = True
@@ -542,19 +601,21 @@ def test_api_key_child_env_pop():
     env["_RENPY_TRANSLATOR_CHILD_API_KEY"] = "sub_key_abc"
     proc = subprocess.run(
         [sys.executable, "-c", child_code],
-        env=env, capture_output=True, text=True, timeout=15,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
         cwd=str(Path(__file__).resolve().parent.parent),
     )
     assert proc.returncode == 0, f"child failed: {proc.stderr}"
-    assert proc.stdout.strip() == "sub_key_abc|False", (
-        f"unexpected child output: {proc.stdout!r}"
-    )
+    assert proc.stdout.strip() == "sub_key_abc|False", f"unexpected child output: {proc.stdout!r}"
     print("[OK] test_api_key_child_env_pop")
 
 
 # ============================================================
 # Response-body size cap (round 22 — H1)
 # ============================================================
+
 
 def test_http_pool_rejects_oversized_response():
     """``HTTPSConnectionPool.post`` must stop reading once the response body
@@ -572,15 +633,15 @@ def test_http_pool_rejects_oversized_response():
     # Each read() returns 64 KB; the pool reads in 64 KB chunks so we hit the
     # 32 MB cap after ~513 iterations without needing to materialise 32 MB in
     # the test process.
-    mock_resp.read = MagicMock(return_value=b'\x00' * 65536)
+    mock_resp.read = MagicMock(return_value=b"\x00" * 65536)
 
     mock_conn = MagicMock()
     mock_conn.getresponse = MagicMock(return_value=mock_resp)
 
-    with patch('core.http_pool.http.client.HTTPSConnection', return_value=mock_conn):
+    with patch("core.http_pool.http.client.HTTPSConnection", return_value=mock_conn):
         pool = HTTPSConnectionPool()
         try:
-            pool.post("https://api.example.com/v1/x", b'{}', {})
+            pool.post("https://api.example.com/v1/x", b"{}", {})
             raised = False
         except ResponseTooLarge as e:
             raised = True
@@ -605,7 +666,7 @@ def test_w_monitor2_read_bounded_precision_at_cap():
 
     LIMIT = 1024  # 1 KB — small for fast test
     OVERSHOOT = 100  # data is limit + 100 bytes
-    stream = BytesIO(b'\x00' * (LIMIT + OVERSHOOT))
+    stream = BytesIO(b"\x00" * (LIMIT + OVERSHOOT))
     try:
         read_bounded(stream, limit=LIMIT)
     except ResponseTooLarge:
@@ -614,8 +675,10 @@ def test_w_monitor2_read_bounded_precision_at_cap():
             f"r53 monitor #2 precision contract violated: stream advanced "
             f"to position {pos} but cap is {LIMIT} (max deviation 1 byte)"
         )
-        print(f"[OK] w_monitor2_read_bounded_precision_at_cap "
-              f"(read {pos} bytes, limit {LIMIT}, deviation {pos - LIMIT})")
+        print(
+            f"[OK] w_monitor2_read_bounded_precision_at_cap "
+            f"(read {pos} bytes, limit {LIMIT}, deviation {pos - LIMIT})"
+        )
         return
     raise AssertionError("expected ResponseTooLarge to raise")
 
@@ -626,7 +689,7 @@ def test_w_monitor2_read_bounded_at_exact_limit_succeeds():
     from core.http_pool import read_bounded
 
     LIMIT = 2048
-    payload = b'\xab' * LIMIT  # exactly at limit
+    payload = b"\xab" * LIMIT  # exactly at limit
     stream = BytesIO(payload)
     result = read_bounded(stream, limit=LIMIT)
     assert result == payload, "exact-limit payload must return intact"
@@ -640,7 +703,7 @@ def test_w_monitor2_read_bounded_one_byte_over_limit_raises():
     from core.http_pool import read_bounded, ResponseTooLarge
 
     LIMIT = 2048
-    stream = BytesIO(b'\xff' * (LIMIT + 1))
+    stream = BytesIO(b"\xff" * (LIMIT + 1))
     try:
         read_bounded(stream, limit=LIMIT)
     except ResponseTooLarge:
@@ -659,27 +722,30 @@ def test_api_client_urllib_rejects_oversized_response():
     from core.http_pool import ResponseTooLarge
 
     config = api_client.APIConfig(
-        provider='xai', api_key='test', model='grok',
-        max_retries=1, rpm=0, rps=0, use_connection_pool=False,
+        provider="xai",
+        api_key="test",
+        model="grok",
+        max_retries=1,
+        rpm=0,
+        rps=0,
+        use_connection_pool=False,
     )
     client = api_client.APIClient(config)
 
     mock_resp = MagicMock()
-    mock_resp.read = MagicMock(return_value=b'\x00' * 65536)
+    mock_resp.read = MagicMock(return_value=b"\x00" * 65536)
     ctx = MagicMock()
     ctx.__enter__.return_value = mock_resp
     ctx.__exit__.return_value = False
 
-    with patch.object(api_client.urlreq, 'urlopen', return_value=ctx):
+    with patch.object(api_client.urlreq, "urlopen", return_value=ctx):
         try:
-            client._call_api('sys', 'user')
+            client._call_api("sys", "user")
             raised = False
         except ResponseTooLarge:
             raised = True
     assert raised, "urllib fallback path should also raise ResponseTooLarge"
     print("[OK] test_api_client_urllib_rejects_oversized_response")
-
-
 
 
 def run_all() -> int:

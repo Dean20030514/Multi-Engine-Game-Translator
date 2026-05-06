@@ -32,12 +32,6 @@ from pathlib import Path
 
 from translators._screen_extract import (
     ScreenTextEntry,
-    _FILE_EXTENSIONS,
-    _RE_NOTIFY,
-    _RE_PURE_VAR,
-    _RE_TEXT,
-    _RE_TEXTBUTTON,
-    _RE_TT_ACTION,
     _line_has_underscore_wrap,
     _should_skip,
     extract_screen_strings,
@@ -82,6 +76,7 @@ logger = logging.getLogger(__name__)
 
 # ── Main orchestration ──────────────────────────────────────────────
 
+
 def run_screen_translate(args: argparse.Namespace) -> None:
     """Screen 文本翻译主入口。"""
     from core.api_client import APIClient, APIConfig
@@ -120,9 +115,7 @@ def run_screen_translate(args: argparse.Namespace) -> None:
     n_total = len(all_entries)
     n_unique = len(translation_table)
     n_files = len({e.file_path for e in all_entries})
-    logger.info(
-        f"[SCREEN] 提取 {n_total} 条文本（{n_unique} 种不重复），涉及 {n_files} 个文件"
-    )
+    logger.info(f"[SCREEN] 提取 {n_total} 条文本（{n_unique} 种不重复），涉及 {n_files} 个文件")
 
     # dry-run 模式
     if getattr(args, "dry_run", False):
@@ -187,12 +180,12 @@ def run_screen_translate(args: argparse.Namespace) -> None:
             if ci in progress.get("completed_chunks", []):
                 continue
 
-            logger.info(
-                f"[SCREEN] 翻译 chunk {ci + 1}/{len(chunks)}（{len(chunk)} 条）"
-            )
+            logger.info(f"[SCREEN] 翻译 chunk {ci + 1}/{len(chunks)}（{len(chunk)} 条）")
 
             translations, dropped, warnings = _translate_screen_chunk(
-                chunk, client, glossary,
+                chunk,
+                client,
+                glossary,
                 genre=getattr(args, "genre", "adult"),
             )
             total_dropped += dropped
@@ -240,7 +233,9 @@ def run_screen_translate(args: argparse.Namespace) -> None:
         _create_backup(fpath)
 
         new_content, replaced = _replace_screen_strings_in_file(
-            fpath, file_entries, translated,
+            fpath,
+            file_entries,
+            translated,
         )
         if replaced > 0:
             fpath.write_text(new_content, encoding="utf-8")
@@ -261,6 +256,7 @@ def run_screen_translate(args: argparse.Namespace) -> None:
 
 
 # ── Self-tests ──────────────────────────────────────────────────────
+
 
 def _run_self_tests() -> None:
     """Screen translator self-tests — run via ``python -m translators.screen``."""
@@ -296,7 +292,10 @@ def _run_self_tests() -> None:
 
     # T3: extract_screen_strings
     with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.rpy', delete=False, encoding='utf-8',
+        mode="w",
+        suffix=".rpy",
+        delete=False,
+        encoding="utf-8",
     ) as f:
         f.write("""
 screen contacts():
@@ -351,7 +350,10 @@ label start:
 
     # T5: _replace_screen_strings_in_file
     with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.rpy', delete=False, encoding='utf-8',
+        mode="w",
+        suffix=".rpy",
+        delete=False,
+        encoding="utf-8",
     ) as f:
         f.write('    text "Save Game"\n')
         f.write('    textbutton "Start" action Start() style "btn"\n')
@@ -374,14 +376,16 @@ label start:
             "{color=#f00}Warning{/color}": "{color=#f00}警告{/color}",
         }
         new_content, count = _replace_screen_strings_in_file(
-            tmp_path, test_entries, test_table,
+            tmp_path,
+            test_entries,
+            test_table,
         )
         assert count == 4, f"Expected 4 replacements, got {count}"
         assert '"保存游戏"' in new_content
         assert '"开始"' in new_content
         assert 'style "btn"' in new_content
         assert '"靠近"' in new_content
-        assert '{color=#f00}警告{/color}' in new_content
+        assert "{color=#f00}警告{/color}" in new_content
         passed += 5
         logger.info(f"[OK] _replace_screen_strings_in_file: {passed} assertions")
     finally:
@@ -389,7 +393,10 @@ label start:
 
     # T6: backup
     with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.rpy', delete=False, encoding='utf-8',
+        mode="w",
+        suffix=".rpy",
+        delete=False,
+        encoding="utf-8",
     ) as f:
         f.write("test content\n")
         f.flush()
@@ -420,7 +427,10 @@ label start:
 
     # T8: Notify replacement
     with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.rpy', delete=False, encoding='utf-8',
+        mode="w",
+        suffix=".rpy",
+        delete=False,
+        encoding="utf-8",
     ) as f:
         f.write('    imagebutton action Jump("x") hovered Notify("Help needed") focus_mask True\n')
         f.flush()
@@ -431,11 +441,13 @@ label start:
         ]
         test_table_notify = {"Help needed": "需要帮助"}
         new_content, count = _replace_screen_strings_in_file(
-            tmp_path, test_entries_notify, test_table_notify,
+            tmp_path,
+            test_entries_notify,
+            test_table_notify,
         )
         assert count == 1
         assert '"需要帮助"' in new_content
-        assert 'Notify' in new_content
+        assert "Notify" in new_content
         assert 'Jump("x")' in new_content
         passed += 4
         logger.info(f"[OK] Notify replacement: {passed} assertions")
@@ -444,7 +456,10 @@ label start:
 
     # T9: multiple tt.Action on same line
     with tempfile.NamedTemporaryFile(
-        mode='w', suffix='.rpy', delete=False, encoding='utf-8',
+        mode="w",
+        suffix=".rpy",
+        delete=False,
+        encoding="utf-8",
     ) as f:
         f.write(
             '    imagebutton hovered tt.Action("Open") xpos 100 '
@@ -459,7 +474,9 @@ label start:
         ]
         test_table_multi = {"Open": "打开", "Close": "关闭"}
         new_content, count = _replace_screen_strings_in_file(
-            tmp_path, test_entries_multi, test_table_multi,
+            tmp_path,
+            test_entries_multi,
+            test_table_multi,
         )
         assert '"打开"' in new_content
         assert '"关闭"' in new_content

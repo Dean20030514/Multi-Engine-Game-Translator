@@ -13,6 +13,7 @@ API（``run_tl_pipeline`` 等）不变：
 使用方继续 ``from translators.tl_mode import run_tl_pipeline`` / ``dedup_tl_entries`` /
 ``_apply_tl_game_patches`` 等即可，re-export 在本文件下方统一维护。
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,7 +38,6 @@ from core.translation_utils import (
 from file_processor import (
     check_response_item,
     protect_placeholders,
-    _filter_checked_translations,
     _restore_placeholders_in_translations,
 )
 
@@ -58,6 +58,7 @@ from translators._tl_patches import (  # noqa: F401
     _clean_rpyc,
     _inject_language_buttons,
 )
+
 # Round 53 W3: layer-6 LLM ID drift detection helpers.
 # Hoisted to module top in r56 (M3) — _tl_retry does NOT import tl_mode,
 # so there is no circular-import risk; the function-local import was a
@@ -68,7 +69,11 @@ logger = logging.getLogger("multi_engine_translator")
 
 
 def _translate_one_tl_chunk(
-    ctx: TranslationContext, rel_path: str, ci: int, chunk_text: str, chunk_entries: list,
+    ctx: TranslationContext,
+    rel_path: str,
+    ci: int,
+    chunk_text: str,
+    chunk_entries: list,
 ) -> tuple[str, int, dict[str, str], int, list[str]]:
     """翻译单个 tl-mode chunk。
 
@@ -107,7 +112,8 @@ def _translate_one_tl_chunk(
     # Round 53 W3 layer 6: LLM ID-space drift detection.
     expected_ids = _expected_id_set(chunk_entries)
     drifted, drift_ratio, n_missing, n_extra = detect_id_drift(
-        expected_ids, returned_ids,
+        expected_ids,
+        returned_ids,
     )
     if drifted:
         warnings.append(
@@ -132,7 +138,6 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
         fix_nvl_ids_directory,
         print_tl_stats,
         DialogueEntry,
-        StringEntry,
     )
 
     game_dir = Path(args.game_dir)
@@ -150,7 +155,9 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
 
     # ── 0. 自动字体补丁 + 语言切换注入 ──
     font_config = getattr(args, "font_config", "") or None
-    _apply_tl_game_patches(game_dir, tl_lang, font_config_path=Path(font_config) if font_config else None)
+    _apply_tl_game_patches(
+        game_dir, tl_lang, font_config_path=Path(font_config) if font_config else None
+    )
     logger.info("")
 
     # ── 1. 扫描 ──
@@ -211,7 +218,7 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
     system_prompt = build_tl_system_prompt(
         glossary_text=glossary.to_prompt_text(),
         genre=args.genre,
-        cot=getattr(args, 'cot', False),
+        cot=getattr(args, "cot", False),
     )
 
     # ── 1b. 自动回填不需要 AI 翻译的条目（纯空白/纯标点原文） ──
@@ -258,9 +265,11 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
     all_entries_raw = list(untrans_dlg) + list(untrans_str)
     dedup = dedup_tl_entries(all_entries_raw)
     if dedup.skipped_count > 0:
-        logger.info(f"[TL-DEDUP] 去重: {dedup.total_before} → {len(dedup.unique_entries)} 条 "
-                     f"(跳过 {dedup.skipped_count} 条重复, "
-                     f"{len(dedup.dedup_groups)} 组, 阈值 ≥{DEDUP_MIN_LENGTH} 字符)")
+        logger.info(
+            f"[TL-DEDUP] 去重: {dedup.total_before} → {len(dedup.unique_entries)} 条 "
+            f"(跳过 {dedup.skipped_count} 条重复, "
+            f"{len(dedup.dedup_groups)} 组, 阈值 ≥{DEDUP_MIN_LENGTH} 字符)"
+        )
     all_entries = dedup.unique_entries
 
     # ── 2. 按文件分组 + 分 chunk ──
@@ -303,9 +312,11 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
                 continue
             all_chunk_tasks.append((rel_path, ci, chunk_text, chunk_entries))
 
-    logger.info(f"\n[TL-MODE] {len(file_meta)} 个文件, "
-          f"{len(all_chunk_tasks)} 个 chunk 待处理, "
-          f"{workers} 线程并发")
+    logger.info(
+        f"\n[TL-MODE] {len(file_meta)} 个文件, "
+        f"{len(all_chunk_tasks)} 个 chunk 待处理, "
+        f"{workers} 线程并发"
+    )
 
     # ── 2b. 并发翻译 chunk ──
     file_translations: dict[str, dict[str, str]] = {}
@@ -334,7 +345,12 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
                 rp, ci, text, entries = next(task_iter)
                 t = file_meta[rp][2]
                 fut = pool.submit(
-                    _translate_one_tl_chunk, ctx, rp, ci, text, entries,
+                    _translate_one_tl_chunk,
+                    ctx,
+                    rp,
+                    ci,
+                    text,
+                    entries,
                 )
                 pending_futures[fut] = (rp, ci, len(entries), t)
                 return True
@@ -349,7 +365,8 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
         # 主循环：等待完成 → 收集结果 → 提交下一个
         while pending_futures:
             done, _ = concurrent.futures.wait(
-                pending_futures, return_when=concurrent.futures.FIRST_COMPLETED,
+                pending_futures,
+                return_when=concurrent.futures.FIRST_COMPLETED,
             )
             for fut in done:
                 rel_path, ci, _entry_count, total = pending_futures.pop(fut)
@@ -362,17 +379,21 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
                         _completed[0] += 1
                         n_completed = _completed[0]
                         n_kept = len(kept_items)
-                    logger.info(f"  [{n_completed}/{total_tasks}] {rp} "
-                         f"chunk {ci}/{total}: 保留 {n_kept} 条"
-                         + (f", 丢弃 {dropped} 条" if dropped else ""))
+                    logger.info(
+                        f"  [{n_completed}/{total_tasks}] {rp} "
+                        f"chunk {ci}/{total}: 保留 {n_kept} 条"
+                        + (f", 丢弃 {dropped} 条" if dropped else "")
+                    )
                     progress.mark_chunk_done(rp, ci, [])
                 except Exception as e:
                     with _lock:
                         total_warnings.append(f"{rel_path} chunk {ci}: {e}")
                         _completed[0] += 1
                         n_completed = _completed[0]
-                    logger.error(f"  [{n_completed}/{total_tasks}] [ERROR] "
-                          f"{rel_path} chunk {ci}/{total}: {e}")
+                    logger.error(
+                        f"  [{n_completed}/{total_tasks}] [ERROR] "
+                        f"{rel_path} chunk {ci}/{total}: {e}"
+                    )
 
                 # 每完成一个就补提交一个（背压）
                 _submit_next()
@@ -380,7 +401,9 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
     # ── 2c. 去重翻译复用 ──
     if dedup.skipped_count > 0:
         dedup_filled, dedup_log = apply_dedup_translations(
-            dedup, file_translations, game_dir,
+            dedup,
+            file_translations,
+            game_dir,
         )
         if dedup_filled > 0:
             logger.info(f"[TL-DEDUP] 复用翻译: {dedup_filled} 条")
@@ -421,44 +444,52 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
                     entry.translation = zh
                     matched_entries.append(entry)
                     total_translated += 1
-                    db_entries.append({
-                        "file": rel_path,
-                        "line": entry.tl_line,
-                        "original": entry.original,
-                        "translation": zh,
-                        "status": "ok",
-                        "error_codes": [],
-                        "warning_codes": [],
-                        "run_id": run_id,
-                        "stage": "tl-mode",
-                        "provider": config.provider,
-                        "model": config.model,
-                    })
+                    db_entries.append(
+                        {
+                            "file": rel_path,
+                            "line": entry.tl_line,
+                            "original": entry.original,
+                            "translation": zh,
+                            "status": "ok",
+                            "error_codes": [],
+                            "warning_codes": [],
+                            "run_id": run_id,
+                            "stage": "tl-mode",
+                            "provider": config.provider,
+                            "model": config.model,
+                        }
+                    )
             else:  # StringEntry — 五层 fallback（精确 → strip → 去令牌 → 转义 → 去标签，round 31 Tier A-3）
                 zh, fb_level = _match_string_entry_fallback(
-                    entry.old, ft, ft_stripped, ft_clean, ft_norm, ft_tagstripped,
+                    entry.old,
+                    ft,
+                    ft_stripped,
+                    ft_clean,
+                    ft_norm,
+                    ft_tagstripped,
                 )
                 if zh:
                     if fb_level:
                         total_fallback_matched += 1
-                        logger.debug(f"  [TL-MATCH] fallback L{fb_level}: "
-                              f"{entry.old[:40]!r}")
+                        logger.debug(f"  [TL-MATCH] fallback L{fb_level}: {entry.old[:40]!r}")
                     entry.new = zh
                     matched_entries.append(entry)
                     total_translated += 1
-                    db_entries.append({
-                        "file": rel_path,
-                        "line": entry.tl_line,
-                        "original": entry.old,
-                        "translation": zh,
-                        "status": "ok",
-                        "error_codes": [],
-                        "warning_codes": [],
-                        "run_id": run_id,
-                        "stage": "tl-mode",
-                        "provider": config.provider,
-                        "model": config.model,
-                    })
+                    db_entries.append(
+                        {
+                            "file": rel_path,
+                            "line": entry.tl_line,
+                            "original": entry.old,
+                            "translation": zh,
+                            "status": "ok",
+                            "error_codes": [],
+                            "warning_codes": [],
+                            "run_id": run_id,
+                            "stage": "tl-mode",
+                            "provider": config.provider,
+                            "model": config.model,
+                        }
+                    )
 
         if db_entries and translation_db is not None:
             translation_db.add_entries(db_entries)
@@ -487,8 +518,9 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
 
     retry_results = scan_tl_directory(str(game_dir / "tl"), tl_lang)
     retry_dlg, retry_str = get_untranslated_entries(retry_results)
-    retry_all = [e for e in retry_dlg if e.original.strip()] + \
-                [e for e in retry_str if e.old.strip()]
+    retry_all = [e for e in retry_dlg if e.original.strip()] + [
+        e for e in retry_str if e.old.strip()
+    ]
     if retry_all:
         logger.info(f"\n[TL-RETRY] {len(retry_all)} 条未匹配，重试中…")
         rt_translated, rt_filled = run_retry_stage(
@@ -523,6 +555,7 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
     # Round 31 Tier C: opt-in runtime-hook emit (skipped unless --emit-runtime-hook)
     try:
         from core.runtime_hook_emitter import emit_if_requested
+
         emit_if_requested(args, output_dir, translation_db)
     except ImportError:
         pass
@@ -561,7 +594,5 @@ def run_tl_pipeline(args: argparse.Namespace) -> None:
         "estimated_cost_usd": round(client.usage.estimated_cost, 4),
     }
     report_path = output_dir / "tl_mode_report.json"
-    report_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info(f"[TL-MODE] 报告: {report_path}")

@@ -15,6 +15,7 @@ These stay together because ``_translate_chunk_with_retry`` calls all three
 of the others in a single control flow. Splitting further would scatter the
 state machine across files without benefit.
 """
+
 from __future__ import annotations
 
 import logging
@@ -61,10 +62,13 @@ def _translate_chunk(ctx: TranslationContext, chunk: dict) -> ChunkResult:
     # 锁定术语预替换（在占位符保护之后，避免干扰 Ren'Py 语法占位符）
     lt_mapping: list[tuple[str, str]] = []
     if ctx.locked_terms_map:
-        protected_content, lt_mapping = protect_locked_terms(protected_content, ctx.locked_terms_map)
+        protected_content, lt_mapping = protect_locked_terms(
+            protected_content, ctx.locked_terms_map
+        )
     user_prompt = build_user_prompt(ctx.rel_path, protected_content, chunk_info)
-    logger.debug(f"    [API ] 块 {part}/{chunk['total']}  "
-          f"({estimate_tokens(chunk['content']):,} tokens)")
+    logger.debug(
+        f"    [API ] 块 {part}/{chunk['total']}  ({estimate_tokens(chunk['content']):,} tokens)"
+    )
     try:
         translations = ctx.client.translate(ctx.system_prompt, user_prompt)
     except Exception as e:
@@ -85,12 +89,18 @@ def _translate_chunk(ctx: TranslationContext, chunk: dict) -> ChunkResult:
     if not translations:
         logger.debug(f"    [INFO] 块 {part}: 无需翻译的内容")
     else:
-        logger.debug(f"    [OK  ] 块 {part}: 获得 {len(translations)} 条翻译"
-              + (f", 丢弃 {dropped_count} 条" if dropped_count else ""))
+        logger.debug(
+            f"    [OK  ] 块 {part}: 获得 {len(translations)} 条翻译"
+            + (f", 丢弃 {dropped_count} 条" if dropped_count else "")
+        )
     return ChunkResult(
-        part=part, kept=kept, chunk_warnings=chunk_warnings + check_warns,
-        dropped_count=dropped_count, expected=expected_count,
-        returned=len(translations), dropped_items=dropped_items,
+        part=part,
+        kept=kept,
+        chunk_warnings=chunk_warnings + check_warns,
+        dropped_count=dropped_count,
+        expected=expected_count,
+        returned=len(translations),
+        dropped_items=dropped_items,
     )
 
 
@@ -102,7 +112,11 @@ def _should_retry(cr: ChunkResult) -> tuple[bool, bool]:
     """
     if cr.error:
         return True, False
-    if cr.returned > 0 and cr.dropped_count >= MIN_DROPPED_FOR_WARNING and cr.dropped_count / cr.returned > CHECKER_DROP_RATIO_THRESHOLD:
+    if (
+        cr.returned > 0
+        and cr.dropped_count >= MIN_DROPPED_FOR_WARNING
+        and cr.dropped_count / cr.returned > CHECKER_DROP_RATIO_THRESHOLD
+    ):
         return True, False
     # 截断检测：返回条数 < 期望的 50%，强烈暗示 AI 输出被截断
     if cr.expected > 0 and cr.returned < cr.expected * 0.5:
@@ -123,8 +137,12 @@ def _split_chunk(chunk: dict) -> tuple[dict, dict]:
     total_lines = len(lines)
     if total_lines < 2:
         # 无法拆分，返回原 chunk 和空 chunk
-        empty = {"content": "", "line_offset": chunk["line_offset"] + total_lines,
-                 "part": chunk["part"], "total": chunk["total"]}
+        empty = {
+            "content": "",
+            "line_offset": chunk["line_offset"] + total_lines,
+            "part": chunk["part"],
+            "total": chunk["total"],
+        }
         return chunk, empty
 
     mid = total_lines // 2
@@ -173,13 +191,15 @@ def _split_chunk(chunk: dict) -> tuple[dict, dict]:
         "total": chunk["total"],
     }
     # chunk_b 的上下文 = chunk_a 末尾 5 行
-    context_lines = lines[max(0, best_split - 5):best_split]
+    context_lines = lines[max(0, best_split - 5) : best_split]
     chunk_b["prev_context"] = "".join(context_lines)
 
     return chunk_a, chunk_b
 
 
-def _translate_chunk_with_retry(ctx: TranslationContext, chunk: dict, max_retries: int = 1) -> ChunkResult:
+def _translate_chunk_with_retry(
+    ctx: TranslationContext, chunk: dict, max_retries: int = 1
+) -> ChunkResult:
     """带自动重试的 chunk 翻译。截断时自动拆分重试。"""
     cr = _translate_chunk(ctx, chunk)
     for attempt in range(max_retries):
@@ -189,11 +209,17 @@ def _translate_chunk_with_retry(ctx: TranslationContext, chunk: dict, max_retrie
 
         if needs_split:
             # 截断：拆分 chunk 后分别翻译，合并结果
-            logger.debug(f"    [SPLIT] 块 {chunk['part']}: 返回 {cr.returned}/{cr.expected}，"
-                         f"疑似截断，拆分重试")
+            logger.debug(
+                f"    [SPLIT] 块 {chunk['part']}: 返回 {cr.returned}/{cr.expected}，"
+                f"疑似截断，拆分重试"
+            )
             chunk_a, chunk_b = _split_chunk(chunk)
             cr_a = _translate_chunk(ctx, chunk_a)
-            cr_b = _translate_chunk(ctx, chunk_b) if chunk_b["content"] else ChunkResult(part=chunk["part"])
+            cr_b = (
+                _translate_chunk(ctx, chunk_b)
+                if chunk_b["content"]
+                else ChunkResult(part=chunk["part"])
+            )
             cr = ChunkResult(
                 part=chunk["part"],
                 kept=cr_a.kept + cr_b.kept,

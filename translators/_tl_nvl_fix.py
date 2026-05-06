@@ -16,6 +16,7 @@ in the hash, so 8.6-generated IDs are wrong when running on 7.x.
 All four functions are independent of the main parser flow — they run as a
 post-translation repair pass.
 """
+
 from __future__ import annotations
 
 
@@ -24,12 +25,13 @@ import logging
 import hashlib
 import re
 from pathlib import Path
+
 logger = logging.getLogger("multi_engine_translator")
 
 
 # 独立定义（避免从 tl_parser 循环导入）
-_RE_DIALOGUE_HEADER = re.compile(r'^translate\s+\w+\s+(\w+)\s*:\s*$')
-_RE_TRANSLATE_BLOCK = re.compile(r'^translate\s+\w+\s+\w+\s*:\s*$')
+_RE_DIALOGUE_HEADER = re.compile(r"^translate\s+\w+\s+(\w+)\s*:\s*$")
+_RE_TRANSLATE_BLOCK = re.compile(r"^translate\s+\w+\s+\w+\s*:\s*$")
 
 
 def _compute_say_only_hash(say_code: str) -> str:
@@ -107,8 +109,8 @@ def fix_nvl_translation_ids(file_path: str) -> dict:
         underscore_pos = identifier.rfind("_")
         if underscore_pos == -1:
             continue
-        current_hash = identifier[underscore_pos + 1:]
-        label_prefix = identifier[:underscore_pos + 1]
+        current_hash = identifier[underscore_pos + 1 :]
+        label_prefix = identifier[: underscore_pos + 1]
 
         # 验证当前 ID 确实是 say-only 哈希
         expected_say_only = _compute_say_only_hash(say_code)
@@ -151,6 +153,8 @@ def fix_nvl_ids_directory(tl_dir: str, lang: str) -> dict:
             totals["ids_fixed"] += stats["ids_fixed"]
 
     if totals["files"]:
-        logger.info(f"[TL-NVL-ID-FIX] 修正 {totals['files']} 个文件中 "
-              f"{totals['ids_fixed']} 处 nvl clear 翻译块 ID")
+        logger.info(
+            f"[TL-NVL-ID-FIX] 修正 {totals['files']} 个文件中 "
+            f"{totals['ids_fixed']} 处 nvl clear 翻译块 ID"
+        )
     return totals

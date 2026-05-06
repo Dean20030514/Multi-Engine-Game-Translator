@@ -8,33 +8,47 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from translators.tl_parser import DialogueEntry, StringEntry
 from translators.tl_mode import (
-    DEDUP_MIN_LENGTH,
     dedup_tl_entries,
     apply_dedup_translations,
-    DedupResult,
 )
 
 
-def _make_dlg(identifier: str, original: str, character: str = "",
-              tl_file: str = "tl/chinese/test.rpy", tl_line: int = 1) -> DialogueEntry:
+def _make_dlg(
+    identifier: str,
+    original: str,
+    character: str = "",
+    tl_file: str = "tl/chinese/test.rpy",
+    tl_line: int = 1,
+) -> DialogueEntry:
     return DialogueEntry(
-        identifier=identifier, original=original, translation="",
-        character=character, source_file="game/test.rpy", source_line=1,
-        tl_file=tl_file, tl_line=tl_line, block_start_line=tl_line - 1,
+        identifier=identifier,
+        original=original,
+        translation="",
+        character=character,
+        source_file="game/test.rpy",
+        source_line=1,
+        tl_file=tl_file,
+        tl_line=tl_line,
+        block_start_line=tl_line - 1,
     )
 
 
-def _make_str(old: str, tl_file: str = "tl/chinese/test.rpy",
-              tl_line: int = 1) -> StringEntry:
+def _make_str(old: str, tl_file: str = "tl/chinese/test.rpy", tl_line: int = 1) -> StringEntry:
     return StringEntry(
-        old=old, new="", source_file="game/test.rpy", source_line=1,
-        tl_file=tl_file, tl_line=tl_line, block_start_line=tl_line - 1,
+        old=old,
+        new="",
+        source_file="game/test.rpy",
+        source_line=1,
+        tl_file=tl_file,
+        tl_line=tl_line,
+        block_start_line=tl_line - 1,
     )
 
 
 # ---------------------------------------------------------------------------
 # dedup_tl_entries tests
 # ---------------------------------------------------------------------------
+
 
 def test_dedup_basic():
     """Duplicate long dialogues are collapsed; short ones preserved."""
@@ -156,6 +170,7 @@ def test_dedup_mixed_types():
 # apply_dedup_translations tests
 # ---------------------------------------------------------------------------
 
+
 def test_apply_dedup_basic():
     """Apply dedup fills translations into file_translations."""
     long_text = "This is a long sentence that should be deduplicated across files."
@@ -232,4 +247,4 @@ if __name__ == "__main__":
     test_apply_dedup_no_translation()
     test_apply_dedup_string_entry()
 
-    print(f"\n=== 全部 TL 去重测试通过 ===")
+    print("\n=== 全部 TL 去重测试通过 ===")

@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Unit tests for ``safety/file_safety.py`` — the TOCTOU-safe file size
-helper extracted in round 48 Step 2 from the inline pattern that
-round 47 Step 2 D3 added to ``engines/csv_engine.py::_extract_csv``.
+"""Unit tests for ``safety/file_safety.py`` (r48 Step 2 helper, r56 M2 moved).
 
-Covers the 3 contract scenarios for ``check_fstat_size``:
-
-1. Within limit — returns (True, observed_size)
-2. Over limit  — returns (False, observed_size)
-3. OSError fail-open — returns (True, 0)
-
-The fail-open scenario matches the design choice across r37-r47
-path-based stat() callers: stat failure on a successfully opened
-fd is extremely rare; if it does happen, blocking the operation
-risks more harm than letting it proceed.
+Covers ``check_fstat_size`` 3 contract scenarios + 22 caller-integration
+TOCTOU-growth-attack regressions across the 12 modules using the helper.
+See r48 Step 3 audit / r49 expansion / r50 C4 filter relaxation.
 """
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
@@ -53,9 +45,7 @@ def test_check_fstat_size_over_limit():
         p.write_bytes(b"x" * 101)  # 101 bytes
         with open(p, "rb") as f:
             ok, size = check_fstat_size(f, max_size=100)
-        assert ok is False, (
-            f"101-byte file over 100-byte cap must return False, got ok={ok}"
-        )
+        assert ok is False, f"101-byte file over 100-byte cap must return False, got ok={ok}"
         assert size == 101, f"observed_size must be 101 bytes, got {size}"
     print("[OK] check_fstat_size_over_limit")
 
@@ -74,9 +64,7 @@ def test_check_fstat_size_at_cap_boundary():
         p.write_bytes(b"x" * 100)  # exactly 100 bytes
         with open(p, "rb") as f:
             ok, size = check_fstat_size(f, max_size=100)
-        assert ok is True, (
-            f"100-byte file at 100-byte cap must return True (<=); got ok={ok}"
-        )
+        assert ok is True, f"100-byte file at 100-byte cap must return True (<=); got ok={ok}"
         assert size == 100, f"observed_size must be 100 bytes, got {size}"
     print("[OK] check_fstat_size_at_cap_boundary")
 
@@ -89,19 +77,17 @@ def test_check_fstat_size_fail_open_on_oserror():
     import tempfile
     from pathlib import Path
     from unittest import mock
-    from safety import file_safety
     from safety.file_safety import check_fstat_size
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "any.txt"
         p.write_bytes(b"any content")
         with open(p, "rb") as f:
-            with mock.patch("safety.file_safety.os.fstat",
-                            side_effect=OSError("simulated fstat failure")):
+            with mock.patch(
+                "safety.file_safety.os.fstat", side_effect=OSError("simulated fstat failure")
+            ):
                 ok, size = check_fstat_size(f, max_size=100)
-        assert ok is True, (
-            f"OSError fail-open: must return True so caller proceeds; got ok={ok}"
-        )
+        assert ok is True, f"OSError fail-open: must return True so caller proceeds; got ok={ok}"
         assert size == 0, f"OSError fail-open: size must be 0, got {size}"
     print("[OK] check_fstat_size_fail_open_on_oserror")
 
@@ -131,8 +117,7 @@ def test_check_fstat_size_fail_open_on_valueerror():
     sio = io.StringIO("not-a-real-file")
     ok, size = check_fstat_size(sio, max_size=100)
     assert ok is True, (
-        f"ValueError fail-open (StringIO has no fileno): must return "
-        f"True; got ok={ok}"
+        f"ValueError fail-open (StringIO has no fileno): must return True; got ok={ok}"
     )
     assert size == 0, f"ValueError fail-open: size must be 0, got {size}"
 
@@ -174,19 +159,16 @@ def test_load_font_config_rejects_toctou_growth_attack():
 
     with tempfile.TemporaryDirectory() as td:
         cfg = Path(td) / "font_config.json"
-        cfg.write_text(_json.dumps({"main_font": "test.ttf"}),
-                       encoding="utf-8")
+        cfg.write_text(_json.dumps({"main_font": "test.ttf"}), encoding="utf-8")
 
         class FakeStat:
             st_size = _MAX_FONT_CONFIG_SIZE + 1
 
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             result = load_font_config(str(cfg))
 
         assert result == {}, (
-            f"check_fstat_size > cap must trigger empty-dict fallback; "
-            f"got {result!r}"
+            f"check_fstat_size > cap must trigger empty-dict fallback; got {result!r}"
         )
     print("[OK] load_font_config_rejects_toctou_growth_attack")
 
@@ -205,23 +187,33 @@ def test_translation_db_load_rejects_toctou_growth_attack():
 
     with tempfile.TemporaryDirectory() as td:
         db_path = Path(td) / "tr.json"
-        db_path.write_text(_json.dumps({
-            "version": 2,
-            "entries": [{"file": "a.rpy", "line": 1, "original": "hi",
-                         "translation": "你好", "language": "zh"}],
-        }), encoding="utf-8")
+        db_path.write_text(
+            _json.dumps(
+                {
+                    "version": 2,
+                    "entries": [
+                        {
+                            "file": "a.rpy",
+                            "line": 1,
+                            "original": "hi",
+                            "translation": "你好",
+                            "language": "zh",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = TranslationDB._MAX_DB_FILE_SIZE + 1
 
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             db = TranslationDB(db_path)
             db.load()
 
         assert db.entries == [], (
-            f"TOCTOU > cap must reject load (empty entries); "
-            f"got {len(db.entries)} entries"
+            f"TOCTOU > cap must reject load (empty entries); got {len(db.entries)} entries"
         )
     print("[OK] translation_db_load_rejects_toctou_growth_attack")
 
@@ -240,20 +232,17 @@ def test_load_config_file_rejects_toctou_growth_attack():
 
     with tempfile.TemporaryDirectory() as td:
         cfg = Path(td) / "renpy_translate.json"
-        cfg.write_text(_json.dumps({"provider": "test_provider_dont_use"}),
-                       encoding="utf-8")
+        cfg.write_text(_json.dumps({"provider": "test_provider_dont_use"}), encoding="utf-8")
 
         class FakeStat:
             st_size = _MAX_CONFIG_FILE_SIZE + 1
 
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             c = Config(game_dir=Path(td), config_path=str(cfg))
 
         # _file_config stays empty (the cap rejection skips the assignment).
         assert "provider" not in c._file_config, (
-            f"TOCTOU > cap must skip config load; got _file_config="
-            f"{c._file_config!r}"
+            f"TOCTOU > cap must skip config load; got _file_config={c._file_config!r}"
         )
     print("[OK] load_config_file_rejects_toctou_growth_attack")
 
@@ -279,21 +268,24 @@ def test_glossary_actors_json_rejects_toctou_growth_attack():
         data_dir = game_dir / "data"
         data_dir.mkdir()
         actors_path = data_dir / "Actors.json"
-        actors_path.write_text(_json.dumps([
-            {"name": "Hero", "nickname": "H"},
-        ]), encoding="utf-8")
+        actors_path.write_text(
+            _json.dumps(
+                [
+                    {"name": "Hero", "nickname": "H"},
+                ]
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
         assert g.characters == {}, (
-            f"TOCTOU > cap must skip Actors.json; got characters="
-            f"{g.characters!r}"
+            f"TOCTOU > cap must skip Actors.json; got characters={g.characters!r}"
         )
     print("[OK] glossary_actors_json_rejects_toctou_growth_attack")
 
@@ -316,25 +308,27 @@ def test_glossary_system_json_rejects_toctou_growth_attack():
         data_dir = game_dir / "data"
         data_dir.mkdir()
         # Empty Actors.json so the Actors branch fast-paths through.
-        (data_dir / "Actors.json").write_text(_json.dumps([]),
-                                              encoding="utf-8")
+        (data_dir / "Actors.json").write_text(_json.dumps([]), encoding="utf-8")
         system_path = data_dir / "System.json"
-        system_path.write_text(_json.dumps({
-            "terms": {"basic": ["Attack", "Defend"]},
-        }), encoding="utf-8")
+        system_path.write_text(
+            _json.dumps(
+                {
+                    "terms": {"basic": ["Attack", "Defend"]},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
         before = dict(g.terms)
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
         assert g.terms == before, (
-            f"TOCTOU > cap must skip System.json; terms changed: "
-            f"{before!r} -> {g.terms!r}"
+            f"TOCTOU > cap must skip System.json; terms changed: {before!r} -> {g.terms!r}"
         )
     print("[OK] glossary_system_json_rejects_toctou_growth_attack")
 
@@ -351,21 +345,16 @@ def test_glossary_load_system_terms_rejects_toctou_growth_attack():
 
     with tempfile.TemporaryDirectory() as td:
         st = Path(td) / "system_terms.json"
-        st.write_text(_json.dumps({"Save": "存档", "Load": "读档"}),
-                      encoding="utf-8")
+        st.write_text(_json.dumps({"Save": "存档", "Load": "读档"}), encoding="utf-8")
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.load_system_terms(str(st))
 
-        assert g.terms == {}, (
-            f"TOCTOU > cap must skip system terms load; got terms="
-            f"{g.terms!r}"
-        )
+        assert g.terms == {}, f"TOCTOU > cap must skip system terms load; got terms={g.terms!r}"
     print("[OK] glossary_load_system_terms_rejects_toctou_growth_attack")
 
 
@@ -381,17 +370,21 @@ def test_glossary_load_rejects_toctou_growth_attack():
 
     with tempfile.TemporaryDirectory() as td:
         gp = Path(td) / "glossary.json"
-        gp.write_text(_json.dumps({
-            "characters": {"hero": "英雄"},
-            "terms": {"hp": "生命值"},
-        }), encoding="utf-8")
+        gp.write_text(
+            _json.dumps(
+                {
+                    "characters": {"hero": "英雄"},
+                    "terms": {"hp": "生命值"},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.load(str(gp))
 
         assert g.characters == {} and g.terms == {}, (
@@ -415,16 +408,20 @@ def test_glossary_actors_json_accepts_size_at_cap_boundary():
         data_dir = game_dir / "data"
         data_dir.mkdir()
         actors_path = data_dir / "Actors.json"
-        actors_path.write_text(_json.dumps([
-            {"name": "Hero", "nickname": "H"},
-        ]), encoding="utf-8")
+        actors_path.write_text(
+            _json.dumps(
+                [
+                    {"name": "Hero", "nickname": "H"},
+                ]
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
         assert "hero" in g.characters and g.characters["hero"] == "Hero", (
@@ -447,16 +444,20 @@ def test_glossary_system_json_accepts_size_at_cap_boundary():
         data_dir.mkdir()
         (data_dir / "Actors.json").write_text(_json.dumps([]), encoding="utf-8")
         system_path = data_dir / "System.json"
-        system_path.write_text(_json.dumps({
-            "terms": {"basic": ["Attack", "Defend"]},
-        }), encoding="utf-8")
+        system_path.write_text(
+            _json.dumps(
+                {
+                    "terms": {"basic": ["Attack", "Defend"]},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
         assert "Attack" in g.terms and "Defend" in g.terms, (
@@ -475,15 +476,13 @@ def test_glossary_load_system_terms_accepts_size_at_cap_boundary():
 
     with tempfile.TemporaryDirectory() as td:
         st = Path(td) / "system_terms.json"
-        st.write_text(_json.dumps({"Save": "存档", "Load": "读档"}),
-                      encoding="utf-8")
+        st.write_text(_json.dumps({"Save": "存档", "Load": "读档"}), encoding="utf-8")
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.load_system_terms(str(st))
 
         assert g.terms == {"Save": "存档", "Load": "读档"}, (
@@ -502,17 +501,21 @@ def test_glossary_load_accepts_size_at_cap_boundary():
 
     with tempfile.TemporaryDirectory() as td:
         gp = Path(td) / "glossary.json"
-        gp.write_text(_json.dumps({
-            "characters": {"hero": "英雄"},
-            "terms": {"hp": "生命值"},
-        }), encoding="utf-8")
+        gp.write_text(
+            _json.dumps(
+                {
+                    "characters": {"hero": "英雄"},
+                    "terms": {"hp": "生命值"},
+                }
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             g.load(str(gp))
 
         assert g.characters == {"hero": "英雄"} and g.terms == {"hp": "生命值"}, (
@@ -544,8 +547,7 @@ def test_gate_glossary_uses_check_fstat_size_pattern():
         "pipeline.gate must import check_fstat_size from safety.file_safety"
     )
     assert gate_mod._MAX_GATE_GLOSSARY_SIZE == 50 * 1024 * 1024, (
-        f"_MAX_GATE_GLOSSARY_SIZE must be 50 MB family cap; "
-        f"got {gate_mod._MAX_GATE_GLOSSARY_SIZE}"
+        f"_MAX_GATE_GLOSSARY_SIZE must be 50 MB family cap; got {gate_mod._MAX_GATE_GLOSSARY_SIZE}"
     )
 
     src = inspect.getsource(gate_mod)
@@ -553,13 +555,9 @@ def test_gate_glossary_uses_check_fstat_size_pattern():
     # lines so a future maintainer who deletes the with-block but
     # leaves a residual ``# was: check_fstat_size(...)`` comment
     # cannot pass this regression spuriously.
-    active_src = "\n".join(
-        line for line in src.split("\n")
-        if not line.lstrip().startswith("#")
-    )
+    active_src = "\n".join(line for line in src.split("\n") if not line.lstrip().startswith("#"))
     assert "check_fstat_size(f, _MAX_GATE_GLOSSARY_SIZE)" in active_src, (
-        "pipeline.gate must call check_fstat_size on the glossary fd "
-        "(active code, not a comment)"
+        "pipeline.gate must call check_fstat_size on the glossary fd (active code, not a comment)"
     )
     assert "raise OSError" in active_src and "TOCTOU" in active_src, (
         "pipeline.gate must raise OSError on cap violation so the "
@@ -583,26 +581,34 @@ def test_rpgmaker_extract_texts_rejects_toctou_growth_attack():
         data_dir = game_dir / "data"
         data_dir.mkdir()
         # System.json is required for _find_data_dir() to recognise the dir.
-        (data_dir / "System.json").write_text(_json.dumps({
-            "terms": {"basic": []}, "gameTitle": "test",
-        }), encoding="utf-8")
+        (data_dir / "System.json").write_text(
+            _json.dumps(
+                {
+                    "terms": {"basic": []},
+                    "gameTitle": "test",
+                }
+            ),
+            encoding="utf-8",
+        )
         # Plus a CommonEvents fixture so extract_texts enters the loader.
-        (data_dir / "CommonEvents.json").write_text(_json.dumps([
-            None,
-            {"id": 1, "name": "test", "list": []},
-        ]), encoding="utf-8")
+        (data_dir / "CommonEvents.json").write_text(
+            _json.dumps(
+                [
+                    None,
+                    {"id": 1, "name": "test", "list": []},
+                ]
+            ),
+            encoding="utf-8",
+        )
 
         class FakeStat:
             st_size = _MAX_RPGM_JSON_SIZE + 1
 
         engine = RPGMakerMVEngine()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             units = engine.extract_texts(game_dir)
 
-        assert units == [], (
-            f"TOCTOU > cap must skip every JSON file; got {len(units)} units"
-        )
+        assert units == [], f"TOCTOU > cap must skip every JSON file; got {len(units)} units"
     print("[OK] rpgmaker_extract_texts_rejects_toctou_growth_attack")
 
 
@@ -624,16 +630,31 @@ def test_rpgmaker_write_back_rejects_toctou_growth_attack():
         data_dir = game_dir / "data"
         data_dir.mkdir()
         # System.json is required for _find_data_dir() to recognise the dir.
-        (data_dir / "System.json").write_text(_json.dumps({
-            "terms": {"basic": []}, "gameTitle": "test",
-        }), encoding="utf-8")
+        (data_dir / "System.json").write_text(
+            _json.dumps(
+                {
+                    "terms": {"basic": []},
+                    "gameTitle": "test",
+                }
+            ),
+            encoding="utf-8",
+        )
         ce_path = data_dir / "CommonEvents.json"
-        ce_path.write_text(_json.dumps([
-            None,
-            {"id": 1, "name": "test", "list": [
-                {"code": 401, "indent": 0, "parameters": ["Hello"]},
-            ]},
-        ]), encoding="utf-8")
+        ce_path.write_text(
+            _json.dumps(
+                [
+                    None,
+                    {
+                        "id": 1,
+                        "name": "test",
+                        "list": [
+                            {"code": 401, "indent": 0, "parameters": ["Hello"]},
+                        ],
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
 
         u = TranslatableUnit(
             id="rpgm:CommonEvents:1:0:Hello",
@@ -647,14 +668,11 @@ def test_rpgmaker_write_back_rejects_toctou_growth_attack():
             st_size = _MAX_RPGM_JSON_SIZE + 1
 
         engine = RPGMakerMVEngine()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             written = engine.write_back(game_dir, [u], out_dir)
 
         # write_back must skip the file — no output produced.
-        assert written == 0, (
-            f"TOCTOU > cap must skip write_back; got written={written}"
-        )
+        assert written == 0, f"TOCTOU > cap must skip write_back; got written={written}"
         out_ce = out_dir / "data" / "CommonEvents.json"
         assert not out_ce.exists(), (
             f"TOCTOU > cap must NOT write output; output file exists: {out_ce}"
@@ -682,25 +700,19 @@ def test_gui_dialogs_load_config_uses_check_fstat_size_pattern():
         "gui_dialogs must import check_fstat_size from safety.file_safety"
     )
     assert gui_dialogs._MAX_GUI_CONFIG_SIZE == 50 * 1024 * 1024, (
-        f"_MAX_GUI_CONFIG_SIZE must be 50 MB family cap; "
-        f"got {gui_dialogs._MAX_GUI_CONFIG_SIZE}"
+        f"_MAX_GUI_CONFIG_SIZE must be 50 MB family cap; got {gui_dialogs._MAX_GUI_CONFIG_SIZE}"
     )
 
     src = inspect.getsource(gui_dialogs.AppDialogsMixin._load_config)
     # Round 49 Step 3 audit-fix (Coverage HIGH): strip comment-only
     # lines so a comment-residual cannot make this test pass after
     # the active call has been deleted.
-    active_src = "\n".join(
-        line for line in src.split("\n")
-        if not line.lstrip().startswith("#")
-    )
+    active_src = "\n".join(line for line in src.split("\n") if not line.lstrip().startswith("#"))
     assert "check_fstat_size" in active_src, (
-        "_load_config must call check_fstat_size for TOCTOU defense "
-        "(active code, not a comment)"
+        "_load_config must call check_fstat_size for TOCTOU defense (active code, not a comment)"
     )
     assert "_MAX_GUI_CONFIG_SIZE" in active_src, (
-        "_load_config must compare against _MAX_GUI_CONFIG_SIZE "
-        "(active code, not a comment)"
+        "_load_config must compare against _MAX_GUI_CONFIG_SIZE (active code, not a comment)"
     )
     print("[OK] gui_dialogs_load_config_uses_check_fstat_size_pattern")
 
@@ -722,8 +734,7 @@ def test_load_ui_button_whitelist_rejects_toctou_growth_attack():
     clear_ui_button_whitelist()
     with tempfile.TemporaryDirectory() as td:
         wl_path = Path(td) / "wl.json"
-        wl_path.write_text(_json.dumps(["存档", "读档"]),
-                           encoding="utf-8")
+        wl_path.write_text(_json.dumps(["存档", "读档"]), encoding="utf-8")
 
         # _MAX_UI_WHITELIST_SIZE is local to load_ui_button_whitelist;
         # use the family-canonical 50 MB to compute fake_size.
@@ -733,17 +744,13 @@ def test_load_ui_button_whitelist_rejects_toctou_growth_attack():
             st_size = family_cap + 1
 
         before = get_ui_button_whitelist_extensions()
-        with mock.patch("safety.file_safety.os.fstat",
-                        lambda fd: FakeStat()):
+        with mock.patch("safety.file_safety.os.fstat", lambda fd: FakeStat()):
             added = load_ui_button_whitelist([str(wl_path)])
 
-        assert added == 0, (
-            f"TOCTOU > cap must skip whitelist load; got added={added}"
-        )
+        assert added == 0, f"TOCTOU > cap must skip whitelist load; got added={added}"
         after = get_ui_button_whitelist_extensions()
         assert after == before, (
-            f"TOCTOU > cap must NOT mutate the whitelist set; "
-            f"before={before!r}, after={after!r}"
+            f"TOCTOU > cap must NOT mutate the whitelist set; before={before!r}, after={after!r}"
         )
     clear_ui_button_whitelist()
     print("[OK] load_ui_button_whitelist_rejects_toctou_growth_attack")
