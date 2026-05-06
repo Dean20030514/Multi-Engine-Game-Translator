@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 from engines.engine_base import EngineBase, EngineProfile, TranslatableUnit, CSV_PROFILE
 
 logger = logging.getLogger("multi_engine_translator")
@@ -204,7 +204,7 @@ class CSVEngine(EngineBase):
             # and this open() — adversarial, skip.  Cost: one extra
             # fstat() syscall on the open fd (microseconds).  Closes
             # the r46 Step 5 security audit's TOCTOU LOW-severity
-            # bypass vector.  See core/file_safety.py for the helper.
+            # bypass vector.  See safety/file_safety.py for the helper.
             ok, fsize2 = check_fstat_size(f, _MAX_CSV_JSON_SIZE)
             if not ok:
                 logger.warning(
@@ -286,7 +286,7 @@ class CSVEngine(EngineBase):
         # _extract_jsonl reads the entire file into memory via f.read();
         # without fstat re-check, an attacker can grow the file between
         # the Path.stat() above and the open() below to OOM the host.
-        # See core/file_safety.py for the shared helper.
+        # See safety/file_safety.py for the shared helper.
         with open(filepath, encoding="utf-8-sig") as f:
             ok, fsize2 = check_fstat_size(f, _MAX_CSV_JSON_SIZE)
             if not ok:
@@ -334,7 +334,7 @@ class CSVEngine(EngineBase):
         # defense as _extract_jsonl above; the .json dispatch reads
         # the entire file via f.read() before json.loads(), and an
         # attacker can grow the file between Path.stat() and open()
-        # to OOM the host.  See core/file_safety.py.
+        # to OOM the host.  See safety/file_safety.py.
         with open(filepath, encoding="utf-8-sig") as f:
             ok, fsize2 = check_fstat_size(f, _MAX_CSV_JSON_SIZE)
             if not ok:

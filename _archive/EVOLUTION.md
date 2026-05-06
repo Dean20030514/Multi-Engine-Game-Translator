@@ -173,7 +173,7 @@
 - **监控 #2 HTTP 64KB 精度偏差降至 1B**（`core/http_pool.py::read_bounded`）：`chunk = readable.read(min(_READ_CHUNK_SIZE, limit - total + 1))`，+1 byte 用作 overshoot detector，触发 raise 时 `total = limit + 1` 最大偏差 1 byte。fast path（数据 << limit）保持 64 KB chunk size。3 单元测试覆盖 (precision at cap / exact limit / limit + 1 byte raises)。
 - **监控 #3 TOCTOU fstat race retire to architectural decision**：microsecond-level OS-atomic 边界已是当前实现下限；进一步缩小依赖 OS-level FD-ops 实现细节（fstat 内部 syscall 时序），无 actionable improvement path。
 - **监控 #4 symlink path-swap mitigation**（`main.py::_maybe_warn_on_symlink` + `--allow-symlink` flag）：`--game-dir` / `--config` 是 symlink 时输出 warning（非阻断），`--allow-symlink` 抑制（NAS / 挂载场景）。本地 single-user 工具无 realistic exploit vector，warning 仅作审计提示。3 单元测试 (warn unflagged / allow suppresses / regular path no-warn)。
-- **监控 #5 Logger namespace retire to architectural decision**：r51 4 contract tests pin 17 sites `getLogger("multi_engine_translator")` 已充分；如未来引入 logging filter / sink / metric pipeline，需 reconsider。
+- **监控 #5 Logger namespace retire to architectural decision**：r51 4 contract tests pin 覆盖所有 production 模块（r51 时 17 sites）已充分；contract 是"覆盖"而非定值数字（r56 末实测 24 sites）；如未来引入 logging filter / sink / metric pipeline，需 reconsider。
 - **监控 #6 GUI 自动化 maintained as architectural decision**：r53 重新评估维持原决策（tkinter 跨平台 headless 需违反零依赖契约 + ROI 低 + 跨平台覆盖不全）。
 - **数字增量**：tests_total 431 → 467 (+36); test_files 30 → 32 (+2: `test_tl_retry.py` + `test_pickle_safe_redteam.py`); ci_steps 34 unchanged; assertion_points 557 → 593 (+36, 跟随 tests_total)。
 - **9 hard contracts 累积到 12**（CLAUDE.md 维护规则 +3）：`tl_mode.py` retry 必须并发 / LLM ID drift detection layer-6 必须保留 / Pickle 白名单不得放宽（修改前必跑红队 audit）。
@@ -220,9 +220,29 @@
 
 **连续 15 轮 0 CRITICAL correctness 保持**（r35-r55）。
 
+## 阶段十五（r56）— 全面深度审计 + 8 项 fix（路径 C）+ 16th 0-CRITICAL Streak
+
+8 phases，纯优化轮无新功能：
+
+- **本轮触发**：r55 末用户要求"全面且深度的检查一遍"。8 维度 audit (correctness / security / performance / code quality / test coverage / docs drift / architecture / concurrency) 收集 11 findings (3 HIGH / 3 MEDIUM / 5 LOW)；用户决策路径 C 全部 fix（含 L 级别 cosmetic 项）。
+- **审计标准**：以 r35-r55 项目 audit 框架 + r52 起"减法 + 聚焦"原则。所有 fix 同轮闭合（CLAUDE.md 第 10 原则零欠账闭合）。
+- **H1 — `core/api_client.py` 5 死 import 清理**：`atexit` / `importlib.util` / `sys` 是 r52 C3 BREAKING retire `_load_custom_engine` (importlib in-process loader) 后清理不彻底的残留；`Optional` / `Any` 是 typing 导入但无实际使用。grep verify 0 调用。
+- **H2 — logger sites 17 → 24 docs drift**：r51 加固时数字 17，r52-r55 新模块（unity_xunity / _tl_retry / 等）自然增长但 docs 未同步。r56 把"17 sites"硬编码改为"覆盖所有 production 模块（r56 末实测 24 sites — contract 是覆盖而非定值）"软描述，HANDOFF / CLAUDE.md / .cursorrules / docs/REFERENCE.md / EVOLUTION 全部同步。
+- **H3 — `engines/unity_xunity.py` r55 残留 `field` 死 import**：r55 我自己引入的死代码，`_ParsedLine` dataclass 全是简单默认值不需 `field(default_factory=...)`。
+- **M1 — Unity XUnity regex backref placeholder protection**（用户 Q3 选 (a)）：`UNITY_XUNITY_PROFILE.placeholder_patterns` 加 9 个 patterns 保护 regex 元字符（`\d` `\D` `\w` `\W` `\s` `\S` `\b` `\B` `\[1-9]`）。当 regex_rule pending 时 pattern 作为 original 喂 LLM，`generic_pipeline.protect_placeholders` 把 backref 替换为 `__RENPY_PH_*__` 占位符，restore 时还原。`tests/test_unity_xunity_engine.py` +2 测试覆盖（profile 编译 + protect/restore round-trip）。
+- **M2 — `core/file_safety.py` → `safety/file_safety.py` 顶层独立 package**（用户 Q3 选 (b)）：`file_processor.checker` 顶层 import `core.file_safety` 与 CLAUDE.md 模块图描述"`file_processor` 不在 module load 时 import `core`"冲突。把 helper 移出 `core/` 到顶层 `safety/`：18 production .py imports 迁移；`safety/__init__.py` re-export `check_fstat_size`；3 测试 mock target 迁移；CI workflow `Mock target consistency check` step 文档更新（**关键**：fragment match `grep -v "file_safety"` 兼容两种路径，r48 stale mock trap CLASS 仍生效，无需重写 CI guard 逻辑）；`tests/test_repo_rename_consistency.py` 文档更新；CLAUDE.md 模块图调整。
+- **M3 — `_translate_one_tl_chunk` 函数内 import → 顶层**：r53 W3 加 ID drift detection 时函数内 `from translators._tl_retry import detect_id_drift, _expected_id_set` 是循环 import 防御性写法（每次 chunk 翻译都 import 一次，sys.modules 缓存让开销很小但与项目 idiomatic style 不一致）。实测 `_tl_retry` 不依赖 `tl_mode`，无循环，提到模块顶层。
+- **L1 — production print() → logger.info()**（用户指示：仅 build.py 保留 print，其他全改）：4 个 translators 模块 print 调用迁移 — `screen.py` (12 处) / `tl_parser.py` (15 处) / `_tl_nvl_fix.py` (1 处) / `_tl_postprocess.py` (1 处)，共 29 处。3 个文件新增 `import logging` + `logger = logging.getLogger("multi_engine_translator")` 绑定。`pipeline/*` 和 `one_click_pipeline.py` 已用 `_print()` wrapper（pipeline/helpers.py L37：`def _print(msg): logger.info(msg)`），实质已 logger，audit 时 `grep print(` 假阳性。
+- **L2 — hard contract 计数术语统一**：参见 H2，硬编码数字改软描述。
+- **数字增量**：tests_total 483 → 485 (+2 r56 M1 backref tests); test_files 33 unchanged; ci_steps 34 unchanged; assertion_points 609 → 611 (+2)。
+- **VERIFIED-CLAIMS / .cursorrules byte-identical / pre-commit 4 件套** 全部 OK。
+- **13 hard contracts 不变**（无新约束加入）。
+
+**连续 16 轮 0 CRITICAL correctness 保持**（r35-r56）。
+
 ---
 
-## 累积技术资产（r1-r55 视角）
+## 累积技术资产（r1-r56 视角）
 
 ### 翻译能力
 - 三种 Ren'Py 翻译模式（direct / tl / retranslate） + screen 补充

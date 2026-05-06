@@ -59,12 +59,13 @@ main.py (CLI 入口) → engines.resolve_engine(args.engine).run(args)
        ├── api_client.py + api_plugin.py
        ├── prompts.py / glossary.py
        ├── translation_db.py / translation_utils.py
-       ├── config.py / lang_config.py / font_patch.py
+       ├── config.py / font_patch.py
        ├── http_pool.py        HTTPS 线程本地连接池 (~90s 节省 / 600 次)
        ├── pickle_safe.py      白名单 SafeUnpickler
-       ├── file_safety.py      TOCTOU 防御 (fstat 二次校验，26 sites 共享)
        └── runtime_hook_emitter.py
 
+safety/          TOCTOU 防御 helper（r56 M2 从 core/ 移出独立顶层 package）
+                 file_safety.py  fstat 二次校验，26 sites 共享
 file_processor/  splitter / patcher / checker / validator
 pipeline/        helpers / gate / stages
 tools/           rpa_unpacker/packer / rpyc_decompiler / renpy_lint_fixer
@@ -121,8 +122,8 @@ scripts/         verify_docs_claims.py / verify_workflow.py / install_hooks.sh
 - **pre-commit hook 4 件套**（`scripts/install_hooks.sh` 启用）：py_compile + 800 行 cap + meta-runner + `verify_docs_claims --fast`
 - **CI**：6 jobs（matrix `[ubuntu-latest, windows-latest]` × `[3.9, 3.12, 3.13]`）
 - **HANDOFF.md `VERIFIED-CLAIMS` 块**：唯一数字声称源，pre-commit + CI 双层 enforce
-- **Mock target consistency CI guard**：所有 `mock.patch(...os.fstat)` / `patch.object(os, "fstat", ...)` 必须 target `core.file_safety`（防 stale mock trap CLASS；r50 C4 filter 放宽到 `file_safety` 兼容 qualified form；r51 audit-tail 加第三级 `test_repo_rename_consistency` filter 豁免 documentation-only 文件 self-trip）
-- **Repo rename consistency CI guard**（r51 起）：`tests/test_repo_rename_consistency.py` 钉自身 repo URL refs（`pyproject.toml` + `renpy_translate.example.json`）+ logger namespace（17 sites `getLogger("multi_engine_translator")`）+ 6 处 anonymousException 上游归属反向 exhaustiveness
+- **Mock target consistency CI guard**：所有 `mock.patch(...os.fstat)` / `patch.object(os, "fstat", ...)` 必须 target `safety.file_safety`（r56 M2 从 `core.file_safety` 迁移；CI guard 用 fragment match `grep -v "file_safety"` 兼容两种路径）。防 stale mock trap CLASS；r50 C4 filter 放宽到 `file_safety` 兼容 qualified form；r51 audit-tail 加第三级 `test_repo_rename_consistency` filter 豁免 documentation-only 文件 self-trip
+- **Repo rename consistency CI guard**（r51 起）：`tests/test_repo_rename_consistency.py` 钉自身 repo URL refs（`pyproject.toml` + `renpy_translate.example.json`）+ logger namespace（覆盖所有 production 模块，r56 末实测 24 sites `getLogger("multi_engine_translator")`，r51 加固时 17 sites — 数字会随新模块新增自然增长，contract 是"覆盖所有 production"而非定值）+ 6 处 anonymousException 上游归属反向 exhaustiveness
 
 ---
 

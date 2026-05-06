@@ -33,7 +33,7 @@ from translators._screen_extract import (
     _RE_TEXTBUTTON,
 )
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

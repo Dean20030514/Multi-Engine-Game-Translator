@@ -43,7 +43,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

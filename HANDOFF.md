@@ -1,10 +1,10 @@
-# HANDOFF — Round 55 末 → Round 56 起点
+# HANDOFF — Round 56 末 → Round 57 起点
 
 <!-- VERIFIED-CLAIMS-START -->
-tests_total: 483
+tests_total: 485
 test_files: 33
 ci_steps: 34
-assertion_points: 609
+assertion_points: 611
 <!-- VERIFIED-CLAIMS-END -->
 
 > **上方 fenced 块是声明数字的唯一位置**。其他文档（`CLAUDE.md` / `.cursorrules` / `CHANGELOG.md` / `_archive/EVOLUTION.md` / `README.md` 等）只能引用这些数字，**不能重新声明**。`scripts/verify_docs_claims.py` 在 pre-commit hook 自动检查，drift fails the commit。
@@ -22,11 +22,11 @@ assertion_points: 609
 
 ## 状态一句话
 
-纯 Python 零依赖**zh-only**游戏汉化工具。**Round 55 新增 Unity XUnity AutoTranslator 引擎支持**：[`engines/unity_xunity.py`](engines/unity_xunity.py) 解析 XUAT 导出的 `original=translation` 文本文件 + 注释保留 + 正则规则 `r:"<pattern>"="<replacement>"` 支持（pattern 不动，仅翻译 replacement）+ BOM/CRLF round-trip byte-identical + 50 MB OOM cap + manual `--engine unity` / `--engine unity_xunity`。覆盖 ~10% 用户场景（不解析 AssetBundle）。16 单元测试 PASS。**连续 15 轮 0 CRITICAL correctness**（r35-r55）。
+纯 Python 零依赖**zh-only**游戏汉化工具。**Round 56 全面深度审计 + 8 项 fix（路径 C 全闭合）**：(H1) `core/api_client.py` 删 5 死 import (atexit/importlib.util/sys/Optional/Any) — r52 C3 retire 后清理不彻底；(H3) `engines/unity_xunity.py` 删 r55 残留 `field` 死 import；(M3) `_translate_one_tl_chunk` 函数内 import 提到模块顶层；(M2) `core/file_safety.py` → `safety/file_safety.py` 顶层独立 package（避免 file_processor 间接依赖 core 的 layering 误解；CI mock target guard 用 fragment match 兼容两种路径，r48 stale mock trap CLASS 仍生效）；(M1) `UNITY_XUNITY_PROFILE` 加 `placeholder_patterns` 保护 regex backrefs (`\d` `\w` `\s` `\b` `\1`-`\9`) — LLM 翻译 regex pattern 时不破坏 backref 语法；(L1) 4 个 production 模块 print() → logger.info()（[translators/screen.py](translators/screen.py) / [tl_parser.py](translators/tl_parser.py) / [_tl_nvl_fix.py](translators/_tl_nvl_fix.py) / [_tl_postprocess.py](translators/_tl_postprocess.py)）；(H2/L2) docs 数字精确化（17 sites → 24 sites + "覆盖所有 production 模块" 软描述）。**连续 16 轮 0 CRITICAL correctness**（r35-r56）。
 
 ## 同步状态
 
-- r55 单 commit 待 push（NEVER push 政策保留给用户）
+- r56 单 commit 待 push（NEVER push 政策保留给用户）
 - 本地未 push（按 NEVER push 政策保留 commit 决策给用户）
 - pre-commit hook 已激活（`git config core.hooksPath = .git-hooks`）
 - 4 件套 + r52 C1 push-status drift check 自动 enforce：py_compile + 800 行 cap + meta-runner + `verify_docs_claims --fast` (含 push-status check)
@@ -52,8 +52,9 @@ assertion_points: 609
 | docs claim drift | ✅ 4 项 prevention 自动化 |
 | debt closure | ✅ Round 50 起规则强制；r51 / r52 / r53 / r54 各执行有效 |
 | backlog 复杂度 | ✅ r54 重新评估：12 项 → 3 项 actionable；r55 推进 1 项 → 剩 **2 项 actionable** |
-| Unity XUnity 引擎 | ✅ **r55 新增**：[`engines/unity_xunity.py`](engines/unity_xunity.py) + 16 单元测试 + manual `--engine unity` |
-| 累计审计 | ✅ 连续 15 轮 0 CRITICAL correctness（r35-r55） |
+| Unity XUnity 引擎 | ✅ r55 新增 + r56 M1 加 backref placeholder protection（`\d`/`\w`/`\s`/`\b`/`\1`-`\9`）+ 18 单元测试 |
+| 代码卫生（imports / logger / 路径） | ✅ **r56 audit C 路径**：5 死 import 删 + file_safety 顶层独立 package + 4 production 模块 print → logger |
+| 累计审计 | ✅ 连续 16 轮 0 CRITICAL correctness（r35-r56） |
 
 ## 推荐的 Round 56+ 工作项
 
@@ -74,6 +75,21 @@ assertion_points: 609
 ### ✅ Round 55 完成（1 项；从 actionable backlog 移到 已完成）
 
 - ~~**Unity XUnity AutoTranslator 接入**~~ — **r55 完成**：[`engines/unity_xunity.py`](engines/unity_xunity.py) 实现 detect/extract/write_back，支持 `original=translation` 普通行 + `//` 注释保留 + `r:"<pattern>"="<replacement>"` 正则规则（pattern 不动，仅 replacement 提交 LLM）+ UTF-8 BOM round-trip + CRLF/LF 行尾保留 + 50 MB OOM cap + TOCTOU 防御。CLI `--engine unity` 与 `--engine unity_xunity` 都接受。16 单元测试 PASS（含 round-trip byte-identical assertion）。
+
+### ✅ Round 56 完成（8 项 audit fix；路径 C 全闭合）
+
+> r55 末用户要求"全面且深度的检查一遍"。8 维度 audit 收集 11 findings（3 HIGH / 3 MEDIUM / 5 LOW），用户决策路径 C 全部 fix（H+M+L1+L2）。**纯优化轮，无新功能**。
+
+- **H1 — `core/api_client.py` 5 死 import**（`atexit` / `importlib.util` / `sys` / `Optional` / `Any`）— r52 C3 BREAKING retire importlib loader 后清理不彻底，`typing.Optional/Any` 未实际使用
+- **H2 — logger sites 17 → 24 docs drift**（HANDOFF / CLAUDE.md / docs/REFERENCE / EVOLUTION）— r51 加固时数字 17，r52-r55 新模块自然增长但 docs 未同步；r56 把"17 sites"硬编码改为"覆盖所有 production 模块"软描述（避免再 drift）
+- **H3 — `engines/unity_xunity.py` r55 残留 `field` import** — 我自己 r55 引入的死代码，`_ParsedLine` 全是简单默认值不需 `field(default_factory=...)`
+- **M1 — Unity XUnity regex backref protection**（用户 Q (a) 选择）— `UNITY_XUNITY_PROFILE.placeholder_patterns` 加 `\d`/`\D`/`\w`/`\W`/`\s`/`\S`/`\b`/`\B`/`\[1-9]` 共 9 个 patterns；LLM 翻译 regex pattern 时 `protect_placeholders` 把 backref 替换为 `__RENPY_PH_*__` 占位符，restore 时还原；2 单元测试覆盖（profile 编译 + protect/restore round-trip）
+- **M2 — `core/file_safety.py` → `safety/file_safety.py`**（用户 Q (b) 选择）— 顶层独立 package，`safety/__init__.py` re-export `check_fstat_size`；18 production .py 顶层 import 路径迁移；3 测试 mock target 迁移；CI workflow `Mock target consistency check` step 文档更新（fragment match `grep -v "file_safety"` 兼容两种路径，r48 stale mock trap CLASS 仍生效）；CLAUDE.md 模块图调整 + r51 contract test 文档同步
+- **M3 — `_translate_one_tl_chunk` 函数内 import → 顶层** — r53 W3 加 ID drift detection 时函数内 `from translators._tl_retry import detect_id_drift, _expected_id_set` 是循环 import 防御（实测 _tl_retry 不依赖 tl_mode，无循环）；提到模块顶层符合项目 idiomatic style
+- **L1 — production print() → logger.info()**（用户指示：仅 build.py 保留 print）— 4 个 translators 模块迁移：`screen.py` (12 处) / `tl_parser.py` (15 处) / `_tl_nvl_fix.py` (1 处) / `_tl_postprocess.py` (1 处)，共 29 处；3 个文件新增 `import logging` + `logger = logging.getLogger("multi_engine_translator")` 绑定。pipeline/* 已用 `_print()` wrapper（已 logger.info）不需改
+- **L2 — hard contract 计数术语统一** — 把"17 sites"硬编码描述改为"覆盖所有 production 模块"软描述，详见 H2
+
+**数字增量（VERIFIED-CLAIMS）**：tests_total 483 → 485 (+2: r56 M1 backref protection 测试); test_files 33 unchanged; ci_steps 34 unchanged; assertion_points 609 → 611 (+2)。
 
 ### ⚫ 监控项（informational watchlist，r53 已全部闭合）
 
@@ -131,8 +147,8 @@ assertion_points: 609
 4. **（按需）** `_archive/EVOLUTION.md` — 历史决策（含 r54 段）
 5. **（按需）** `_archive/CHANGELOG_RECENT_r52.md` — 最近 5 轮（r48-r52）详细
 
-**Round 56 关键约束**：
-- audit findings 必须**同轮 fix，no tier exemption**（r50 起 written + enforced；r51 / r52 / r53 / r54 / r55 各执行有效）
+**Round 57 关键约束**：
+- audit findings 必须**同轮 fix，no tier exemption**（r50 起 written + enforced；r51 / r52 / r53 / r54 / r55 / r56 各执行有效）
 - 数字声称只在本文件 `VERIFIED-CLAIMS` 块声明
 - 修改 `CLAUDE.md` 必须同步 `.cursorrules`
 - 修改 logger namespace / repo URL self-references 必须保持 `tests/test_repo_rename_consistency.py` 4 contract tests 全 PASS（r51 加固）

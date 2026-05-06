@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 
 # Round 44 audit-tail: 50 MB cap on the config.json picked by the GUI

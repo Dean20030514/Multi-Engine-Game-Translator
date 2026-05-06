@@ -10,12 +10,12 @@ because the combined 17 + 11 = 28 expansion tests would push the
 single host file past the project-wide 800-line soft cap (round 48
 audit-tail incident).  Both files share the same convention:
 
-  Mock target MUST be ``core.file_safety.os.fstat`` (NOT each caller
+  Mock target MUST be ``safety.file_safety.os.fstat`` (NOT each caller
   module's ``os.fstat``).  See r48 Step 3 CRITICAL fix (commit
   34d9707) for the stale-mock-target trap that motivates centralising
   expansion regressions in this small set of files.  Round 50 1a
   added a CI grep step that fails the build if any ``mock_patch``
-  target outside ``core.file_safety`` slips through; the grep
+  target outside ``safety.file_safety`` slips through; the grep
   pattern matches ``mock.patch`` calls (note: pattern intentionally
   documented without quoting the literal regex here, to keep this
   docstring from triggering the guard's own grep).
@@ -49,17 +49,17 @@ from unittest import mock
 
 @contextmanager
 def _patch_fstat_oversize(cap_byte: int):
-    """Helper: patch ``core.file_safety.os.fstat`` so it returns a
+    """Helper: patch ``safety.file_safety.os.fstat`` so it returns a
     fake stat with ``st_size = cap_byte + 1`` — the smallest size
     that triggers the helper's > cap branch.
 
-    Mock target is intentionally ``core.file_safety.os.fstat`` (NOT
+    Mock target is intentionally ``safety.file_safety.os.fstat`` (NOT
     the caller module's os.fstat).  See module-level docstring for
     why r48 Step 3 made this distinction load-bearing.
     """
     class _FakeStat:
         st_size = cap_byte + 1
-    with mock.patch("core.file_safety.os.fstat",
+    with mock.patch("safety.file_safety.os.fstat",
                     lambda fd: _FakeStat()):
         yield
 
@@ -71,7 +71,7 @@ def _patch_fstat_at_cap(cap_byte: int):
     Used by success-path expansion regression tests."""
     class _FakeStat:
         st_size = cap_byte
-    with mock.patch("core.file_safety.os.fstat",
+    with mock.patch("safety.file_safety.os.fstat",
                     lambda fd: _FakeStat()):
         yield
 
@@ -440,7 +440,7 @@ def test_stages_tl_mode_report_uses_check_fstat_size_pattern():
     import pipeline.stages as stages_mod
 
     assert hasattr(stages_mod, "check_fstat_size"), (
-        "pipeline.stages must import check_fstat_size from core.file_safety"
+        "pipeline.stages must import check_fstat_size from safety.file_safety"
     )
     assert stages_mod._MAX_REPORT_JSON_SIZE == 50 * 1024 * 1024, (
         f"_MAX_REPORT_JSON_SIZE must be 50 MB family cap; "

@@ -16,8 +16,12 @@ already-translated output, not on source tl files.
 """
 from __future__ import annotations
 
+
+import logging
+
 import re
 from pathlib import Path
+logger = logging.getLogger("multi_engine_translator")
 
 
 # 与 tl_parser 共享的 translate 块头正则（单独定义避免循环依赖）。
@@ -100,7 +104,7 @@ def postprocess_tl_directory(tl_dir: str, lang: str) -> dict:
             totals["pass_added"] += stats["pass_added"]
 
     if totals["files"]:
-        print(f"[TL-POSTPROCESS] 修复 {totals['files']} 个文件: "
+        logger.info(f"[TL-POSTPROCESS] 修复 {totals['files']} 个文件: "
               f"移除 {totals['nvl_removed']} 处 nvl clear, "
               f"补 {totals['pass_added']} 处 pass")
     return totals

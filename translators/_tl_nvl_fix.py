@@ -18,9 +18,13 @@ post-translation repair pass.
 """
 from __future__ import annotations
 
+
+import logging
+
 import hashlib
 import re
 from pathlib import Path
+logger = logging.getLogger("multi_engine_translator")
 
 
 # 独立定义（避免从 tl_parser 循环导入）
@@ -147,6 +151,6 @@ def fix_nvl_ids_directory(tl_dir: str, lang: str) -> dict:
             totals["ids_fixed"] += stats["ids_fixed"]
 
     if totals["files"]:
-        print(f"[TL-NVL-ID-FIX] 修正 {totals['files']} 个文件中 "
+        logger.info(f"[TL-NVL-ID-FIX] 修正 {totals['files']} 个文件中 "
               f"{totals['ids_fixed']} 处 nvl clear 翻译块 ID")
     return totals

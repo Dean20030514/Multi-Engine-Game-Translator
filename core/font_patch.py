@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def load_font_config(config_path: "Path | None") -> dict:
         )
         return {}
     try:
-        # Round 49 Step 2: TOCTOU defense via core.file_safety.check_fstat_size.
+        # Round 49 Step 2: TOCTOU defense via safety.file_safety.check_fstat_size.
         # The path.stat() pre-check above is the fast path; this re-checks the
         # size on the actual open fd to defeat the attacker-grow-between-stat-
         # and-open race window.  Mirrors the pattern in engines/csv_engine.py.

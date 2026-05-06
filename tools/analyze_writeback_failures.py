@@ -19,7 +19,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

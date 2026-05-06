@@ -4,18 +4,13 @@
 
 from __future__ import annotations
 
-import atexit
-import importlib.util
 import json
 import logging
 import re
 import subprocess
-import sys
 import time
 import threading
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional, Any
 from urllib import request as urlreq
 from urllib import error as urlerr
 from collections import defaultdict

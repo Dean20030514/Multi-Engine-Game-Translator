@@ -17,7 +17,7 @@ from translators.renpy_text_utils import (
 )
 
 from pipeline.helpers import list_rpy_files, _normalize_ws
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

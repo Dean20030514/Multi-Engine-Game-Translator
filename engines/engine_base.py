@@ -193,15 +193,27 @@ CSV_PROFILE = EngineProfile(
 )
 
 # Round 55: Unity XUnity AutoTranslator engine.
-# XUAT files are pure text (`original=translation` per line + `//` comments
-# + `r:"<pattern>"="<replacement>"` regex rules). No special placeholder
-# patterns by default — Unity-runtime tokens (\d backrefs in regex rules)
-# are passed through pattern preservation in the engine itself, not via
-# protect_placeholders.
+# Round 56 M1: regex backreference placeholder protection.
+#   When a regex_rule line is pending translation we feed the pattern
+#   itself to the LLM as ``original`` (so the model sees context). The
+#   pattern often contains regex metacharacters whose semantics the LLM
+#   may break by translating them as literal text — e.g. ``\d`` in
+#   ``Item: (\d+)`` could come back as a Chinese-localised substring,
+#   destroying the runtime regex when written into the rule's
+#   replacement slot. The patterns below protect the most common regex
+#   tokens via ``protect_placeholders`` so the LLM round-trips them
+#   verbatim. The pattern is still preserved in ``write_back`` via
+#   metadata (hard contract #13); placeholder protection only improves
+#   the *replacement* quality.
 UNITY_XUNITY_PROFILE = EngineProfile(
     name="unity_xunity",
     display_name="Unity (XUnity AutoTranslator)",
-    placeholder_patterns=[],
+    placeholder_patterns=[
+        # Round 56 M1: regex character-class shorthands (\d, \w, \s, \b)
+        r"\\d", r"\\D", r"\\w", r"\\W", r"\\s", r"\\S", r"\\b", r"\\B",
+        # Round 56 M1: regex backreferences (\1 .. \9)
+        r"\\[1-9]",
+    ],
     skip_line_patterns=[],
     prompt_addon_key="generic",
     supports_context=False,

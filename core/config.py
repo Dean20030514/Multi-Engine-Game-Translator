@@ -21,7 +21,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger("multi_engine_translator")
 

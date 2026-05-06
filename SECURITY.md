@@ -50,7 +50,7 @@ Loading a malicious RPA / rpyc archive **must not** lead to arbitrary code execu
 | Plugin stdout cap | 50M chars | DoS 防御（CJK 响应最坏 ~150 MB） |
 | Plugin stderr cap | 10 KB chars | 防 OOM crash-diag |
 | HTTPS 响应体上限 | `core/http_pool.py` `MAX_API_RESPONSE_BYTES = 32 MB` | 防被劫持 endpoint 流式无限数据 |
-| TOCTOU 二次校验 | `core/file_safety.check_fstat_size` | 26 sites / 12 modules 全 MITIGATED |
+| TOCTOU 二次校验 | `safety/file_safety.check_fstat_size` | 26 sites / 12 modules 全 MITIGATED |
 | OOM 防护 | 23/23 user-facing JSON loader 50 MB cap | 巨型 JSON 内存炸 |
 | `api_key_file` 路径校验 | `core/config.py` | 拒绝指向敏感目录 + 8 KB 上限 |
 

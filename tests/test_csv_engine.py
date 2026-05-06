@@ -374,7 +374,7 @@ def test_csv_engine_rejects_toctou_growth_attack():
         # Round 48 audit-fix: namespace correction for r47 test after
         # round 48 Step 2 helper extraction — the actual fstat call
         # moved from `engines.csv_engine.os.fstat` (r47 inline) to
-        # `core.file_safety.os.fstat` (r48 helper).  The original mock
+        # `safety.file_safety.os.fstat` (r48 helper).  The original mock
         # target was r47-correct but r48-stale, causing this test to
         # spuriously pass without actually intercepting fstat.
         # Caught by round 48 Step 3 security audit.
@@ -383,7 +383,7 @@ def test_csv_engine_rejects_toctou_growth_attack():
         def _patched_os_fstat(fd):
             return _LargeStatResult()
 
-        with mock.patch("core.file_safety.os.fstat", _patched_os_fstat), \
+        with mock.patch("safety.file_safety.os.fstat", _patched_os_fstat), \
              mock.patch("engines.csv_engine._MAX_CSV_JSON_SIZE", small_cap):
             units = engine.extract_texts(Path(d))
 

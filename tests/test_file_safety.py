@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Unit tests for ``core/file_safety.py`` — the TOCTOU-safe file size
+"""Unit tests for ``safety/file_safety.py`` — the TOCTOU-safe file size
 helper extracted in round 48 Step 2 from the inline pattern that
 round 47 Step 2 D3 added to ``engines/csv_engine.py::_extract_csv``.
 
@@ -27,7 +27,7 @@ def test_check_fstat_size_within_limit():
     Caller's downstream logic should proceed normally."""
     import tempfile
     from pathlib import Path
-    from core.file_safety import check_fstat_size
+    from safety.file_safety import check_fstat_size
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "small.txt"
@@ -46,7 +46,7 @@ def test_check_fstat_size_over_limit():
     ``check_fstat_size`` docstring."""
     import tempfile
     from pathlib import Path
-    from core.file_safety import check_fstat_size
+    from safety.file_safety import check_fstat_size
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "big.txt"
@@ -67,7 +67,7 @@ def test_check_fstat_size_at_cap_boundary():
     G1 + r48 G1.1)."""
     import tempfile
     from pathlib import Path
-    from core.file_safety import check_fstat_size
+    from safety.file_safety import check_fstat_size
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "exact.txt"
@@ -89,14 +89,14 @@ def test_check_fstat_size_fail_open_on_oserror():
     import tempfile
     from pathlib import Path
     from unittest import mock
-    from core import file_safety
-    from core.file_safety import check_fstat_size
+    from safety import file_safety
+    from safety.file_safety import check_fstat_size
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "any.txt"
         p.write_bytes(b"any content")
         with open(p, "rb") as f:
-            with mock.patch("core.file_safety.os.fstat",
+            with mock.patch("safety.file_safety.os.fstat",
                             side_effect=OSError("simulated fstat failure")):
                 ok, size = check_fstat_size(f, max_size=100)
         assert ok is True, (
@@ -115,7 +115,7 @@ def test_check_fstat_size_fail_open_on_valueerror():
     where the helper was OSError-only and the contract was
     incomplete for arbitrary file-like wrappers."""
     import io
-    from core.file_safety import check_fstat_size
+    from safety.file_safety import check_fstat_size
 
     # io.BytesIO has no real fd — calling fileno() raises
     # io.UnsupportedOperation, which inherits from ValueError.
@@ -148,10 +148,10 @@ def test_check_fstat_size_fail_open_on_valueerror():
 # files): the r48 Step 3 audit found 1 CRITICAL where r47's TOCTOU
 # regression mocked ``engines.csv_engine.os.fstat`` (the caller
 # module) — but after r48 helper extract the actual fstat call lives
-# in ``core.file_safety.os.fstat``, so the mock missed and the test
+# in ``safety.file_safety.os.fstat``, so the mock missed and the test
 # spuriously passed.  Centralising r49 expansion regressions in
 # this file lets r49+ audits run a SINGLE grep over one file to
-# verify every mock target points at ``core.file_safety.os.fstat``,
+# verify every mock target points at ``safety.file_safety.os.fstat``,
 # defeating the same trap class.  Two sites (gate / gui_dialogs)
 # use lightweight import+constant+source-grep tests because their
 # end-to-end fixtures are disproportionately heavy (pipeline gate
@@ -163,7 +163,7 @@ def test_load_font_config_rejects_toctou_growth_attack():
     """Round 49 Step 2 (C4 site 1/12): TOCTOU regression for
     core.font_patch.load_font_config.
 
-    Mock target MUST be ``core.file_safety.os.fstat`` — see r48 Step 3
+    Mock target MUST be ``safety.file_safety.os.fstat`` — see r48 Step 3
     CRITICAL fix (commit 34d9707) for the stale-mock-target trap.
     """
     import json as _json
@@ -180,7 +180,7 @@ def test_load_font_config_rejects_toctou_growth_attack():
         class FakeStat:
             st_size = _MAX_FONT_CONFIG_SIZE + 1
 
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             result = load_font_config(str(cfg))
 
@@ -195,7 +195,7 @@ def test_translation_db_load_rejects_toctou_growth_attack():
     """Round 49 Step 2 (C4 site 2/12): TOCTOU regression for
     core.translation_db.TranslationDB.load.
 
-    Mock target MUST be ``core.file_safety.os.fstat`` — see r48 Step 3.
+    Mock target MUST be ``safety.file_safety.os.fstat`` — see r48 Step 3.
     """
     import json as _json
     import tempfile
@@ -214,7 +214,7 @@ def test_translation_db_load_rejects_toctou_growth_attack():
         class FakeStat:
             st_size = TranslationDB._MAX_DB_FILE_SIZE + 1
 
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             db = TranslationDB(db_path)
             db.load()
@@ -230,7 +230,7 @@ def test_load_config_file_rejects_toctou_growth_attack():
     """Round 49 Step 2 (C4 site 3/12): TOCTOU regression for
     core.config.Config._load_config_file.
 
-    Mock target MUST be ``core.file_safety.os.fstat`` — see r48 Step 3.
+    Mock target MUST be ``safety.file_safety.os.fstat`` — see r48 Step 3.
     """
     import json as _json
     import tempfile
@@ -246,7 +246,7 @@ def test_load_config_file_rejects_toctou_growth_attack():
         class FakeStat:
             st_size = _MAX_CONFIG_FILE_SIZE + 1
 
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             c = Config(game_dir=Path(td), config_path=str(cfg))
 
@@ -287,7 +287,7 @@ def test_glossary_actors_json_rejects_toctou_growth_attack():
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
@@ -328,7 +328,7 @@ def test_glossary_system_json_rejects_toctou_growth_attack():
 
         g = Glossary()
         before = dict(g.terms)
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
@@ -358,7 +358,7 @@ def test_glossary_load_system_terms_rejects_toctou_growth_attack():
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.load_system_terms(str(st))
 
@@ -390,7 +390,7 @@ def test_glossary_load_rejects_toctou_growth_attack():
             st_size = _MAX_GLOSSARY_JSON_SIZE + 1
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.load(str(gp))
 
@@ -423,7 +423,7 @@ def test_glossary_actors_json_accepts_size_at_cap_boundary():
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
@@ -455,7 +455,7 @@ def test_glossary_system_json_accepts_size_at_cap_boundary():
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.scan_rpgmaker_database(str(game_dir))
 
@@ -482,7 +482,7 @@ def test_glossary_load_system_terms_accepts_size_at_cap_boundary():
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.load_system_terms(str(st))
 
@@ -511,7 +511,7 @@ def test_glossary_load_accepts_size_at_cap_boundary():
             st_size = _MAX_GLOSSARY_JSON_SIZE  # exactly at cap
 
         g = Glossary()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             g.load(str(gp))
 
@@ -528,20 +528,20 @@ def test_gate_glossary_uses_check_fstat_size_pattern():
     Full e2e gate test requires a complete pipeline fixture
     (translated_root, db, metrics, helpers); this test pins the
     structural contract:
-      1. pipeline.gate imports check_fstat_size from core.file_safety
+      1. pipeline.gate imports check_fstat_size from safety.file_safety
       2. _MAX_GATE_GLOSSARY_SIZE is the 50 MB family cap
       3. Source body uses ``check_fstat_size(f, _MAX_GATE_GLOSSARY_SIZE)``
          and raises OSError on cap violation (per r26 H-4 contract)
 
     Mock-target stale trap: when a future maintainer adds an end-to-end
-    gate test, they MUST mock ``core.file_safety.os.fstat`` (NOT
+    gate test, they MUST mock ``safety.file_safety.os.fstat`` (NOT
     ``pipeline.gate.os.fstat``) — see r48 Step 3 CRITICAL.
     """
     import inspect
     import pipeline.gate as gate_mod
 
     assert hasattr(gate_mod, "check_fstat_size"), (
-        "pipeline.gate must import check_fstat_size from core.file_safety"
+        "pipeline.gate must import check_fstat_size from safety.file_safety"
     )
     assert gate_mod._MAX_GATE_GLOSSARY_SIZE == 50 * 1024 * 1024, (
         f"_MAX_GATE_GLOSSARY_SIZE must be 50 MB family cap; "
@@ -596,7 +596,7 @@ def test_rpgmaker_extract_texts_rejects_toctou_growth_attack():
             st_size = _MAX_RPGM_JSON_SIZE + 1
 
         engine = RPGMakerMVEngine()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             units = engine.extract_texts(game_dir)
 
@@ -647,7 +647,7 @@ def test_rpgmaker_write_back_rejects_toctou_growth_attack():
             st_size = _MAX_RPGM_JSON_SIZE + 1
 
         engine = RPGMakerMVEngine()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             written = engine.write_back(game_dir, [u], out_dir)
 
@@ -668,18 +668,18 @@ def test_gui_dialogs_load_config_uses_check_fstat_size_pattern():
 
     Full e2e GUI test would require instantiating App with all
     tkinter Vars; this test pins the structural contract:
-      1. gui_dialogs imports check_fstat_size from core.file_safety
+      1. gui_dialogs imports check_fstat_size from safety.file_safety
       2. _MAX_GUI_CONFIG_SIZE is the 50 MB family cap
       3. _load_config method body uses the helper
 
     Mock-target stale trap: future e2e GUI test MUST mock
-    ``core.file_safety.os.fstat`` (NOT ``gui_dialogs.os.fstat``).
+    ``safety.file_safety.os.fstat`` (NOT ``gui_dialogs.os.fstat``).
     """
     import inspect
     import gui_dialogs
 
     assert hasattr(gui_dialogs, "check_fstat_size"), (
-        "gui_dialogs must import check_fstat_size from core.file_safety"
+        "gui_dialogs must import check_fstat_size from safety.file_safety"
     )
     assert gui_dialogs._MAX_GUI_CONFIG_SIZE == 50 * 1024 * 1024, (
         f"_MAX_GUI_CONFIG_SIZE must be 50 MB family cap; "
@@ -733,7 +733,7 @@ def test_load_ui_button_whitelist_rejects_toctou_growth_attack():
             st_size = family_cap + 1
 
         before = get_ui_button_whitelist_extensions()
-        with mock.patch("core.file_safety.os.fstat",
+        with mock.patch("safety.file_safety.os.fstat",
                         lambda fd: FakeStat()):
             added = load_ui_button_whitelist([str(wl_path)])
 

@@ -13,7 +13,7 @@ from pathlib import Path
 from file_processor import read_file
 from core.translation_db import TranslationDB
 from core.font_patch import resolve_font, apply_font_patch, default_resources_fonts_dir
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 from pipeline.helpers import (
     _print,

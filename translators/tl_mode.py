@@ -58,6 +58,11 @@ from translators._tl_patches import (  # noqa: F401
     _clean_rpyc,
     _inject_language_buttons,
 )
+# Round 53 W3: layer-6 LLM ID drift detection helpers.
+# Hoisted to module top in r56 (M3) — _tl_retry does NOT import tl_mode,
+# so there is no circular-import risk; the function-local import was a
+# defensive carryover from W3's first cut.
+from translators._tl_retry import detect_id_drift, _expected_id_set
 
 logger = logging.getLogger("multi_engine_translator")
 
@@ -73,8 +78,6 @@ def _translate_one_tl_chunk(
     Returns:
         (rel_path, ci, kept_items_dict, dropped_count, warnings)
     """
-    from translators._tl_retry import detect_id_drift, _expected_id_set
-
     protected_text, ph_mapping = protect_placeholders(chunk_text)
     user_prompt = build_tl_user_prompt(protected_text, len(chunk_entries))
     translations = ctx.client.translate(ctx.system_prompt, user_prompt)

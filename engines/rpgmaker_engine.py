@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from engines.engine_base import EngineBase, EngineProfile, TranslatableUnit, RPGMAKER_MV_PROFILE
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger("multi_engine_translator")
 

@@ -30,7 +30,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 
 class TranslationDB:

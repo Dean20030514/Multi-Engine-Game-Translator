@@ -303,8 +303,11 @@ def test_ci_mock_target_guard_catches_known_stale_forms():
 
     The Round 50 C4 deep-audit-tail relaxed the second-stage filter
     from ``core\\.file_safety`` to ``file_safety`` to handle the
-    ``from core import file_safety; patch.object(file_safety.os, "fstat", ...)``
-    qualified-but-not-fully-dotted form.
+    ``from <pkg> import file_safety; patch.object(file_safety.os, "fstat", ...)``
+    qualified-but-not-fully-dotted form.  Round 56 M2 moved the helper
+    from ``core/file_safety.py`` to ``safety/file_safety.py``; the
+    fragment-only filter survives the move because both forms still
+    contain the substring "file_safety".
 
     The Round 51 audit-tail added a third filter level
     ``grep -v "test_repo_rename_consistency"`` to exempt this very
@@ -327,9 +330,10 @@ def test_ci_mock_target_guard_catches_known_stale_forms():
         "CI mock-target guard missing object-arg form; "
         "Round 50 C2 Correctness LOW-2 added this; do not regress."
     )
-    # Filter level 1: relaxed to "file_safety" (Round 50 C4).
+    # Filter level 1: relaxed to "file_safety" (Round 50 C4 / r56 M2-safe).
     # The previous strict 'core\.file_safety' would false-positive on
-    # ``from core import file_safety; patch.object(file_safety.os, ...)``.
+    # ``from <pkg> import file_safety; patch.object(file_safety.os, ...)``.
+    # The fragment filter survives the r56 M2 move (core → safety).
     assert 'grep -v "file_safety"' in workflow, (
         "CI mock-target guard first filter missing or wrong; should be "
         "'grep -v \"file_safety\"' (Round 50 C4 relaxation)."

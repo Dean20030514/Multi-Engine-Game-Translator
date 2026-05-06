@@ -46,7 +46,7 @@ jobs:
           python -m py_compile core/api_client.py
           python -m py_compile core/api_plugin.py
           python -m py_compile core/config.py
-          python -m py_compile core/file_safety.py
+          python -m py_compile safety/file_safety.py
           python -m py_compile core/font_patch.py
           python -m py_compile core/glossary.py
           python -m py_compile core/http_pool.py
@@ -196,11 +196,12 @@ jobs:
       # Round 50 1a: mock target stale trap CLASS guard.  Closes the
       # r49 audit Security MEDIUM finding.  r48 Step 3 found 1 CRITICAL
       # where a TOCTOU regression mocked engines.csv_engine.os.fstat
-      # but post-helper-extract the call lives in core.file_safety;
-      # the mock missed and the test spuriously passed.  This step
-      # fails the build if any mock.patch on os.fstat targets a caller
-      # module instead of core.file_safety, defeating the trap class
-      # before a future maintainer hits it.
+      # but post-helper-extract the call lives in safety.file_safety
+      # (round 56 M2 — was core.file_safety in r48-r55); the mock missed
+      # and the test spuriously passed.  This step fails the build if
+      # any mock.patch on os.fstat targets a caller module instead of
+      # safety.file_safety, defeating the trap class before a future
+      # maintainer hits it.
       #
       # Round 50 C2 audit-fix (Correctness LOW-2): regex extended to
       # catch both syntactic forms — string-arg ``mock.patch("...os.fstat")``
@@ -210,12 +211,15 @@ jobs:
       #
       # Round 50 C4 deep-audit fix (Security MEDIUM): filter relaxed
       # from "core\.file_safety" to "file_safety" to handle the
-      # ``from core import file_safety; patch.object(file_safety.os,
+      # ``from <pkg> import file_safety; patch.object(file_safety.os,
       # "fstat", ...)`` qualified-but-not-fully-dotted form.  Old
       # filter incorrectly flagged this CORRECT mock as stale (false
       # positive).  New filter still catches stale mocks targeting
       # caller modules (engines.csv_engine.os.fstat etc) — those
-      # lines do not contain "file_safety" anywhere.
+      # lines do not contain "file_safety" anywhere.  The fragment-
+      # only filter survives the r56 M2 ``core.file_safety`` →
+      # ``safety.file_safety`` move because both forms still contain
+      # the substring "file_safety".
       #
       # Round 51 audit-tail (Security MEDIUM same-round fix):
       # ``test_repo_rename_consistency.py`` (added in r51 A5) is a
@@ -239,7 +243,7 @@ jobs:
             echo "ERROR: stale mock target detected outside file_safety module —"
             echo "see r48 Step 3 CRITICAL audit (commit 34d9707) for the trap."
             echo "All mock.patch / patch.object on os.fstat MUST target"
-            echo "core.file_safety.os.fstat (any qualification: bare /"
+            echo "safety.file_safety.os.fstat (any qualification: bare /"
             echo "module-attribute / dotted-attribute is fine as long as"
             echo "'file_safety' appears in the line).  The"
             echo "test_repo_rename_consistency.py file is a r51 sanctioned"

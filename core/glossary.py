@@ -13,7 +13,7 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

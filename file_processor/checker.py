@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 
 logger = logging.getLogger(__name__)
 

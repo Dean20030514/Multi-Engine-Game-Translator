@@ -41,6 +41,20 @@ Hard contract (CLAUDE.md maintenance rule, Round 55)
 - ``//`` comment lines MUST round-trip preserve.
 - Regex rules: pattern preserved verbatim, ONLY replacement translated.
 
+Round 56 M1: regex backreference placeholder protection
+=======================================================
+
+When a regex rule's replacement is empty, the pattern itself is fed to
+the LLM as ``original`` (with metadata flagging ``line_type ==
+"regex_rule"``). The LLM may break regex metacharacters during
+translation — e.g. ``Item: (\\d+)`` coming back as ``物品: (数字)``
+destroys the runtime regex. The :data:`UNITY_XUNITY_PROFILE`
+``placeholder_patterns`` protect the common metacharacters (``\\d``
+``\\w`` ``\\s`` ``\\b`` ``\\1``-``\\9``) before the prompt reaches the
+model and restore them on the response. Authors of regex rules should
+still review AI output for the surviving regex literals (parentheses,
+brackets, dots) — this protection is best-effort, not a guarantee.
+
 Pure standard library — no third-party dependencies.
 """
 from __future__ import annotations
@@ -48,11 +62,11 @@ from __future__ import annotations
 import logging
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
-from core.file_safety import check_fstat_size
+from safety.file_safety import check_fstat_size
 from engines.engine_base import (
     EngineBase,
     EngineProfile,

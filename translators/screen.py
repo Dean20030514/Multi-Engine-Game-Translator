@@ -285,14 +285,14 @@ def _run_self_tests() -> None:
     assert _should_skip("{size=-10}when you're a gangmember.{/size}") is False
     assert _should_skip("icons/bg.png") is True
     passed += 15
-    print(f"[OK] _should_skip: {passed} assertions")
+    logger.info(f"[OK] _should_skip: {passed} assertions")
 
     # T2: _line_has_underscore_wrap
     assert _line_has_underscore_wrap('        textbutton _("Back") action Rollback()') is True
     assert _line_has_underscore_wrap('        text "Hello"') is False
     assert _line_has_underscore_wrap('        textbutton "Start" action Start()') is False
     passed += 3
-    print(f"[OK] _line_has_underscore_wrap: {passed} assertions")
+    logger.info(f"[OK] _line_has_underscore_wrap: {passed} assertions")
 
     # T3: extract_screen_strings
     with tempfile.NamedTemporaryFile(
@@ -334,7 +334,7 @@ label start:
         assert type_map["Go closer"] == "tt_action"
         assert type_map["Help needed"] == "notify"
         passed += 12
-        print(f"[OK] extract_screen_strings: {passed} assertions")
+        logger.info(f"[OK] extract_screen_strings: {passed} assertions")
     finally:
         os.unlink(tmp_path)
 
@@ -347,7 +347,7 @@ label start:
     assert len(by_text["Hello"]) == 2
     assert len(by_text["World"]) == 1
     passed += 3
-    print(f"[OK] _deduplicate_entries: {passed} assertions")
+    logger.info(f"[OK] _deduplicate_entries: {passed} assertions")
 
     # T5: _replace_screen_strings_in_file
     with tempfile.NamedTemporaryFile(
@@ -383,7 +383,7 @@ label start:
         assert '"靠近"' in new_content
         assert '{color=#f00}警告{/color}' in new_content
         passed += 5
-        print(f"[OK] _replace_screen_strings_in_file: {passed} assertions")
+        logger.info(f"[OK] _replace_screen_strings_in_file: {passed} assertions")
     finally:
         os.unlink(tmp_path)
 
@@ -403,7 +403,7 @@ label start:
         _create_backup(tmp_path)
         assert bak_path.read_text(encoding="utf-8") == "old backup"
         passed += 3
-        print(f"[OK] _create_backup: {passed} assertions")
+        logger.info(f"[OK] _create_backup: {passed} assertions")
     finally:
         os.unlink(tmp_path)
         if bak_path.exists():
@@ -416,7 +416,7 @@ label start:
     assert len(chunks[0]) == 40
     assert len(chunks[2]) == 20
     passed += 3
-    print(f"[OK] _build_screen_chunks: {passed} assertions")
+    logger.info(f"[OK] _build_screen_chunks: {passed} assertions")
 
     # T8: Notify replacement
     with tempfile.NamedTemporaryFile(
@@ -438,7 +438,7 @@ label start:
         assert 'Notify' in new_content
         assert 'Jump("x")' in new_content
         passed += 4
-        print(f"[OK] Notify replacement: {passed} assertions")
+        logger.info(f"[OK] Notify replacement: {passed} assertions")
     finally:
         os.unlink(tmp_path)
 
@@ -465,13 +465,13 @@ label start:
         assert '"关闭"' in new_content
         assert count == 2
         passed += 3
-        print(f"[OK] multi tt.Action replacement: {passed} assertions")
+        logger.info(f"[OK] multi tt.Action replacement: {passed} assertions")
     finally:
         os.unlink(tmp_path)
 
-    print(f"\n{'=' * 40}")
-    print(f"ALL {passed} SCREEN TRANSLATOR TESTS PASSED")
-    print(f"{'=' * 40}")
+    logger.info(f"\n{'=' * 40}")
+    logger.info(f"ALL {passed} SCREEN TRANSLATOR TESTS PASSED")
+    logger.info(f"{'=' * 40}")
 
 
 if __name__ == "__main__":

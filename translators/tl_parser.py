@@ -17,12 +17,15 @@
 from __future__ import annotations
 
 import hashlib  # noqa: F401 — 历史上有人 `from tl_parser import hashlib`
+import logging
 import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
+
+logger = logging.getLogger("multi_engine_translator")
 
 
 # ============================================================
@@ -379,7 +382,7 @@ def scan_tl_directory(tl_dir: str, language: str = "chinese") -> list[TlParseRes
     """
     lang_dir = Path(tl_dir) / language
     if not lang_dir.is_dir():
-        print(f"[tl_parser] 目录不存在: {lang_dir}")
+        logger.info(f"[tl_parser] 目录不存在: {lang_dir}")
         return []
 
     results: list[TlParseResult] = []
@@ -389,7 +392,7 @@ def scan_tl_directory(tl_dir: str, language: str = "chinese") -> list[TlParseRes
         try:
             results.append(parse_tl_file(str(rpy_file)))
         except Exception as e:
-            print(f"[tl_parser] 解析失败 {rpy_file}: {e}")
+            logger.info(f"[tl_parser] 解析失败 {rpy_file}: {e}")
 
     return results
 
@@ -434,13 +437,13 @@ def fill_translation(
 
         line_idx = entry.tl_line - 1
         if line_idx < 0 or line_idx >= len(file_lines):
-            print(f"[WARNING] tl_line {entry.tl_line} 超出范围 "
+            logger.info(f"[WARNING] tl_line {entry.tl_line} 超出范围 "
                   f"(文件共 {len(file_lines)} 行): {tl_file_path}")
             continue
 
         line = file_lines[line_idx]
         if '""' not in line:
-            print(f"[WARNING] 第 {entry.tl_line} 行不含空字符串 \"\","
+            logger.info(f"[WARNING] 第 {entry.tl_line} 行不含空字符串 \"\","
                   f" 可能已被修改，跳过: {tl_file_path}")
             continue
 
@@ -476,15 +479,15 @@ def print_tl_stats(results: list[TlParseResult]) -> None:
             else:
                 untrans_by_src[s.source_file or r.file_path] += 1
 
-    print("\n=== TL 解析统计 ===")
-    print(f"文件数: {len(results)}")
-    print(f"对话条目: 总计 {total_d} / 已翻译 {trans_d} / 待翻译 {total_d - trans_d}")
-    print(f"字符串条目: 总计 {total_s} / 已翻译 {trans_s} / 待翻译 {total_s - trans_s}")
+    logger.info("\n=== TL 解析统计 ===")
+    logger.info(f"文件数: {len(results)}")
+    logger.info(f"对话条目: 总计 {total_d} / 已翻译 {trans_d} / 待翻译 {total_d - trans_d}")
+    logger.info(f"字符串条目: 总计 {total_s} / 已翻译 {trans_s} / 待翻译 {total_s - trans_s}")
 
     if untrans_by_src:
-        print("\n待翻译数量 Top 10 (按源文件):")
+        logger.info("\n待翻译数量 Top 10 (按源文件):")
         for src, cnt in sorted(untrans_by_src.items(), key=lambda x: -x[1])[:10]:
-            print(f"  {src}: {cnt}")
+            logger.info(f"  {src}: {cnt}")
 
 
 # ============================================================
@@ -533,9 +536,9 @@ if __name__ == '__main__':
             results = scan_tl_directory(str(target_path), lang)
             print_tl_stats(results)
         else:
-            print(f"路径不存在: {target_path}")
+            logger.info(f"路径不存在: {target_path}")
     else:
-        print("用法:")
-        print("  python tl_parser.py --test              运行自测")
-        print("  python tl_parser.py <file.rpy>          解析单个文件")
-        print("  python tl_parser.py <tl_dir> [language]  扫描目录")
+        logger.info("用法:")
+        logger.info("  python tl_parser.py --test              运行自测")
+        logger.info("  python tl_parser.py <file.rpy>          解析单个文件")
+        logger.info("  python tl_parser.py <tl_dir> [language]  扫描目录")

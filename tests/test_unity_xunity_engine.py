@@ -363,6 +363,66 @@ def test_oom_cap_skips_oversized_file():
 # ────────────────────────────────────────────────────────────────────
 
 
+def test_w_round56_m1_backref_protection_in_profile():
+    """Round 56 M1: UNITY_XUNITY_PROFILE protects regex backref tokens.
+
+    Verifies that ``placeholder_patterns`` covers the common regex
+    metacharacters (\\d, \\w, \\s, \\b, \\1..\\9) so ``protect_placeholders``
+    in ``generic_pipeline`` will round-trip them verbatim through the LLM.
+    """
+    from engines.engine_base import UNITY_XUNITY_PROFILE
+    import re
+
+    patterns = UNITY_XUNITY_PROFILE.placeholder_patterns
+    assert patterns, "r56 M1 contract: profile must have backref patterns"
+
+    # Compile combined regex; verify it matches each canonical backref token
+    combined = UNITY_XUNITY_PROFILE.compile_placeholder_re()
+    assert combined is not None
+
+    must_match = [
+        r"\d", r"\D", r"\w", r"\W", r"\s", r"\S", r"\b", r"\B",
+        r"\1", r"\5", r"\9",
+    ]
+    for token in must_match:
+        assert combined.search(token), (
+            f"r56 M1 contract: profile should match regex token {token!r}, "
+            f"but combined regex {combined.pattern!r} did not"
+        )
+
+    # Sanity: the literal text "Hello World" (no backrefs) does not match
+    assert not combined.search("Hello World")
+    print("[OK] w_round56_m1_backref_protection_in_profile")
+
+
+def test_w_round56_m1_backref_survives_protect_restore():
+    """Round 56 M1: protect_placeholders + restore round-trip preserves backrefs."""
+    from file_processor import protect_placeholders, restore_placeholders
+    from engines.engine_base import UNITY_XUNITY_PROFILE
+
+    pattern_text = r"Item: (\d+) at level \1, owner \w+"
+    patterns = UNITY_XUNITY_PROFILE.placeholder_patterns
+
+    protected, mapping = protect_placeholders(pattern_text, patterns=patterns)
+
+    # Backrefs are replaced by token placeholders
+    assert r"\d" not in protected, f"\\d not protected: {protected!r}"
+    assert r"\1" not in protected, f"\\1 not protected: {protected!r}"
+    assert r"\w" not in protected, f"\\w not protected: {protected!r}"
+
+    # The literal text outside the backrefs survives
+    assert "Item:" in protected
+    assert "at level" in protected
+    assert "owner" in protected
+
+    # Round-trip restores the originals
+    restored = restore_placeholders(protected, mapping)
+    assert restored == pattern_text, (
+        f"round-trip lost backrefs: {restored!r} != {pattern_text!r}"
+    )
+    print("[OK] w_round56_m1_backref_survives_protect_restore")
+
+
 def test_parse_lines_classifies_all_types():
     """Internal _parse_lines covers blank/comment/translation/regex/malformed."""
     text = (
@@ -402,6 +462,8 @@ def run_all() -> int:
         test_write_back_regex_rule_preserves_pattern,
         test_write_back_preserves_crlf,
         test_oom_cap_skips_oversized_file,
+        test_w_round56_m1_backref_protection_in_profile,
+        test_w_round56_m1_backref_survives_protect_restore,
         test_parse_lines_classifies_all_types,
     ]
     for t in tests:
