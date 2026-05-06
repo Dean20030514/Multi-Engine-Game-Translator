@@ -20,7 +20,7 @@
 4. **不破坏已有功能** — 新功能用开关控制（CLI 参数），默认行为不变
 5. **安全优先** — checker 不通过就丢弃、回写前校验、原地操作前备份
 6. **先读再写** — 涉及参考项目借鉴时，先完整阅读其源码和文档再给方案
-7. **方案先行** — 给出改动方案和受影响函数列表，等用户确认后再写代码
+7. **方案先行** — 给出改动方案和受影响函数列表，等用户确认后再写代码（**Auto Mode 例外**：< 10 行 trivial fix / 纯文档 / memory 变更直接执行；触及 9 hard contracts / 800 行 cap / VERIFIED-CLAIMS / file_safety / Mock target / Repo rename consistency / .cursorrules byte-identical 任一契约面的改动仍必须先 plan）
 8. **最小改动** — 不做不必要的重构、不加不需要的注释、不改不相关的代码
 9. **零依赖** — 坚持纯标准库，不引入第三方包
 10. **零欠账闭合**（round 50 起）— 所有 audit findings (CRITICAL/HIGH/MEDIUM/LOW) 必须**同轮 fix，no tier exemption**。无法 fix 的归为 architectural decision 或 informational watchlist 显式文档化（不是 debt）
