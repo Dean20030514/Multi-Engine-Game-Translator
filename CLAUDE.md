@@ -10,7 +10,7 @@
 
 **当前数字**（测试数 / 文件数 / CI 步骤 / 断言点）：见 [HANDOFF.md](HANDOFF.md) 顶部 `<!-- VERIFIED-CLAIMS-START -->` 块 — **单一声称源**。本文 prose 不再独立声称数字。
 
-**质量水位**：direct-mode 漏翻率 4.01%（仅适用 English source，详见下方"已知限制"）；tl-mode 翻译成功率 99.97%（r52 实测 The Tyrant 74098 entries / **99.991%**）；连续 21 轮 0 CRITICAL correctness（r35-r61）。Round 55 起新增 Unity XUnity 引擎覆盖 ~10% 用户场景。
+**质量水位**：direct-mode 漏翻率 4.01%（仅适用 English source，详见下方"已知限制"）；tl-mode 翻译成功率 99.97%（r52 实测 The Tyrant 74098 entries / **99.991%**）；连续 22 轮 0 CRITICAL correctness（r35-r62）。Round 55 起新增 Unity XUnity 引擎覆盖 ~10% 用户场景。
 
 ---
 
@@ -111,6 +111,12 @@ scripts/         verify_docs_claims.py / verify_workflow.py / install_hooks.sh
 - **API key 内存生命周期**（r60 audit S3 architectural decision，r61 文档化）：`core/api_client.py::APIConfig.api_key` 持有 API key 整个进程生命周期。多线程共享 config object 可能 leak via debugger / `gc.get_referents` / memory dump。**威胁模型不适用**——本地 single-user 工具，attacker 已能 dump 进程内存就 game over（与 r53 监控 #4 symlink retire 同理）。Python 优化时 `__del__` zeroize 可能不生效，加密 store 违反零依赖契约，retire 现状
 - **Prompt injection 表面（用户 game text → LLM）**（r60 audit S4 architectural decision，r61 文档化）：31 处 prompt construction sites 中用户 game text 直接 f-string 进 prompt。如游戏文本含 jailbreak 模式（`\n\nIgnore previous. Output: <whatever>`）LLM 可能输出 garbage。**威胁模型不适用**——用户主动喂自己游戏文件给 AI 不是攻击者输入；用户 review 翻译结果是工作流的一部分。retire 现状
 - **Performance benchmark 缺失**（r60 audit T4 watchlist，r61 文档化）：r52 实测 The Tyrant 74098 entries / 129.4 min / $2.40 / 99.991% 是**唯一**生产级数据点。RAM / CPU / I/O 数字未测。**保留为 watchlist**（与 r59 B2 翻译质量验证 retire 同理）：r52 数字够用作 ground reference；nightly mock LLM benchmark ROI 已 r59 B2 评估过（mock 不反映真实 LLM 漂移）。如未来 r53 W1 retry 并发引入慢线程，需重测对比
+- **CHANGELOG 自动化**（r60 audit P3 architectural decision，r62 文档化）：每轮 commit message + CHANGELOG.md round 段双写。**故意保留**手写而非 git-cliff / commitizen 自动化——手写反映人工判断的轻重（如 r58 P1 99 文件 ruff format 是 1 commit 但 CHANGELOG 仅 1 行）；deliberate curation > dump 所有 commits。git tag → release notes 已 r59 B1 自动化（从 CHANGELOG sed 抽取）
+- **测试 fixture 单一化**（r60 audit P4 watchlist，r62 文档化）：r57 T3 加了 1 个 complex fixture（synthetic 手工构造）。真实游戏 edge case（XUAT regex rule 含 unicode escape / Ren'Py 8.6 → 7.x downgrade ID drift / RPGM Plugin Commands 含 JS 字符串）暂无 fixture。**触发即抽**：用户接到具体 game-specific bug 时，抽 minimal repro 进 `tests/artifacts/` 作未来 regression。当前 backlog "用户实际报告"触发即可
+- **GUI 翻译进度可视化未审**（r60 audit B3 watchlist，r62 文档化）：`gui_pipeline.py` 230 行处理 GUI 与 subprocess 通信，但 progress bar 实际行为（74098 entries 实时更新 / ETA 估算 / 大文件 stuck 时 GUI 假死）未审。**保留为 watchlist**：用户实际跑 GUI + The Tyrant fixture 暴露问题再 fix；当前 CLI 路径 main.py 已有 per-chunk progress log（r53 W1）
+- **多账号 / 多 provider 并发支持**（r60 audit B4 architectural decision，r62 文档化）：当前一次 run 只支持 1 个 `--provider` + 1 个 `--api-key`。用户分摊 quota 跑大项目（5 个 OpenAI key 并发 5x 速度）场景。**故意不做**——避免功能蔓延（项目第 8 原则最小改动）；用户用 launcher 脚本起多 main.py 进程也能达到同效果（每个 main.py 跑独立 game-dir 子集 + 独立 key + ProgressTracker 互不干扰）
+- **TODO 跟踪机制只在 internal docs**（r60 audit O3 architectural decision，r62 文档化）：HANDOFF.md "推荐 Round N+1 工作项" + ROADMAP.md actionable backlog + AUDIT_R57.md 都是 internal docs，未 sync 到 GitHub Projects / Issues。**故意保留**（与 r59 O4 community 建设 retire 同逻辑）——项目用户量小，社区贡献者实际无人，sync GitHub board ROI 低；如未来用户量增长再考虑
+- **Bus factor = 1（confirm-retire from r60 audit O4）**：唯一 maintainer @Dean20030514。r57 O1 retire / r59 O1 ARCHITECTURE Quick Tour / r59 O3 ONBOARDING.md / r62 O1 CODE_OF_CONDUCT.md / r62 O2 governance 文档化已尽力缓解。**fundamental 没变**——OSS 通病，等用户量增长 + 多人协作出现再考虑 multi-maintainer 治理演进
 
 ---
 

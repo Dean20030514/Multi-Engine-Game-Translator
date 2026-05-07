@@ -1,7 +1,12 @@
 [project]
 name = "multi-engine-game-translator"
-version = "1.0.0"
-description = "纯 Python 的 Ren'Py 游戏自动汉化工具，通过 LLM API 将 .rpy 脚本翻译为简体中文"
+# r62 B2: bumped 1.0.0 → 2.0.0 to reflect r52 C4 BREAKING (multi-target language
+# retire) + r52 C3 BREAKING (importlib plugin retire) + r57 T1 BREAKING
+# (Python 3.10 floor). Project has 21 rounds 0-CRITICAL streak + 99.991%
+# tl-mode success rate; v1.0.0 understated maturity. Following SemVer:
+# multiple BREAKING changes accumulated since v1.0.0 → MAJOR bump.
+version = "2.0.0"
+description = "纯 Python 的多引擎游戏自动汉化工具（Ren'Py / RPG Maker MV-MZ / Unity XUnity / CSV-JSONL），通过 LLM API 翻译为简体中文"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"

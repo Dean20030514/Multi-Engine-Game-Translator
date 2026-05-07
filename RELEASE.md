@@ -8,18 +8,22 @@
 
 ```toml
 [project]
-version = "1.0.0"
+version = "2.0.0"
 ```
 
 遵循 [SemVer](https://semver.org/lang/zh-CN/)：
 
 | 增量 | 含义 | 示例触发 |
 |------|------|---------|
-| MAJOR | BREAKING 变更 | r52 C4 retire 多目标语言 / r52 C3 retire importlib plugin |
+| MAJOR | BREAKING 变更 | r52 C4 retire 多目标语言 / r52 C3 retire importlib plugin / r57 T1 Python 3.10 floor |
 | MINOR | 新功能（向后兼容）| r55 Unity XUnity 引擎接入 |
 | PATCH | bugfix + 优化（向后兼容）| r56 audit fix 路径 / r57 mypy enforce |
 
-**当前版本与轮次的对应关系**：版本号不严格跟轮次走（r1-r57 期间版本仅升过 1 次）；建议在用户面 BREAKING 时升 MAJOR，新功能升 MINOR，纯重构 / docs 不动版本号。
+**当前版本与轮次的对应关系**：版本号不严格跟轮次走（r1-r60 期间版本仅升过 2 次）；建议在用户面 BREAKING 时升 MAJOR，新功能升 MINOR，纯重构 / docs 不动版本号。
+
+**版本演进**：
+- v1.0.0（项目初始）— Ren'Py + RPG Maker MV-MZ 多语言支持
+- **v2.0.0（r62 B2）** — 反映 r52 C4 BREAKING（multi-target language retire）+ r52 C3 BREAKING（importlib plugin retire）+ r57 T1 BREAKING（Python 3.10 floor）累积；同时新增 Unity XUnity 引擎（r55）+ release 自动化（r59 B1）+ 21 轮 0 CRITICAL streak（r35-r61）实证 production maturity
 
 ## 发布流程（手动）
 
@@ -45,7 +49,7 @@ git reset --soft HEAD~1   # undo dummy commit if all passed
 
 ```bash
 # 编辑 pyproject.toml::version
-# 例如 1.0.0 → 1.1.0 (新功能) / 1.0.1 (bugfix) / 2.0.0 (BREAKING)
+# 例如 2.0.0 → 2.1.0 (新功能) / 2.0.1 (bugfix) / 3.0.0 (BREAKING)
 ```
 
 提交版本号 bump：

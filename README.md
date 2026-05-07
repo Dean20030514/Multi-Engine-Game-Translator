@@ -150,6 +150,15 @@ python main.py --engine unity_xunity --game-dir "E:\Games\UnityGame\Translation"
 
 简而言之：**这是一把翻译用的瑞士军刀，怎么用 / 用在哪由你决定，后果你自负**。
 
+### 致谢（r62 P2）
+
+- **Maintainer**: [@Dean20030514](https://github.com/Dean20030514) — 项目主开发者，r1-r62 全程主导
+- **AI 协作**: [Claude](https://www.anthropic.com/claude) (Anthropic) + [Cursor](https://cursor.sh/) — 加速代码生成 / docs 撰写 / audit 扫描，由 maintainer review + merge
+- **上游归属**: 项目早期 r1 阶段在 [`anonymousException` 的 renpy-translator](https://github.com/anonymousException/renpy-translator)（MIT License, 2024）框架基础上演进；6 处源码归属点永久保留（[hard contract #6](CLAUDE.md)）
+- **测试反馈**: 早期用户在 r19 / r43 / r51 / r52 各阶段提供 The Tyrant + 多个真实游戏的反馈数据，验证 99.991% 翻译成功率（r52 实测）
+- **依赖**: 零运行时第三方依赖（[ADR 0001](docs/adr/0001-zero-third-party-dependencies.md)）；dev-time 工具：[`ruff`](https://github.com/astral-sh/ruff) + [`mypy`](https://mypy-lang.org/) + [`PyInstaller`](https://pyinstaller.org/)
+- **治理**: BDFL 模型，详见 [CONTRIBUTING.md "Governance" 段](CONTRIBUTING.md) + [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
 ---
 
 ## English
@@ -298,3 +307,12 @@ packages, etc. — is the user's responsibility to determine**:
 
 In short: this is a Swiss-army-knife for translation. **What you build
 with it, and how, is up to you — and so are the consequences**.
+
+### Acknowledgements (r62 P2)
+
+- **Maintainer**: [@Dean20030514](https://github.com/Dean20030514) — primary developer, leading r1-r62
+- **AI collaboration**: [Claude](https://www.anthropic.com/claude) (Anthropic) + [Cursor](https://cursor.sh/) — accelerated code generation, docs writing, and audit scanning; reviewed and merged by the maintainer
+- **Upstream attribution**: The r1 baseline evolved from [`anonymousException`'s renpy-translator](https://github.com/anonymousException/renpy-translator) (MIT License, 2024); 6 source-code attribution sites are permanently preserved ([hard contract #6](CLAUDE.md))
+- **Test feedback**: Early users provided The Tyrant and other real-game feedback at r19 / r43 / r51 / r52, validating the 99.991% tl-mode success rate (r52 production measurement)
+- **Dependencies**: Zero runtime third-party deps ([ADR 0001](docs/adr/0001-zero-third-party-dependencies.md)); dev-time tools include [`ruff`](https://github.com/astral-sh/ruff), [`mypy`](https://mypy-lang.org/), and [`PyInstaller`](https://pyinstaller.org/)
+- **Governance**: BDFL model — see [CONTRIBUTING.md "Governance" section](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)

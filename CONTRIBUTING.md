@@ -64,6 +64,21 @@ python scripts/verify_docs_claims.py --fast # docs claim 同步性
 
 **不要**通过公开 issue 报告。请按 [SECURITY.md](SECURITY.md) 流程私密报告。
 
+### Governance（r62 O2 文档化）
+
+当前治理模型：**BDFL (Benevolent Dictator For Life)** — [@Dean20030514](https://github.com/Dean20030514) 是唯一 maintainer，拥有：
+
+- **PR merge 权**：所有 PR 由 maintainer 评审 + merge；contributor 可通过 issue / PR 提建议但不直接 merge
+- **Backlog 优先级决策**：actionable backlog（见 [ROADMAP.md](ROADMAP.md)）+ audit fix path 选择（如 r54 backlog 评估纪律 / r60 audit 路径 X 选择）由 maintainer 决定
+- **Hard contracts 制定与放宽**：[CLAUDE.md §维护规则](CLAUDE.md) 当前 15 条 hard contracts；新增需 plan-first，放宽需 BREAKING-level 评估
+- **CoC 执行**：[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 违规处理由 maintainer 裁定
+
+**Contributor 角色**：通过 issue / PR / Discussions（如未来开放）提供建议、报告 bug、贡献代码。所有 contributor 在 git history 中保留作者署名（[hard contract #6](CLAUDE.md) — 6 处 `anonymousException` 上游归属永久保留 + 未来 contributors 通过 git log 留底）。
+
+**AI 协作角色**：当前主开发流程含 AI 辅助（Claude / Cursor）— 由 maintainer 主导 + AI 加速 + 人工 review。AI 生成代码不享有作者身份（按工具属性归 maintainer），但可在 commit message / docs 中说明 AI 协作上下文。
+
+**未来演进**：当用户量增长 + 出现稳定的多人协作 contributors，治理模型可演进到 multi-maintainer（需 plan-first 评估流程，如 PR 评审权、merge 权、release 权的分配）。
+
 ---
 
 ## English
@@ -125,3 +140,18 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) "5.4 New engine flow (7 steps)"
 ### Reporting Security Issues
 
 **Do not** open a public issue. Follow the private process in [SECURITY.md](SECURITY.md).
+
+### Governance (r62 O2 documentation)
+
+Current model: **BDFL (Benevolent Dictator For Life)** — [@Dean20030514](https://github.com/Dean20030514) is the sole maintainer, holding:
+
+- **PR merge authority**: All PRs reviewed + merged by the maintainer; contributors propose via issue / PR but do not merge directly.
+- **Backlog priority**: actionable backlog (see [ROADMAP.md](ROADMAP.md)) + audit fix path selection (e.g. r54 backlog discipline / r60 audit path X) decided by the maintainer.
+- **Hard contracts**: [CLAUDE.md §维护规则](CLAUDE.md) currently has 15 hard contracts; additions require plan-first, relaxations require BREAKING-level evaluation.
+- **CoC enforcement**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) violations adjudicated by the maintainer.
+
+**Contributor role**: Submit issues / PRs / Discussions (if opened later) to propose, report bugs, or contribute code. All contributors keep authorship in git history ([hard contract #6](CLAUDE.md) — 6 `anonymousException` upstream attribution sites permanently preserved; future contributors recorded via git log).
+
+**AI collaboration role**: The current development flow includes AI assistance (Claude / Cursor) — driven by the maintainer + accelerated by AI + reviewed manually. AI-generated code does not carry authorship (attributed to the maintainer as a tool property), but commit messages / docs may describe the AI collaboration context.
+
+**Future evolution**: As user base grows and stable multi-person contributor patterns emerge, the model can evolve to multi-maintainer (requires plan-first evaluation of PR review, merge, release authority distribution).
