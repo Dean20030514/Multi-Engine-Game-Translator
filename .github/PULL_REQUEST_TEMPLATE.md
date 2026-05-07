@@ -35,7 +35,7 @@ Refs #
 
 ## Hard contracts 检查 / Hard contracts check
 
-参考 [`CLAUDE.md`](../CLAUDE.md) "维护规则"段（13 条）。本 PR 是否触及任一契约？
+参考 [`CLAUDE.md`](../CLAUDE.md) "维护规则"段（15 条 hard contracts，#1-#15）。本 PR 是否触及任一契约？
 
 - [ ] **不触及任何 hard contract**
 - [ ] 触及，已 plan-first 论证（请在下方说明）/ Touches one — see plan below

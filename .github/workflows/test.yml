@@ -50,7 +50,7 @@ jobs:
           python -m py_compile core/font_patch.py
           python -m py_compile core/glossary.py
           python -m py_compile core/http_pool.py
-          python -m py_compile core/lang_config.py
+          # r52 C4 BREAKING: core/lang_config.py removed (multi-target language retire)
           python -m py_compile core/pickle_safe.py
           python -m py_compile core/prompts.py
           python -m py_compile core/runtime_hook_emitter.py

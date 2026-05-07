@@ -65,7 +65,24 @@ def _discover_test_files() -> list[Path]:
 #     ========================================
 #     ALL 5 FILE SAFETY HELPER TESTS PASSED
 #     ========================================
-_PASS_BANNER_RE = re.compile(r"ALL\s+(\d+)\s+[A-Z_ ]*?(?:TESTS?|TEST)\s+PASSED", re.IGNORECASE)
+# r67 H1 fix: previous character class ``[A-Z_ ]`` rejected ``-`` and
+# digits, causing ``ALL 18 BATCH-1 TESTS PASSED`` / ``ALL 8 RED-TEAM
+# TESTS PASSED`` / ``ALL 14 FILE SAFETY C5 EXPANSION TESTS PASSED`` /
+# etc. to silently report 0 tests across 7 modules (96 tests miscounted).
+# The Chinese banner ``=== 全部 X 测试通过 ===`` (3 modules) is also
+# matched via a fallback pattern.
+_PASS_BANNER_RE = re.compile(
+    r"ALL\s+(\d+)\s+[A-Z_\-0-9 ]*?(?:TESTS?|TEST)\s+PASSED",
+    re.IGNORECASE,
+)
+# Fallback for Chinese banner ``=== 全部 RPA 解包测试通过 ===`` etc.
+# Count is not embedded in this banner format, so callers fall back to
+# parsing per-line ``[OK] test_xxx`` markers when the Chinese banner
+# matches. This keeps ``returncode == 0`` as the authoritative pass
+# signal while restoring accurate counts.
+_PASS_BANNER_ZH_RE = re.compile(r"全部\s*[一-鿿 A-Za-z_\-0-9]*?\s*测试\s*通过")
+# Per-test [OK] line counter (used when the Chinese banner matches).
+_OK_LINE_RE = re.compile(r"^\s*\[OK\]\s+\w", re.MULTILINE)
 
 
 def _run_one(test_file: Path) -> tuple[bool, int, str]:
@@ -86,14 +103,33 @@ def _run_one(test_file: Path) -> tuple[bool, int, str]:
     ok = proc.returncode == 0
     # Parse "ALL N ... PASSED" from combined stdout/stderr tail.
     output = proc.stdout + proc.stderr
-    count = 0
+    count = _count_tests(output)
+    tail = "\n".join(output.splitlines()[-15:]) if output else ""
+    return ok, count, tail
+
+
+def _count_tests(output: str) -> int:
+    """Best-effort test count from a module's combined stdout+stderr.
+
+    r67 H1: try English ``ALL N ... PASSED`` banner first; if absent
+    (Chinese banner ``=== 全部 X 测试通过 ===`` or non-standard format),
+    fall back to counting ``[OK] test_xxx`` markers. Returns 0 only when
+    neither pattern produces evidence of tests (subprocess returncode is
+    the authoritative pass signal — count is informational).
+    """
+    last_count = 0
+    has_zh_banner = False
     for line in output.splitlines():
         m = _PASS_BANNER_RE.search(line)
         if m:
-            count = int(m.group(1))
-            # Take the last match in case multiple banners appear.
-    tail = "\n".join(output.splitlines()[-15:]) if output else ""
-    return ok, count, tail
+            last_count = int(m.group(1))
+        if _PASS_BANNER_ZH_RE.search(line):
+            has_zh_banner = True
+    if last_count:
+        return last_count
+    if has_zh_banner:
+        return len(_OK_LINE_RE.findall(output))
+    return 0
 
 
 def main() -> int:

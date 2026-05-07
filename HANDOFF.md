@@ -1,10 +1,10 @@
 # HANDOFF — Round 66 末 → Round 67 起点（**用户决策 retire ADR + AUDIT framework；3 个文件 / 文件夹删除 + 19 文件 refs 同步**）
 
 <!-- VERIFIED-CLAIMS-START -->
-tests_total: 480
-test_files: 38
+tests_total: 490
+test_files: 39
 ci_steps: 36
-assertion_points: 606
+assertion_points: 616
 <!-- VERIFIED-CLAIMS-END -->
 
 > **上方 fenced 块是声明数字的唯一位置**。其他文档（`CLAUDE.md` / `.cursorrules` / `CHANGELOG.md` / `_archive/EVOLUTION.md` / `README.md` 等）只能引用这些数字，**不能重新声明**。`scripts/verify_docs_claims.py` 在 pre-commit hook 自动检查，drift fails the commit。
@@ -76,7 +76,7 @@ assertion_points: 606
 | 项目版本号 | ✅ **r62 B2**：`pyproject.toml::version` 1.0.0 → 2.0.0（反映 r52 C3/C4 + r57 T1 累积 BREAKING）|
 | 治理文档 | ✅ **r62 O1+O2**：`CODE_OF_CONDUCT.md` 新建（Contributor Covenant 2.1）+ `CONTRIBUTING.md` "Governance" 段（BDFL 模型）|
 | 中断恢复测试 | ✅ **r62 B1**：`tests/test_interrupt_recovery.py` 3 observation tests pin SIGTERM/KI 现状 |
-| Meta-runner 覆盖 | ✅ **r64 S1**：subprocess-discover-and-run 跑全部 37 测试文件（pre-r64 仅 11 文件 / 39%）；audit-tail 修 3 pre-existing silent regressions |
+| Meta-runner 覆盖 | ✅ **r64 S1**：subprocess-discover-and-run 跑全部 35 启用测试文件（test_all 自身 + test_single 排除）（pre-r64 仅 11 文件 / 39%）；audit-tail 修 3 pre-existing silent regressions |
 | EVOLUTION 滚动归档 | ✅ **r65 二次执行**（hard contract #15）— `_archive/EVOLUTION_r61_r65.md` 新建；hard contract #15 阈值 r65 二次微调到 ≥30 行 OR ≥10%（acknowledge 归档量随 baseline 自然变化）|
 | 累计审计 | ✅ 连续 26 轮 0 CRITICAL correctness（r35-r66）；3 cycles × 23 findings = 69 unique findings 全闭合（r66 retire AUDIT framework 后不再做周期化 6 维度审计）|
 
@@ -168,7 +168,7 @@ git history 完整保留可追溯（如需 `git show <commit>:docs/adr/0007-mypy
 - 全部 21+27+28 = 76 tests 拆分后保留 PASS
 
 **2. S1 HIGH — 重写 meta-runner + audit-tail 修 3 silent regressions**：
-- `tests/test_all.py` 完全重写为 **subprocess-discover-and-run** 模式（37 文件 / ~7s vs prior 11 文件 / 0.68s）。Discover 模式自动跟进未来新加测试文件，永不再 silent gap
+- `tests/test_all.py` 完全重写为 **subprocess-discover-and-run** 模式（35 启用文件 / ~7s vs prior 11 文件 / 0.68s）。Discover 模式自动跟进未来新加测试文件，永不再 silent gap。**r67 H1 后续修**：banner regex `[A-Z_ ]*?` → `[A-Z_\-0-9 ]*?` + 中文 banner fallback，修复 10 文件 96 测试 silent miscount 为 0
 - audit-tail 副产品：S1 修改后 meta-runner 立即暴露 3 个 pre-existing silent regressions（pre-r64 因为不在 meta-runner 而无人发现）：
   - `tests/test_batch1.py:240-270` — 3 个多语言测试 (`test_default_language_ja/ko/zh-tw`) 引用已 r52 C4 BREAKING 移除的字符串 (`"japanese"` / `"korean"` / `"traditional_chinese"`)。**修**：rename 为 `_kwarg_ignored_post_r52` 并改 assertion 为 `"chinese"`（pin r52 C4 contract: kwarg ignored, always 'chinese'）
   - `tests/test_rpyc_decompiler.py` (582 行) — 5/8 imports 引用已不存在的 API（`RPYC2_HEADER` / `_RestrictedUnpickler` / `_read_rpyc_data` / `_safe_unpickle` / `extract_strings_from_rpyc`）。**修**：删除（dead test debt；r65+ 可在新 API 上重建）

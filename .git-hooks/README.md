@@ -8,7 +8,7 @@ This directory contains the project's `pre-commit` hook. It runs four fast sanit
 
 2. **File-size guard** — any `.py` outside `.git` / `_archive` / `__pycache__` / `output` exceeding **800 lines** blocks the commit. Any such file should be split into smaller modules.
 
-3. **Meta-runner tests** — `python tests/test_all.py` (~150 tests, ~5s) catches regressions in the core 6 focused suites (api / file_processor / translators / glossary-prompts-config / translation-state / runtime-hook).
+3. **Meta-runner tests** — `python tests/test_all.py` (~7s) runs **every** `tests/test_*.py` file via subprocess (r64 S1 rewrite, ~35 enabled files; `test_all.py` and `test_single.py` excluded — see `_NON_TEST_FILES`). Per-file count parsed from each module's tail banner (r67 H1 fixed regex to accept hyphens, digits, and Chinese banner formats). `returncode == 0` is the authoritative pass signal; the count is informational. Total reported tests ≈ `tests_total` in `HANDOFF.md` `VERIFIED-CLAIMS` block.
 
 4. **`scripts/verify_docs_claims.py --fast`** — re-derives `test_files` and `ci_steps` from the source tree and compares them against the fenced `VERIFIED-CLAIMS` block in `HANDOFF.md`. Any drift fails the commit.
 

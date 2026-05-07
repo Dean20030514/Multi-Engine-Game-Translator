@@ -1,2 +1,4 @@
-# 无第三方依赖，仅使用 Python 标准库
-# Python >= 3.9
+# 无第三方依赖，仅使用 Python 标准库 (zero third-party deps, stdlib only)
+# Python >= 3.10 (r57 T1 BREAKING; PEP 604 `int | None` syntax used widely)
+# This file is informational; pyproject.toml::dependencies = [] is the
+# single source of truth.

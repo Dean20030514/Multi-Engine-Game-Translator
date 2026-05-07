@@ -529,7 +529,7 @@ python scripts/verify_docs_claims.py --full # 实跑 CI 全部 Run-* steps
 ```
 
 **CI**：
-- 6 jobs（matrix `[ubuntu-latest, windows-latest]` × `[3.9, 3.12, 3.13]`）
+- 6 jobs（matrix `[ubuntu-latest, windows-latest]` × `[3.10, 3.12, 3.13]`，r57 T1 起 — `pyproject.toml requires-python = ">=3.10"`）
 - 步骤数见 `VERIFIED-CLAIMS.ci_steps`
 - 关键步骤：py_compile + meta + 22 独立 suite + 2 self-test + verify_docs_claims unit + push-status (r52 C1) + `--full` + mock target consistency check + build.py smoke (r52 C2) + 零依赖检查 + mypy informational + integration dry-run
 

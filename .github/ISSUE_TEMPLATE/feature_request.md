@@ -49,5 +49,5 @@ How will correctness be verified? New tests / fixtures needed?
 ## 关联 / Related
 
 - 相关 issue: #
-- 相关 ADR: [docs/adr/](../../docs/adr/)
+- 相关 hard contract: 见 [CLAUDE.md](../../CLAUDE.md) "维护规则"段（r66 retire ADR framework — 架构契约 inline 到 CLAUDE.md）
 - 相关历史决策: [_archive/EVOLUTION.md](../../_archive/EVOLUTION.md)

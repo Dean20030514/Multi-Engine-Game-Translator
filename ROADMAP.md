@@ -4,17 +4,16 @@
 >
 > 本文件 r58 P2 引入。**截止 r66 末**项目历经 3 轮 6 维度深度审计（r57 / r60 / r63 cycles，共 69 unique findings 全闭合）+ r66 用户决策 retire ADR + AUDIT framework；hard contracts 15 条 + 25+ 轮连续 0 CRITICAL streak。
 
-## 当前能力（r64 末）
+## 当前能力（r66 末）
 
 - ✅ Ren'Py / RPG Maker MV-MZ / CSV-JSONL / Unity XUnity 四引擎成熟（Unity r55 引入）
 - ✅ 五大 LLM provider + custom plugin (subprocess sandbox-only，r52 C3 BREAKING)
 - ✅ tl-mode 翻译成功率 99.991%（r52 实测 The Tyrant 74098 entries / 0.0013% checker drop）
 - ✅ direct-mode 漏翻率 4.01%（仅适用英文源；r53 W4 文档化）
-- ✅ **24 轮连续 0 CRITICAL correctness streak（r35-r64）**
+- ✅ **26 轮连续 0 CRITICAL correctness streak（r35-r66）**
 - ✅ 26 sites TOCTOU MITIGATED + pickle 红队 verified safe + path traversal guard
 - ✅ **CI 三 OS matrix**（ubuntu / windows + macos nightly schedule，r61 S1）+ ruff lint+format gate（r58 P1）+ mypy enforce 6 文件 scope（r57 T2）+ release.yml 自动化（r59 B1，3 OS PyInstaller → SHA256SUMS → draft Release）
-- ✅ **完整 docs 体系**：CLAUDE.md / HANDOFF.md / docs/ARCHITECTURE.md / docs/REFERENCE.md / docs/ONBOARDING.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md "Governance" 段（r66 retire ADR framework — 架构决策由 CLAUDE.md hard contracts 列表 + EVOLUTION 阶段叙事 完整记录）
-- ✅ **AUDIT 永久入口**（r64 S2）：[`AUDIT.md`](AUDIT.md) active cycle + `_archive/AUDIT_R{N}.md` 历史归档
+- ✅ **完整 docs 体系**：CLAUDE.md / HANDOFF.md / docs/ARCHITECTURE.md / docs/REFERENCE.md / docs/ONBOARDING.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md "Governance" 段（r66 retire ADR + AUDIT framework — 架构决策由 CLAUDE.md hard contracts 列表 + EVOLUTION 阶段叙事 完整记录）
 - ✅ **项目版本**：v2.0.0（r62 B2 升级反映 r52 C3/C4 + r57 T1 累积 BREAKING）；`python main.py --version` 可查（r64 S4）
 
 ## 短期路线图（按 ROI 排序）
@@ -26,7 +25,7 @@
 | 🟡 流程 | **CI ruff lint+format** | ✅ r58 P1 引入 | 已 enforce |
 | 🟡 流程 | **release.yml tag-trigger** | ✅ r59 B1 引入 | v* tag → 3 OS matrix → draft Release |
 | 🟡 流程 | **macOS nightly CI** | ✅ r61 S1 引入 | cron + workflow_dispatch |
-| 🟡 流程 | **Meta-runner subprocess discover** | ✅ r64 S1 引入 | 全部 37 测试文件 pre-commit 全跑 |
+| 🟡 流程 | **Meta-runner subprocess discover** | ✅ r64 S1 引入 + r67 H1 banner regex 修 | 全部 35 启用文件（test_all.py 自身 + test_single.py 排除）pre-commit 全跑；count 准确性 r67 修复 |
 
 ## 中期方向（架构 / 体验）
 

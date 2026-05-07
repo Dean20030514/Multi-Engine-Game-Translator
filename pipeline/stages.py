@@ -60,6 +60,12 @@ def _run_retranslate_phase(
         result["checker_dropped"] = 0
         return result
 
+    # r67 M7: function-level imports here are LAZY (not circular) — these
+    # heavy modules (translators.retranslator chain, APIClient, Glossary)
+    # only load when --retranslate is actually invoked, keeping CLI startup
+    # under 300ms for `--dry-run` / `--help`. Top-level import would pull
+    # ~30+ transitive deps eagerly. See CLAUDE.md "已知限制" pipeline/stages
+    # function-level import note.
     from translators.retranslator import (
         retranslate_file as _retranslate_file,
         find_untranslated_lines as _find_untranslated_lines,
@@ -269,6 +275,10 @@ def _run_pilot_phase(
 
     Raises: StageError if structural errors found
     """
+    # r67 M7: lazy import of StageError — pipeline.helpers imports stages
+    # transitively via run_one_click_pipeline; top-level import would
+    # create a circular import at module load. Function-local resolves
+    # at call time after both modules finish loading.
     from pipeline.helpers import StageError
 
     pilot_files = pick_pilot_files(scan_root, args.pilot_count)
@@ -367,6 +377,7 @@ def _run_full_translation_phase(
 
     Raises: StageError if structural errors found
     """
+    # r67 M7: lazy import — same circular-import reason as _run_pilot_phase.
     from pipeline.helpers import StageError
 
     propagate_fn(stage2_translated)
@@ -490,6 +501,9 @@ def _run_lint_repair_phase(
 
     如果 lint 不可用（找不到游戏引擎 Python），则跳过并明确告知。
     """
+    # r67 M7: lazy import of tools.renpy_lint_fixer — only loaded when lint
+    # phase runs (skipped if game engine Python missing). Avoids pulling
+    # tools/ heavy module graph into pipeline import path for non-lint runs.
     from tools.renpy_lint_fixer import is_lint_available, run_lint
 
     if not is_lint_available(game_dir):

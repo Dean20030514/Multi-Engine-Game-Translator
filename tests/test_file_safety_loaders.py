@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Caller-integration TOCTOU regressions for ``safety/file_safety.py`` users.
+r'''Caller-integration TOCTOU regressions for ``safety/file_safety.py`` users.
 
 r64 T1 fix: split from ``tests/test_file_safety.py`` (was 798 lines, near
 the 800-line cap). Helper unit tests stay in ``test_file_safety.py``; the
@@ -12,7 +12,15 @@ Mock-target consistency contract preserved: every regression must mock
 The CI Mock-target consistency check (\.github/workflows/test.yml) treats
 this file the same as the original — fragment match ``grep -v file_safety``
 already accommodates both filenames sharing the ``file_safety`` substring.
-"""
+
+r67 M3 fix: this docstring is a raw triple-single-quoted string. Switching
+to triple-single-quoted (rather than triple-double) avoids the meta-issue
+where the fix description itself would re-introduce the bug it documents
+(mentioning the original triple-double raw form embeds a literal closing
+delimiter inside the docstring). The ``r`` prefix silences Python 3.12+
+``SyntaxWarning: invalid escape sequence`` for the literal ``\.`` regex
+in ``\.github/workflows`` above (becomes ``SyntaxError`` in 3.14).
+'''
 
 import sys
 from pathlib import Path
