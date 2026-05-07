@@ -1,4 +1,4 @@
-# HANDOFF — Round 62 末 → Round 63 起点（**r60 audit 路径 X 全 fix 闭合 — 23 项 / 维度 1-6 全清零 + version 1.0→2.0**）
+# HANDOFF — Round 63 末 → Round 64 起点（**r63 第三次 6 维度审计：23 unique new findings 待 fix**）
 
 <!-- VERIFIED-CLAIMS-START -->
 tests_total: 498
@@ -22,11 +22,11 @@ assertion_points: 624
 
 ## 状态一句话
 
-纯 Python 零依赖**zh-only**游戏汉化工具。**Round 62 完成 r60 audit 路径 X 第二波 — 维度 4+5+6 共 12 项 fix；至此 23 findings 全闭合，audit backlog 清零**：(P1) HANDOFF.md 模板精简 — r56-r59 详细叙事压缩为 4 行 bullets 引用 EVOLUTION_r56_r60.md（HANDOFF 313→244 / -69 行 / 22%）；(P2) README 中英双段加 "致谢 / Acknowledgements"（maintainer + AI 协作 + 上游归属 + 测试反馈 + 依赖 + 治理）；(P3+P4+B3+B4+O3+O4) 6 项 retire/watchlist 文档化（CLAUDE.md "已知限制" 段批量）；(B1) 新 `tests/test_interrupt_recovery.py` 3 observation tests pin SIGTERM/KI 现状；(B2) `pyproject.toml::version` **1.0.0 → 2.0.0**（反映 r52 C3/C4 + r57 T1 累积 BREAKING）+ `RELEASE.md` SemVer 演进段；(O1) 新 `CODE_OF_CONDUCT.md`（项目特化 Contributor Covenant 2.1，中英双段）；(O2) `CONTRIBUTING.md` 加 "Governance" 段（BDFL 模型 + 角色定义 + AI 协作 + 未来演进）。**连续 22 轮 0 CRITICAL correctness**（r35-r62）。**actionable backlog 仅剩 2 项**（Godot + Kirikiri/TyranoBuilder 引擎接入；按 ROI 排序，按需推进）。
+纯 Python 零依赖**zh-only**游戏汉化工具。**Round 63 重做第三次 6 维度深度债务审计**（r57 cycle 23 + r60 cycle 23 已闭合 = 46 项；r63 不重复）：扫描 r62 末 baseline 后的更深层潜在债务，**收集 23 unique new findings 重写 [`AUDIT_R57.md`](AUDIT_R57.md)**（**2 HIGH + 9 MEDIUM + 12 LOW**）。**2 HIGH 是 imminent failure**：(T1) 3 个 testfile 危险接近 800 cap（test_file_safety 798 / test_api_client 792 / test_verify_docs_claims 790，距 cap 2-10 行），加任何新测试就 block commit；(S1) **pre-commit hook 仅运行 191/485 测试 ≈ 39% 覆盖**（24/35 测试文件不在 meta-runner，包括 r61 T1 fix 验证 + r62 B1 interrupt 测试本身）。其他重要 finding：S2 (`AUDIT_R57.md` 命名 drift，实际是 r63 cycle 容器) / S3 (START.bat 错误声称 Python 3.9+ 矛盾 r57 T1 BREAKING) / S4 (无 `--version` flag) / P1 (ROADMAP.md "截止 r57 末" stale) / P2 (ONBOARDING 说 "5 份 ADR" 但实际 11 份) / B2 (build.py 无 PyInstaller version-info)。本轮**仅完成 audit 报告**，**不实施 fix**（用户决策路径 X/Y/Z/W 后由 r64+ 执行）。**连续 23 轮 0 CRITICAL correctness**（r35-r63）。
 
 ## 同步状态
 
-- r62 单 commit 待 push（NEVER push 政策保留给用户）
+- r63 单 commit 待 push（NEVER push 政策保留给用户）
 - 本地未 push（按 NEVER push 政策保留 commit 决策给用户）
 - pre-commit hook 已激活（`git config core.hooksPath = .git-hooks`）
 - 4 件套 + r52 C1 push-status drift check 自动 enforce：py_compile + 800 行 cap + meta-runner + `verify_docs_claims --fast` (含 push-status check)
@@ -68,14 +68,15 @@ assertion_points: 624
 | 用户面文档 | ✅ **r59 B4**：README 中英双段加"免责声明"（翻译产物法律责任由用户承担）|
 | 错误信息一致化 | ✅ **r59 B3**：5 处英文 message 中文化；prefix 保持英文 caps（已成熟惯例 + grep 友好）|
 | AUDIT_R57.md 23 findings (r57 cycle) | ✅ **r59 末全闭合**（r57 8 + r58 8 + r59 8 - 1 retire 复用 = 23）|
-| AUDIT_R57.md 23 findings (r60 cycle) | ✅ **r62 末全闭合**（r61 11 + r62 12 = 23 项全闭合，audit backlog 清零）|
+| AUDIT_R57.md 23 findings (r60 cycle) | ✅ **r62 末全闭合**（r61 11 + r62 12 = 23 项全闭合）|
+| AUDIT_R57.md 23 findings (r63 cycle) | 🟡 **r63 末写入**（2 HIGH + 9 MEDIUM + 12 LOW）— 待 r64+ fix |
 | ADR 覆盖 | ✅ **r61 A1**：补 ADR 0006-0011 共 6 份（py 3.10 floor / mypy enforce / path traversal / ruff CI / EVOLUTION rolling archive / shared config helper）|
 | macOS CI 覆盖 | ✅ **r61 S1**：`.github/workflows/test_macos.yml` nightly schedule（cron + workflow_dispatch，3.10/3.12/3.13）|
 | EVOLUTION 滚动归档 | ✅ **r60 首次执行**（hard contract #15）— `_archive/EVOLUTION_r56_r60.md` 新建；主 EVOLUTION.md 364→276 (-88 / 24%) |
 | 项目版本号 | ✅ **r62 B2**：`pyproject.toml::version` 1.0.0 → 2.0.0（反映 r52 C3/C4 + r57 T1 累积 BREAKING）|
 | 治理文档 | ✅ **r62 O1+O2**：`CODE_OF_CONDUCT.md` 新建（Contributor Covenant 2.1）+ `CONTRIBUTING.md` "Governance" 段（BDFL 模型）|
 | 中断恢复测试 | ✅ **r62 B1**：`tests/test_interrupt_recovery.py` 3 observation tests pin SIGTERM/KI 现状 |
-| 累计审计 | ✅ 连续 22 轮 0 CRITICAL correctness（r35-r62） |
+| 累计审计 | ✅ 连续 23 轮 0 CRITICAL correctness（r35-r63） |
 
 ## 推荐的 Round 56+ 工作项
 
@@ -96,6 +97,36 @@ assertion_points: 624
 ### ✅ Round 55 完成（1 项；从 actionable backlog 移到 已完成）
 
 - ~~**Unity XUnity AutoTranslator 接入**~~ — **r55 完成**：[`engines/unity_xunity.py`](engines/unity_xunity.py) 实现 detect/extract/write_back，支持 `original=translation` 普通行 + `//` 注释保留 + `r:"<pattern>"="<replacement>"` 正则规则（pattern 不动，仅 replacement 提交 LLM）+ UTF-8 BOM round-trip + CRLF/LF 行尾保留 + 50 MB OOM cap + TOCTOU 防御。CLI `--engine unity` 与 `--engine unity_xunity` 都接受。16 单元测试 PASS（含 round-trip byte-identical assertion）。
+
+### 🟡 Round 63 完成（第三次 6 维度深度审计 — 23 unique new findings 待 r64+ fix）
+
+> r63 是**纯 audit 轮**，零代码 / 零数字变更（VERIFIED-CLAIMS 维持 498/36/36/624）。r57 cycle 23 + r60 cycle 23 已闭合 = 46 项；本轮扫 r62 末 baseline 后的更深层潜在债务，**不重复任何已闭合 findings**。
+
+**Ground-truth scan 充分**（11+ 命令）+ 重写 [`AUDIT_R57.md`](AUDIT_R57.md) 为 r63 cycle 容器。
+
+**6 维度 23 unique findings 概要**：
+
+| 维度 | 严重度分布 | 关键 finding |
+|------|----------|-------------|
+| 1. 技术债 | 1H + 1M + 2L | **T1 HIGH**: 3 testfile 距 800 cap 仅 2-10 行（imminent block）|
+| 2. 质量与安全债 | 1H + 2M + 1L | **S1 HIGH**: pre-commit hook 仅运行 191/485 测试 ≈ 39% 覆盖（24/35 测试文件不在 meta-runner，含 r61 T1 + r62 B1 验证测试本身）|
+| 3. 架构与设计债 | 0H + 2M + 1L | A1: gui.py 594 行 watchlist persisted；A2: pipeline/stages.py 函数内 import 10 处未审 lazy 原因 |
+| 4. 流程与文档债 | 0H + 2M + 2L | P1: ROADMAP.md "截止 r57 末" stale；P2: ONBOARDING 说 "5 份 ADR" 但实际 11 份；P4: 缺 `scripts/install_hooks.bat` |
+| 5. 产品与业务债 | 0H + 2M + 2L | B1: pyproject.toml description 中文 only；B2: build.py 无 PyInstaller version-info |
+| 6. 组织与知识债 | 0H + 2M + 2L | O1: 缺 `.editorconfig`；O2: 缺 `.github/FUNDING.yml` |
+| **TOTAL** | **2 HIGH + 9 MEDIUM + 12 LOW = 23** | |
+
+**待用户选 fix 路径**（r64+ 执行）：
+- **路径 X**：全部 23 项 fix（约 r64-r65 两轮）— 与 r60→r61-r62 模式一致
+- **路径 Y**（建议）：H + M 共 11 项 fix（~r64 1-2 commits）；12 LOW retire to architectural decision
+- **路径 Z**：仅 2 HIGH (T1 testfile cap + S1 pre-commit 覆盖)；最防御性
+- **路径 W**：22 项 retire（仅 T1 imminent failure 必须 fix）
+
+**数字增量**：tests_total / test_files / ci_steps / assertion_points 全 unchanged（纯 audit 轮）；hard contracts 仍 15。**连续 23 轮 0 CRITICAL correctness**（r35-r63）。
+
+### 🟢 Round 62 完成（r60 audit 路径 X 第二波 — 维度 4+5+6 共 12 项 fix；audit backlog 清零）
+
+详见 commit `5a05dd6`：(P1) HANDOFF 模板精简 -69 行；(P2) README 致谢；(B1) `tests/test_interrupt_recovery.py` 3 observation tests；(B2) version 1.0→2.0；(O1) `CODE_OF_CONDUCT.md`；(O2) CONTRIBUTING.md Governance 段；(P3+P4+B3+B4+O3+O4) 6 项 retire/watchlist。tests_total 495→498 (+3)；test_files 35→36 (+1)。
 
 ### ✅ Round 61 完成（r60 audit 路径 X 第一波 — 维度 1+2+3 共 11 项 fix 全闭合）
 
@@ -231,12 +262,14 @@ assertion_points: 624
 4. **（按需）** `_archive/EVOLUTION.md` — 历史决策（含 r54 段）
 5. **（按需）** `_archive/CHANGELOG_RECENT_r52.md` — 最近 5 轮（r48-r52）详细
 
-**Round 63 关键约束**：
-- **🔔 r62 末 audit backlog 清零**（r60 audit 23 findings 全闭合）— r63 无未完 audit 任务；可推进 actionable backlog（Godot 引擎 / Kirikiri+TyranoBuilder 引擎）或等待用户指示
-- **🔔 r60 已执行首次 EVOLUTION 滚动归档**（hard contract #15）— 下次触发 r65（再 3 轮）；归档时主 EVOLUTION 应减 ≥80 行 OR ≥20%
-- **🔔 ADR 索引现 11 份**（r61 A1 补 0006-0011）；新增架构决策必须 ADR 化（不仅 EVOLUTION 段记一笔）
-- **🔔 项目版本号 2.0.0**（r62 B2）— `pyproject.toml::version`；下次 BREAKING 升 3.0.0；非 BREAKING 走 MINOR/PATCH
-- **🔔 AUDIT_R57.md 应 r63+ 移到 `_archive/AUDIT_R60.md`**（与 r57 旧版本相同处理；本文件作为容器已完成使命）
+**Round 64 关键约束**：
+- **🔔 r63 已写入 23 unique new findings 到 [`AUDIT_R57.md`](AUDIT_R57.md)**；r64 起首要任务 = 用户选 fix 路径 (X/Y/Z/W) 后实施。**2 HIGH (T1 testfile cap + S1 pre-commit 39% 覆盖) imminent — 不可 retire**
+- **🔔 T1 testfile cap imminent**：tests/test_file_safety.py (798) / test_api_client.py (792) / test_verify_docs_claims.py (790) — 加任何新测试就 block commit，r64+ 必先拆 OR 加新文件而非扩展这 3 文件
+- **🔔 S1 pre-commit 39% 覆盖 silent gap**：r61 T1 fix + r62 B1 测试本身**未在 pre-commit 跑**；任何 regression 只能 push 后 CI catch；r64 fix 路径选 Y/X 时 S1 应优先（meta-runner 扩到 35 文件，时间从 0.68s → ~3.5s 可接受）
+- **🔔 r60 已执行首次 EVOLUTION 滚动归档**（hard contract #15）— 下次触发 r65；归档时主 EVOLUTION 应减 ≥80 行 OR ≥20%
+- **🔔 ADR 索引现 11 份**（r61 A1 补 0006-0011）；新增架构决策必须 ADR 化
+- **🔔 项目版本号 2.0.0**（r62 B2）；下次 BREAKING 升 3.0.0
+- **🔔 AUDIT_R57.md 命名 drift 已是 r63 audit S2 finding**：本 cycle 完成 fix 后建议改名永久入口 `AUDIT.md` + 历史 cycle 归档 `_archive/AUDIT_R{N}.md`
 - audit findings 必须**同轮 fix，no tier exemption**（r50 起 written + enforced；r51-r62 共 12 轮各执行有效）
 - **CI ruff lint/format 门禁**（r58 P1）— 任何新 PR 必须 `ruff check .` + `ruff format --check .` 全过；`pyproject.toml [tool.ruff]` extend-ignore 列表不得放宽
 - **EVOLUTION 滚动归档**（r58 P3 / r60 阈值微调）— 每 5 轮一次（r65 / r70 / ...）；归档时主 EVOLUTION 应减 ≥80 行 OR ≥20%（启发式，可变 baseline）

@@ -232,14 +232,15 @@
 | 59 | 维度 5+6（B1-B4 + O1-O4）闭合 + AUDIT_R57.md 收尾：release 自动化（3 OS matrix → SHA256SUMS → draft Release）+ 中英双段免责声明 + `docs/ARCHITECTURE.md §0 Quick Tour` + `docs/ONBOARDING.md` 新建；纯文档+流程+微调轮 |
 | 60 | EVOLUTION 滚动归档首次执行（hard contract #15）；重做 6 维度审计收集 23 unique new findings（1 HIGH A1 ADR 缺漏 + 11 MEDIUM + 11 LOW）重写 [`AUDIT_R57.md`](../AUDIT_R57.md)；fix 由 r61+ 执行 |
 
-## 阶段二十-二一（r61-r62）— r60 audit 路径 X 全闭合 + 21st-22nd 0-CRITICAL Streak
+## 阶段二十-二二（r61-r63）— r60 audit 路径 X 全闭合 + r63 第三次审计 + 21st-23rd 0-CRITICAL Streak
 
 | 轮 | 主题 |
 |----|------|
 | 61 | r60 audit 路径 X 第一波闭合 11 项（维度 1+2+3）：(A1 HIGH) 补 6 份 ADR 0006-0011 文档化 r57-r58 全部架构决策（py 3.10 floor / mypy enforce / path traversal / ruff CI / EVOLUTION rolling archive / shared config helper）+ ADR 索引 5→11；(T1) `_tl_parser_selftest.py` tempfile 泄漏 fix + 1 unit test；(T2) CONTRIBUTING.md 加"新代码 100% type hint"PR 规则；(T3+A3) gui.py 594 行 cap watchlist + "新 PR 加 GUI 功能必须先拆"约束；(T4) benchmark watchlist；(S1) `.github/workflows/test_macos.yml` nightly schedule 新建（cron + workflow_dispatch，3.10/3.12/3.13 matrix）；(S2) Plugin JSONL 协议视为稳定（`docs/REFERENCE.md §7b` 字段集 + 不加 version 决策）；(S3+S4+A2) 3 项 retire to architectural decision（API key 内存 / prompt injection / GUI subprocess.Popen 隔离）。+1 测试；hard contracts 仍 15 |
-| 62 | r60 audit 路径 X 第二波闭合 12 项（维度 4+5+6）+ AUDIT_R57.md 收尾清零：(P1) HANDOFF.md 模板精简 r56-r59 详细叙事 → 4 行 bullets 引用 EVOLUTION_r56_r60.md（313→244 行 / -69 / 22%）；(P2) README 中英双段加"致谢 / Acknowledgements"段（maintainer + AI 协作 + 上游归属 + 测试反馈 + 依赖 + 治理）；(P3+P4+B3+B4+O3+O4) 6 项 retire/watchlist 文档化（CLAUDE.md "已知限制"段批量）；(B1) `tests/test_interrupt_recovery.py` 新建 3 observation tests pin SIGTERM/KI 现状；(B2) `pyproject.toml::version` 1.0.0 → 2.0.0 反映累积 BREAKING (r52 C3+C4 / r57 T1) + RELEASE.md 同步；(O1) `CODE_OF_CONDUCT.md` 新建（项目特化 Contributor Covenant 2.1，中英双段）；(O2) CONTRIBUTING.md 加"Governance"段（BDFL 模型 + 角色定义 + AI 协作 + 未来演进）。**r60 audit 23 findings 全闭合（r61 11 + r62 12）**；hard contracts 仍 15 |
+| 62 | r60 audit 路径 X 第二波闭合 12 项（维度 4+5+6）+ AUDIT_R57.md 收尾清零：(P1) HANDOFF.md 模板精简 r56-r59 详细叙事 → 4 行 bullets 引用 EVOLUTION_r56_r60.md（313→244 行 / -69 / 22%）；(P2) README 中英双段加"致谢 / Acknowledgements"段；(P3+P4+B3+B4+O3+O4) 6 项 retire/watchlist 文档化；(B1) `tests/test_interrupt_recovery.py` 新建 3 observation tests pin SIGTERM/KI 现状；(B2) `pyproject.toml::version` 1.0.0 → 2.0.0 反映累积 BREAKING (r52 C3+C4 / r57 T1) + RELEASE.md 同步；(O1) `CODE_OF_CONDUCT.md` 新建（项目特化 Contributor Covenant 2.1，中英双段）；(O2) CONTRIBUTING.md 加"Governance"段。**r60 audit 23 findings 全闭合（r61 11 + r62 12）**；hard contracts 仍 15 |
+| 63 | **第三次 6 维度深度债务审计**（r57 cycle 23 + r60 cycle 23 已闭合 = 46 项；r63 不重复）：扫 r62 末 baseline 后更深层潜在债务，**收集 23 unique new findings 重写 [`AUDIT_R57.md`](../AUDIT_R57.md)**（**2 HIGH + 9 MEDIUM + 12 LOW**）。2 HIGH 是 imminent failure：(T1) 3 testfile 距 800 cap 仅 2-10 行（test_file_safety 798 / test_api_client 792 / test_verify_docs_claims 790）；(S1) **pre-commit hook 仅运行 191/485 测试 ≈ 39% 覆盖**（24/35 测试文件不在 meta-runner，含 r61 T1 + r62 B1 测试本身）。其他重要 finding：S2 (`AUDIT_R57.md` 命名 drift) / S3 (START.bat 错误说 Python 3.9+) / S4 (无 `--version` flag) / P1 (ROADMAP "截止 r57 末" stale) / P2 (ONBOARDING 说 "5 份 ADR" 但 11 份) / B2 (.exe 无 PyInstaller version-info) / O1 (`.editorconfig` 缺) 等。**纯 audit 轮**，零代码 / 零数字变更；fix 由 r64+ 执行（用户决策路径 X/Y/Z/W）|
 
-**连续 22 轮 0 CRITICAL correctness 保持**（r35-r62）。下次滚动归档：**r65** → `_archive/EVOLUTION_r61_r65.md`。
+**连续 23 轮 0 CRITICAL correctness 保持**（r35-r63）。下次滚动归档：**r65** → `_archive/EVOLUTION_r61_r65.md`。
 
 ---
 
