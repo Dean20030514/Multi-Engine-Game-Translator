@@ -26,8 +26,8 @@ assertion_points: 616
 
 ## 同步状态
 
-- r66 单 commit 待 push（NEVER push 政策保留给用户）
-- 本地未 push（按 NEVER push 政策保留 commit 决策给用户）
+- r67 单 commit 待 push（NEVER push 政策保留给用户；r66 commits 已被用户 push）
+- 本地领先 origin/main 1 commit（按 NEVER push 政策保留 commit 决策给用户）
 - pre-commit hook 已激活（`git config core.hooksPath = .git-hooks`）
 - 4 件套 + r52 C1 push-status drift check 自动 enforce：py_compile + 800 行 cap + meta-runner + `verify_docs_claims --fast` (含 push-status check)
 - Git remote: `https://github.com/Dean20030514/Multi-Engine-Game-Translator.git`
