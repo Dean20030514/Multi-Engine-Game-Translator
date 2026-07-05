@@ -6,15 +6,40 @@
 
 ## 支持的引擎
 
-- **Ren'Py**（一等公民）：解包 / 反编译 / `tl/` 槽位生成 / 中文字体注入 / 语言切换器 / 打成可分发补丁
+目前支持 **13 个游戏引擎**（Ren'Py 为一等公民；其余按覆盖范围与真机验证程度不同，部分标注为实验性）。
+
+**一等公民**
+
+- **Ren'Py**：解包（`.rpa`）/ 反编译（`.rpyc`）/ `tl/` 槽位生成 / 中文字体注入 / 语言切换器 / 打成可分发补丁
+
+**通用商业引擎**
+
 - **RPG Maker MV / MZ**：加载期按值替换的运行时翻译插件
+- **RPG Maker XP / VX / VX Ace**（RGSS）：解包 RGSSAD 归档、就地重写 `Data/` 脚本（XP/VX 为 Shift-JIS，简体显示受限）
 - **Unity**（XUnity AutoTranslator）：文本翻译 + 引擎版本探测 + 版本特定的 CJK 字体引导
-- **CSV / JSONL**：通用表格文本（opt-in）
+- **Godot 3 / 4**：向明文 `.tscn` 场景追加 gettext `.po` 译文并注册（需在编辑器重导入一次）
+- **Wolf RPG Editor（ウディタ）**：地图 / 公共事件 / 数据库文本回写 + 中文字体注入
+
+**日系视觉小说脚本引擎**
+
+- **NScripter / ONScripter**：脚本解码，追加 / 就地回写（简体渲染需 UTF-8 / CJK 构建，实验性）
+- **KiriKiri / KAG**：生成 `patch.xp3` 补丁自动挂载（明文 xp3，绝不改动源文件）
+- **TyranoScript / TyranoBuilder**：就地改写 `.ks` 脚本
+- **BGI / Ethornell**（Buriko）：DSC 编译脚本解压 + append-and-repoint 回写（实验性；已在一款真实游戏内可视验证简体渲染）
+- **Artemis Engine**：`.ast` 对白 + `.tbl` UI 文本 span 精确回写（实验性；`.ast` / `.tbl` 游戏内简体渲染均已真机可视验证）
+- **Majiro Script Engine**：MajiroObj 字节码反汇编 + 重打包（实验性；引擎回写正确性已真机实证，游戏内简体显示需非 UTF-8 的 locale 环境）
+
+**通用表格**
+
+- **CSV / JSONL**：通用表格文本（opt-in，不参与自动检测）
 
 ## 下载
 
-正式发布版本将通过本仓库的 [Releases](../../releases) 页提供（含 `gt.exe` 与使用说明）。
-目前尚无正式发布产物，敬请关注。
+前往 [Releases](../../releases) 页下载最新版（含单文件 `gt.exe` 与使用说明）。单文件双击即用，免装 Python、免 Ren'Py SDK。
+
+- **最新版**：[v0.3.0](../../releases/latest)（`GameTranslator-v0.3.0.zip`）
+- **校验完整性**：下载后与同名 `.sha256` 比对——PowerShell：`certutil -hashfile GameTranslator-v0.3.0.zip SHA256`；解压后单文件 `gt.exe` 的哈希见包内 `checksums.txt`。
+- 杀软对单文件打包的 exe 常有误报，可用上述校验自行确认完整性。
 
 ## 设计取舍
 
