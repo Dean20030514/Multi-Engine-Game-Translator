@@ -1,0 +1,10 @@
+# GitHub Issue 模板配置。
+# 目标生效仓库 = 公开发布库 game-translator-releases（用户在那里提 issue）；
+# 此处为源，随发布由维护者复制到公开库的 .github/ISSUE_TEMPLATE/（见 RELEASE_CHECKLIST）。
+# 若想在公开库强制走模板可把下行改 false；此源保持 true 以免约束私有开发库。
+blank_issues_enabled: true
+contact_links:
+  - name: 爱发电（留言反馈 / 支持开发者）
+    url: https://ifdian.net/a/Dean20030514
+    about: 可在爱发电留言反馈；想即时交流请加 QQ 群 1047676453（不便用 GitHub 时）
+# 备注（维护者）：如有稳定的 QQ 群 join 链接，可另加一条 contact_link 直接指向入群页。
