@@ -37,8 +37,8 @@
 
 前往 [Releases](../../releases) 页下载最新版（含单文件 `gt.exe` 与使用说明）。单文件双击即用，免装 Python、免 Ren'Py SDK。
 
-- **最新版**：[v0.5.0](../../releases/latest)（`GameTranslator-v0.5.0.zip`）
-- **校验完整性**：下载后与同名 `.sha256` 比对——PowerShell：`certutil -hashfile GameTranslator-v0.5.0.zip SHA256`；解压后单文件 `gt.exe` 的哈希见包内 `checksums.txt`。
+- **最新版**：[v0.6.0](../../releases/latest)（`GameTranslator-v0.6.0.zip`）
+- **校验完整性**：下载后与同名 `.sha256` 比对——PowerShell：`certutil -hashfile GameTranslator-v0.6.0.zip SHA256`；解压后单文件 `gt.exe` 的哈希见包内 `checksums.txt`。
 - 杀软对单文件打包的 exe 常有误报，可用上述校验自行确认完整性。
 
 ## 设计取舍
